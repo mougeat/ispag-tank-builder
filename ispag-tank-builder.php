@@ -1,0 +1,43 @@
+<?php
+/*
+Plugin Name: ISPAG Tank Builder
+Description: Plugin de conception de réservoirs pour projets techniques ISPAG.
+Version: 1.0
+Author: Cyril Barthel
+*/
+    
+defined('ABSPATH') || exit;
+
+// Autochargement des classes
+require_once plugin_dir_path(__FILE__) . 'classes/class-ispag-tank-manager.php';
+require_once plugin_dir_path(__FILE__) . 'classes/class-ispag-nameplate-generator.php';
+
+// Init du plugin
+// add_action('plugins_loaded', ['ISPAG_Tank_Manager', 'init']);
+
+if ( ! defined('ISPAG_PLUGIN_URL') ) {
+    define('ISPAG_PLUGIN_URL', plugin_dir_url(__FILE__));
+}
+
+
+
+add_action('plugins_loaded', function () {
+    ISPAG_Tank_Manager::init();
+    ISPAG_Tank_Designer::init();
+    ISPAG_Tank_Description::init();
+    ISPAG_Tank_Drawing::init();
+    ISPAG_Tank_Fittings::init();
+    ISPAG_Tank_SVG_Generator::init();
+    ISPAG_Tank_SVG_Top_View_Generator::init();
+    ISPAG_Tank_Welding::init();
+    ISPAG_Tank_Welding_Certificat::init();
+    ISPAG_Tank_Insulation::init();
+    ISPAG_Tank_Insulation_Auto_Saver::init();
+    ISPAG_Tank_Welding_Auto_Saver::init();
+    ISPAG_Existing_Tanks_table::init();
+    ISPAG_Tank_Exchanger::init();
+    ISPAG_Tank3D_Renderer::init();
+    ISPAG_Tank_DXF_Exporter::init();
+
+    new ISPAG_Nameplate_Generator();
+}); 

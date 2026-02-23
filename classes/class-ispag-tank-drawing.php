@@ -1,0 +1,273 @@
+<?php
+
+class ISPAG_Tank_Drawing {
+    protected $wpdb;
+    protected $table_article;
+    protected static $instance = null;
+
+    public function __construct() {
+        global $wpdb;
+        $this->wpdb = $wpdb;
+        $this->table_article = $wpdb->prefix . 'achats_details_commande';
+    }
+
+    public static function init(){
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        add_action('wp_enqueue_scripts', [self::class, 'enqueue_assets']);
+
+        add_filter('ispag_get_last_drawing_url', [self::$instance, 'get_last_tank_plan_for_article'], 10, 2);
+        add_filter('ispag_get_last_drawing_id', [self::$instance, 'get_last_drawing_id'], 10, 2);
+        add_action('wp_ajax_ispag_validate_pdf_plan', [self::$instance, 'ispag_validate_pdf_plan_callback']);
+
+        add_shortcode('ispag_plan_viewer', [self::$instance, 'plan_viewer']);
+
+    }
+    public static function enqueue_assets() {
+
+        wp_enqueue_script('ispag-drawing-validation', plugin_dir_url(__FILE__) . '../assets/js/drawing-validation.js', ['jquery'], false, true);
+
+        wp_localize_script('ispag-drawing-validation', 'ispag_validation', [
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'jsonUrl' => plugins_url('../assets/js/tank_data.json', __FILE__),
+            'nonce'    => wp_create_nonce('ispag_tank_nonce'),
+            'confirmMessage' => __('Would you really validate this drawing', 'creation-reservoir'),
+            'validatingMessage' => __('Validating', 'creation-reservoir'),
+            'drawingValidatedMessage' => __('Drawing successfully validated', 'creation-reservoir'),
+            'validateDrawingButton' => __('Validate drawing', 'creation-reservoir'),
+        ]);
+    }
+
+    public function get_last_tank_plan_for_article($title, $article_id) {
+        global $wpdb;
+
+        if (empty($article_id) || !is_numeric($article_id)) {
+            return null;
+        }
+
+        $media_id = $this->get_last_drawing_id(null, $article_id);
+        if ($media_id && is_numeric($media_id)) {
+            return wp_get_attachment_url($media_id);
+        }
+
+        return null;
+    }
+
+    public function get_last_drawing_id($title, $article_id) {
+        global $wpdb;
+
+        if (empty($article_id) || !is_numeric($article_id)) {
+            return null;
+        }
+
+        $allowed_types = ['product_drawing', 'drawingApproval', 'drawingModification', 'sketch'];
+        $placeholders = implode(',', array_fill(0, count($allowed_types), '%s'));
+
+        $sql = "
+            SELECT IdMedia 
+            FROM {$wpdb->prefix}achats_historique
+            WHERE Historique = %d
+            AND ClassCss IN ($placeholders)
+            ORDER BY Date DESC
+            LIMIT 1
+        ";
+
+        // article_id doit être en premier
+        $query_args = array_merge([$article_id], $allowed_types);
+        $prepared_sql = $wpdb->prepare($sql, ...$query_args);
+
+        if ($prepared_sql === false) {
+            return null;
+        }
+
+        $media_id = $wpdb->get_var($prepared_sql);
+        if ($media_id && is_numeric($media_id)) {
+            return $media_id;
+        }
+
+        return null;
+    }
+
+    public function plan_viewer(){
+        $drawing_id = isset($_GET['drawing_id']) ? (int) $_GET['drawing_id'] : 0;
+        if (!$drawing_id) return "Aucun plan trouvé.";
+
+        $article_id = isset($_GET['article_id']) ? (int) $_GET['article_id'] : 0;
+        if (!$article_id) return "Aucun article trouvé.";
+
+        $article = apply_filters('ispag_get_article_by_id', null, $article_id);
+        $url = $article->last_drawing_url;
+        if (!$url) return "PDF introuvable.";
+
+        $user = wp_get_current_user();
+        $prenom = $user->user_firstname;
+        $nom = $user->user_lastname;
+        $display_name = trim("{$prenom} {$nom}");
+        $date = date('d/m/Y');
+
+        $btn = "
+            <div style='margin-top:20px; text-align:center;'>
+                <button id='btn-validate-plan' class='ispag-btn' data-id='{$drawing_id}' data-article='{$article_id}' data-user='{$display_name}' data-date='{$date}'>
+                    ✅ " . __('Validate drawing', 'creation-reservoir') . "
+                </button>
+            </div>";
+        $script = "
+            <script>
+                
+            </script>
+        ";
+        return $btn . "<iframe src='$url' width='100%' height='800px' style='border:none;'></iframe>" . $btn . $script;
+
+    }
+
+    private function decompress_pdf_for_fpdi($sourcePdf, $outputPdf = null) {
+        if (!file_exists($sourcePdf)) {
+            throw new Exception("Fichier PDF introuvable : $sourcePdf");
+        }
+
+        // Définir le fichier de sortie
+        if (!$outputPdf) {
+            $outputPdf = sys_get_temp_dir() . '/' . uniqid('decompressed_') . '.pdf';
+        }
+
+        // Commande Ghostscript (attention à la sécurité si chemins dynamiques)
+        $command = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH "
+                . "-sOutputFile=" . escapeshellarg($outputPdf) . " "
+                . escapeshellarg($sourcePdf);
+
+        // Exécuter la commande
+        exec($command, $output, $resultCode);
+
+        if ($resultCode !== 0 || !file_exists($outputPdf)) {
+            throw new Exception("Erreur lors de la décompression du PDF via Ghostscript.");
+        }
+
+        return $outputPdf;
+    }
+
+    public function ispag_validate_pdf_plan_callback() {
+        global $wpdb;
+
+        $drawing_id = isset($_POST['drawing_id']) ? (int) $_POST['drawing_id'] : 0;
+        $article_id = isset($_POST['article_id']) ? (int) $_POST['article_id'] : 0;
+        $user = sanitize_text_field($_POST['user'] ?? '');
+        $date = sanitize_text_field($_POST['date'] ?? '');
+
+        if (!$drawing_id || !$article_id || !$user || !$date) {
+            wp_send_json_error("Missing data.");
+        }
+
+        $original_path = get_attached_file($drawing_id);
+        if (!file_exists($original_path)) {
+            wp_send_json_error("PDF file not found.");
+        }
+
+        // Nouveau fichier
+        $validated_path = str_replace('.pdf', '-validated.pdf', $original_path);
+
+        // Libs nécessaires
+        // require_once __DIR__ . '/fpdf/fpdf.php';
+        // require_once __DIR__ . '/fpdi/autoload.php';
+
+        try {
+            $pdf = new \setasign\Fpdi\Fpdi();
+            $original_path = $this->decompress_pdf_for_fpdi($original_path);
+            $pageCount = $pdf->setSourceFile($original_path);
+
+            for ($i = 1; $i <= $pageCount; $i++) {
+                $tpl = $pdf->importPage($i);
+                $size = $pdf->getTemplateSize($tpl);
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($tpl);
+                $pdf->SetFont('Arial', '', 10);
+                $pdf->SetTextColor(0, 102, 0);
+                $pdf->SetXY(10, $size['height'] - 40);
+                $text = __('Validated by', 'creation-reservoir') . " : $user\n" . __('on', 'creation-reservoir') . " : $date";
+                $pdf->MultiCell(0, 8, mb_convert_encoding($text, 'ISO-8859-1', 'UTF-8'));
+            }
+
+            $ulpoadedFileName = 'valid_' . basename( $original_path );
+            $wp_upload_dir = wp_upload_dir();
+            $uploadedfile = trailingslashit ( $wp_upload_dir['path'] ) . $ulpoadedFileName;
+            $pdf->Output($uploadedfile, 'F');
+
+            $attachment = array(
+            'guid' => trailingslashit ($wp_upload_dir['url']) . basename( $uploadedfile ),
+            'post_mime_type' => 'application/pdf',
+            'post_title' => preg_replace('/\.[^.]+$/', '', basename($ulpoadedFileName)),
+            'post_content' => '',
+            'post_status' => 'inherit'
+            );
+             // Id of attachment if needed
+            $attach_id = wp_insert_attachment( $attachment, $uploadedfile);
+            if (empty($attach_id) || !is_numeric($attach_id)) {
+                wp_send_json_error("Attachment creation failed.");
+            }
+            else{
+                $article = apply_filters('ispag_get_article_by_id', null, $article_id);
+                $article_achat = apply_filters('ispag_get_achat_article_by_project_article_id', null, $article_id);
+                $deal_id = $article->hubspot_deal_id;
+
+                
+                if (!$article_achat) {
+                    wp_send_json_error("Article not found.");
+                }
+                // else{
+                //     wp_send_json_error("Article founded : " . $article_achat);
+                // }
+                
+                $achat_id = $article_achat->IdCommande;
+
+                if(!$deal_id){
+                    wp_send_json_error("Deal ID not found");
+                } elseif(!$achat_id){
+                    wp_send_json_error("Achat ID not found");
+                }
+                else{
+                    $userId = get_current_user_id();
+
+                    $inserted = $wpdb-> insert(
+                
+                        $wpdb->prefix.'achats_historique',
+                        [
+                            'Id' => '',
+                            'hubspot_deal_id' => $deal_id,
+                            'purchase_order' => $achat_id,
+                            'Date' => time(),
+                            'dateReadable' => date('Y-m-d H:i:s'),
+                            'IdUser' => $userId,
+                            'Historique' => $article_id,
+                            'IdMedia' => $attach_id,
+                            'ClassCss' => 'drawingApproval'
+                            
+                        ]
+                    ); 
+
+                    $updated = $wpdb->update(
+                        $wpdb->prefix.'achats_details_commande',
+                        [
+                            'DrawingApproved' => '1'
+                        ],
+                        [ 'Id' => $article_id ]
+                        
+                    ); 
+
+                    if ($inserted === false || $updated === false) {
+                        $error = $wpdb->last_error;
+                        wp_send_json_error("Database error: $error");
+                    } else{
+                        do_action('ispag_send_telegram_notification', null, 'drawing_validated', true, true, $deal_id, true);
+                    }
+                    
+                }
+            }
+
+        } catch (Exception $e) {
+            wp_send_json_error("PDF error: " . $e->getMessage());
+        }
+
+        wp_send_json_success("Drawing validated successfully.");
+    }
+    
+}

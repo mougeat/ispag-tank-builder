@@ -1,0 +1,56 @@
+{
+    "section": "TABLES",
+    "description": "Définition des calques (LAYER) CORRIGÉE",
+    "code": [
+        { "code": 0, "value": "SECTION" },
+        { "code": 2, "value": "TABLES" },
+        { "code": 0, "value": "TABLE" },
+        { "code": 2, "value": "LAYER" },
+        { "code": 70, "value": 7 },
+        
+        { "code": 0, "value": "LAYER" },
+        { "code": 2, "value": "0" },
+        { "code": 70, "value": 0 },
+        { "code": 62, "value": 7 },
+        { "code": 6, "value": "CONTINUOUS" },
+        
+        { "code": 0, "value": "LAYER" },
+        { "code": 2, "value": "CUVE_PRINCIPALE" },
+        { "code": 70, "value": 0 },
+        { "code": 62, "value": 1 },
+        { "code": 6, "value": "CONTINUOUS" },
+
+        { "code": 0, "value": "LAYER" },
+        { "code": 2, "value": "TANK_BODY_WELDINGS" },
+        { "code": 70, "value": 0 },
+        { "code": 62, "value": 5 },
+        { "code": 6, "value": "CONTINUOUS" },
+
+        { "code": 0, "value": "LAYER" },
+        { "code": 2, "value": "DIMENSIONS" },
+        { "code": 70, "value": 0 },
+        { "code": 62, "value": 3 },
+        { "code": 6, "value": "CONTINUOUS" },
+
+        { "code": 0, "value": "LAYER" },
+        { "code": 2, "value": "TANK_BODY_SUPPORTS" },
+        { "code": 70, "value": 0 },
+        { "code": 62, "value": 2 },
+        { "code": 6, "value": "CONTINUOUS" },
+
+        { "code": 0, "value": "LAYER" },
+        { "code": 2, "value": "CARTOUCHE" },
+        { "code": 70, "value": 0 },
+        { "code": 62, "value": 7 },
+        { "code": 6, "value": "CONTINUOUS" },
+
+        { "code": 0, "value": "LAYER" },
+        { "code": 2, "value": "FRAME" },
+        { "code": 70, "value": 0 },
+        { "code": 62, "value": 7 },
+        { "code": 6, "value": "CONTINUOUS" },
+        
+        { "code": 0, "value": "ENDTAB" },
+        { "code": 0, "value": "ENDSEC" }
+    ]
+}

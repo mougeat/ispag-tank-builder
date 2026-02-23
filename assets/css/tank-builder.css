@@ -1,0 +1,107 @@
+/* svg {
+    max-height: 100%;
+    width: auto;
+    display: block;
+}
+ */
+
+.ispag-tank-fields .ispag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem 2rem;
+  margin-top: 1rem;
+}
+
+.ispag-tank-fields .ispag-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.ispag-tank-fields .ispag-field label {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.ispag-field input[type="number"] {
+  padding: 6px 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#tank-dimensions-form .ispag-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 20px;
+}
+
+#tank-dimensions-form .ispag-field {
+  background-color: var(--ispag-grey);
+  border-radius: 6px;
+  padding: 15px 20px;
+  box-sizing: border-box;
+}
+
+#tank-dimensions-form .ispag-field label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+#tank-dimensions-form .ispag-field label:first-child {
+  margin-top: 0;
+}
+
+
+.ispag-field input {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.ispag-field select {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.ispag-tank-fields, .ispag-tank-dimensions-fields {
+    padding: 1em;
+    border: 1px solid #ccc;
+    margin-top: 1em;
+}
+.ispag-tank-fields label , .ispag-tank-dimensions-fields label{
+    display: block;
+    margin-top: 0.5em;
+}
+.ispag-modal-fitting-left ,.ispag-modal-fitting-right {
+  
+  background-color: var(--ispag-grey);
+  padding: 15px;
+  border-radius: 6px;
+}
+.ispag-modal-fitting-left {
+    width: 25%;
+}
+.ispag-modal-fitting-right {
+    width: 75%;
+}
+
+.fitting-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.fitting-row input,
+.fitting-row select {
+    flex: 1;
+    min-width: 80px;
+}
+.fitting-row button {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    line-height: 1;
+}
