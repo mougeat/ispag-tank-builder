@@ -49,9 +49,10 @@ class ISPAG_Tank_Designer {
     /**
     * Affiche le formulaire de dimenions pour les articles de type 1
     */
-    public function render_dimensions_form($article_id) {
+    public function render_dimensions_form($article_id, $source = 'project') {
         $data = $this->get_tank_data(null, $article_id);
         $display = $article_id != 0 ? "" : 'style="display:none;"';
+        
         include plugin_dir_path(__FILE__) . 'templates/form-tank-dimensions-field.php';
          
     }

@@ -534,49 +534,6 @@ function saveTankData(articleId, is_purchase = false) {
     });
 }
 
-// document.addEventListener('click', async function (e) {
-//     if (e.target.classList.contains('ispag-btn-edit')) {
-        
-//         // 1. On attend que les données globales soient prêtes (JSON)
-//         await setIspagTankRestrictionsValue();
-
-//         let tries = 0;
-//         const checkExist = setInterval(async () => {
-//             const typeSelect = document.getElementById('tank-typ');
-//             const materialSelect = document.getElementById('tank-material');
-//             const diameterSelect = document.getElementById('tank-diameter');
-
-//             // 2. On attend que le DOM de la modale soit injecté
-//             if (typeSelect && materialSelect && diameterSelect) {
-//                 clearInterval(checkExist);
-
-//                 // On récupère les IDs via jQuery pour plus de sécurité avec les .data()
-//                 const $typ = jQuery(typeSelect);
-//                 const $mat = jQuery(materialSelect);
-//                 const $diam = jQuery(diameterSelect);
-
-//                 const initTypId = $typ.find(':selected').data('id') || $typ.val();
-//                 const initMaterialId = $mat.find(':selected').data('id') || $mat.val();
-                
-//                 // On récupère la valeur sauvée en base (souvent dans l'attribut value initial)
-//                 const currentDiamValue = $diam.val();
-
-//                 console.log('[MODAL READY] Re-filling diameters for material:', initMaterialId);
-
-//                 if (initMaterialId) {
-//                     // On force le remplissage
-//                     await updateDiameterDatalistByType(initMaterialId, currentDiamValue);
-                    
-//                     // On synchronise les autres champs par sécurité
-//                     updateTankDefaults(initTypId);
-//                 }
-//             }
-
-//             tries++;
-//             if (tries > 20) clearInterval(checkExist); // On attend jusqu'à 2 secondes
-//         }, 100);
-//     }
-// });
 
 jQuery(document).ready(function($) {
     // Délégation sur un parent permanent
@@ -686,7 +643,8 @@ function closeFittingsModal(){
 const saveBtn = document.getElementById('ispag-btn-save-tank-fittings');
 if (saveBtn) {
     saveBtn.addEventListener('click', function () {
-        saveFittings(false); // sauvegarde manuelle, on ferme la modale
+        // On passe l'élément bouton à saveFittings
+        saveFittings(false, this); 
     });
 }
 
@@ -710,38 +668,39 @@ if (form) {
     });
 }
 
-function saveFittings(autoSave = false) {
+function saveFittings(autoSave = false, btnElement = null) {
     const form = document.getElementById('fittings-form');
+    if (!form) return;
+
     const formData = new FormData(form);
     const articleId = document.querySelector('input[name="article_id"]').value;
 
     formData.append('action', 'ispag_save_fittings');
     formData.append('article_id', articleId); 
 
-    // console.log('--- Contenu de FormData (méthode for...of) ---');
- 
-for (const pair of formData.entries()) {
-    // pair[0] est la clé (le nom du champ)
-    // pair[1] est la valeur du champ
-    // console.log(pair[0] + ': ' + pair[1]);
-}
- 
+    // --- ÉTAT CHARGEMENT ---
+    let originalHtml = "";
+    if (btnElement && !autoSave) {
+        btnElement.disabled = true; // Désactive pour éviter le double clic
+        originalHtml = btnElement.innerHTML;
+        // On remplace le contenu par un spinner (FontAwesome)
+        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+    }
+
     fetch(ajaxurl, {
         method: 'POST',
         body: formData
     })
     .then(res => res.json())
     .then(response => {
-        // console.log('[AutoSave]', response);
-
         if (response.success) {
-            // Affiche le SVG une seule fois
+            // Mise à jour du SVG
             if (response.data?.drawing && $("#ispag-modal-svg").length) {
-                // console.log('🔧 SVG reçu :', response.data.drawing);
                 $("#ispag-modal-svg").html(response.data.drawing);
                 reloadArticleList();
             }
 
+            // Mise à jour des IDs insérés
             if (response.data?.inserted?.length > 0) {
                 response.data.inserted.forEach(item => {
                     const rows = form.querySelectorAll('.fitting-row');
@@ -758,10 +717,20 @@ for (const pair of formData.entries()) {
             }
 
             if (!autoSave) closeFittingsModal();
-        } else{
+        } else {
             alert(ISPAG_TANK.text_error_saving_fitting + " !");
         }
-
+    })
+    .catch(err => {
+        console.error('Erreur Save:', err);
+        alert("Erreur de connexion au serveur.");
+    })
+    .finally(() => {
+        // --- RÉINITIALISATION DU BOUTON ---
+        if (btnElement && !autoSave) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = originalHtml;
+        }
     });
 }
 

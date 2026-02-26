@@ -69,6 +69,27 @@
                 <input type="number" name="tank[temperature]" value="<?= esc_attr($data['dimensions']->usingTemperature ?? '109') ?>" style="width: 100%;">
             </div>
         </div>
+        
+            
+        <div class="ispag-field" style="flex: 1; min-width: 200px;">
+            <div class="field-group" style="margin-bottom: 15px;">
+                <label><strong><?php echo __('Indicative purchase price (excluding VAT)', 'creation-reservoir'); ?></strong></label>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="text" id="tank-price-display" readonly 
+                        style="width: 100%; background: #fdfdfd; font-weight: bold; color: var(--ispag-red); border: 1px solid #ddd;" 
+                        placeholder="---">
+                    
+                    <input type="hidden" name="tank[prix_achat_base]" id="tank-price-value">
+                    
+                    <span style="font-weight: bold;">€</span>
+                </div>
+                <small style="color: #666; font-size: 0.85em;">
+                    <?php echo __('Under development, not to be taken into account at this time', 'creation-reservoir'); ?>
+                    <?php echo __('Manufacturer\'s base price based on dimensions', 'creation-reservoir'); ?>
+                </small>
+            </div>
+        </div>
+        
 
     </div>
 
