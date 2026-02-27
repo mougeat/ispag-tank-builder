@@ -539,10 +539,15 @@ jQuery(document).ready(function($) {
     // Délégation sur un parent permanent
     $(document).on('click', '#open-tank-fittings-modal', function() {
         const articleId = $(this).data('article-id');
+        const purchaseArticleId = $(this).data('purchase-article-id');
+        const tank_diam = $(this).data('tank-diameter');
         $('#tank-fittings-modal').fadeIn();
 
         // Met à jour le lien 3D
         $('#tank-fittings-modal a.display-tank-3d').attr('href', '/rendu-3d/?article_id=' + articleId);
+
+        $('#current-editing-article-id').val(purchaseArticleId);
+        $('#current-tank-diam').val(tank_diam);
 
         $('#fittings-form').html('<p>Chargement...</p>');
 
@@ -575,26 +580,40 @@ document.addEventListener('click', function(e) {
     const form = document.getElementById('fittings-form');
     if (!form) return;
 
-    // 1. GESTION DES AJOUTS (via ID ou closest pour gérer l'icône interne)
+    // Récupération des conteneurs spécifiques
+    const fittingsContainer = document.getElementById('fittings-container');
+    const weldingContainer = document.getElementById('welding-container');
+
+    // 1. GESTION DES AJOUTS
     const addFittingBtn = e.target.closest('#add-fitting-row');
     const addWeldingBtn = e.target.closest('#add-welding-row');
 
     if (addFittingBtn) {
         const template = document.getElementById('fitting-row-template');
-        form.appendChild(template.content.cloneNode(true));
-        return; // On sort pour éviter de traiter les autres conditions
+        if (template && fittingsContainer) {
+            fittingsContainer.appendChild(template.content.cloneNode(true));
+            if (typeof updateFittingsPrice === "function") updateFittingsPrice();
+        }
+        return;
     }
     
     if (addWeldingBtn) {
         const template = document.getElementById('welding-row-template');
-        form.appendChild(template.content.cloneNode(true));
+        if (template && weldingContainer) {
+            weldingContainer.appendChild(template.content.cloneNode(true));
+            // Pas d'update prix ici car le welding n'impacte pas le calcul fittings
+        }
         return;
     }
 
     // 2. GESTION DE LA SUPPRESSION
     const removeBtn = e.target.closest('.btn-remove, .btn-delete-fitting');
     if (removeBtn) {
-        removeBtn.closest('.fitting-row').remove();
+        const row = removeBtn.closest('.fitting-row, .welding-row');
+        if (row) {
+            row.remove();
+            if (typeof updateFittingsPrice === "function") updateFittingsPrice();
+        }
         return;
     }
 
@@ -602,37 +621,30 @@ document.addEventListener('click', function(e) {
     const duplicateBtn = e.target.closest('.btn-duplicate');
     if (duplicateBtn) {
         const row = duplicateBtn.closest('.fitting-row');
+        if (!row) return;
+
         const clone = row.cloneNode(true);
 
-        // --- Synchronisation des valeurs (Select ET Input) ---
-        // Les selects
-        const originalSelects = row.querySelectorAll('select');
-        const clonedSelects = clone.querySelectorAll('select');
-        originalSelects.forEach((select, i) => {
-            clonedSelects[i].value = select.value;
+        // Synchronisation des valeurs
+        row.querySelectorAll('select').forEach((select, i) => {
+            clone.querySelectorAll('select')[i].value = select.value;
+        });
+        row.querySelectorAll('input:not([type="hidden"])').forEach((input, i) => {
+            clone.querySelectorAll('input:not([type="hidden"])')[i].value = input.value;
         });
 
-        // Les inputs (text, number, etc.)
-        const originalInputs = row.querySelectorAll('input:not([type="hidden"])');
-        const clonedInputs = clone.querySelectorAll('input:not([type="hidden"])');
-        originalInputs.forEach((input, i) => {
-            clonedInputs[i].value = input.value;
-        });
-
-        // --- Reset des identifiants pour la nouvelle ligne ---
+        // Reset IDs
         const hiddenInput = clone.querySelector('input[name="fitting[id][]"]');
-        if (hiddenInput) {
-            hiddenInput.value = '0';
-        }
-
+        if (hiddenInput) hiddenInput.value = '0';
         clone.dataset.id = '0';
-
-        // Reset data-attributes des boutons dans le clone
         clone.querySelectorAll('.btn-duplicate, .btn-delete-fitting').forEach(btn => {
             btn.dataset.fittingId = '0';
         });
 
-        form.appendChild(clone);
+        // Ajout dans le BON conteneur (celui d'origine de la ligne)
+        row.parentNode.appendChild(clone);
+        
+        if (typeof updateFittingsPrice === "function") updateFittingsPrice();
     }
 });
 

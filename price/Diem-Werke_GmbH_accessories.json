@@ -1,0 +1,108 @@
+{
+  "supplier": "Diem-Werke GmbH",
+  "last_update": "2026-02-26",
+  "currency": "EUR",
+  "logic": {
+    "included_fittings_energy": 10,
+    "included_fittings_combi": 14,
+    "max_standard_length_mm": 160
+  },
+  "tarifs_raccords_standards": {
+    "16": { "dn": "Rp¼\"", "prix_unitaire": 27.00 },
+    "12": { "dn": "Rp½\"", "prix_unitaire": 27.00 },
+    "15": { "dn": "Rp¾\"", "prix_unitaire": 27.00 },
+    "14": { "dn": "Rp1\"", "prix_unitaire": 27.00 },
+    "13": { "dn": "Rp1¼\"", "prix_unitaire": 27.00 },
+    "18": { "dn": "Rp1½\"", "prix_unitaire": 27.00 },
+    "11": { "dn": "Rp2\"", "prix_unitaire": 27.00 },
+    "30": { "dn": "DN15", "prix_unitaire": 51.00 },
+    "29": { "dn": "DN20", "prix_unitaire": 51.00 },
+    "24": { "dn": "DN25", "prix_unitaire": 51.00 },
+    "28": { "dn": "DN32", "prix_unitaire": 51.00 },
+    "27": { "dn": "DN40", "prix_unitaire": 51.00 },
+    "6":  { "dn": "DN50", "prix_unitaire": 56.00 },
+    "5":  { "dn": "DN65", "prix_unitaire": 58.00 },
+    "4":  { "dn": "DN80", "prix_unitaire": 68.00 },
+    "3":  { "dn": "DN100", "prix_unitaire": 83.00 },
+    "2":  { "dn": "DN125", "prix_unitaire": 98.00 },
+    "1":  { "dn": "DN150", "prix_unitaire": 103.00 },
+    "21": { "dn": "DN200", "prix_unitaire": 141.00 },
+    "20": { "dn": "DN250", "prix_unitaire": 186.00 },
+    "19": { "dn": "DN300", "prix_unitaire": 346.00 },
+    "17": { "dn": "DN350", "prix_unitaire": 437.00 },
+    "10": { "dn": "Ø120/180", "prix_unitaire": 219.00 },
+    "23": { "dn": "Ø220/290", "prix_unitaire": 284.00 },
+    "9":  { "dn": "Ø200/280 (NW200)", "prix_unitaire": 196.00 },
+    "22": { "dn": "Ø300/380 (NW350)", "prix_unitaire": 660.00 },
+    "8":  { "dn": "Ø400/480 (NW400)", "prix_unitaire": 765.00 },
+    "7":  { "dn": "Ø500/580 (NW500)", "prix_unitaire": 925.00 }
+  },
+  "tarifs_accessoires_complexes": {
+    "bogenrohr": {
+      "note": "Prix dépendant du diamètre du raccord (Id de flange_dimensions)",
+      "16": 35.00,
+      "12": 35.00,
+      "15": 35.00,
+      "14": 35.00,
+      "13": 35.00,
+      "18": 35.00, 
+      "11": 41.00, 
+      "6": 41.00,
+      "5": 59.00,
+      "4": 61.00,
+      "3": 67.00,
+      "2": 93.00,
+      "1": 101.00,
+      "21": 177.00,
+      "20": 265.00,
+      "19": 389.00,
+      "17": 583.00
+    },
+    "spruehrohr": {
+      "note": "Prix dépendant du diamètre du raccord (Id de flange_dimensions)",
+      "16": 160.00,
+      "12": 160.00,
+      "15": 160.00,
+      "14": 160.00,
+      "13": 160.00,
+      "18": 160.00, 
+      "11": 160.00, 
+      "6": 160.00,
+      "5": 160.00,
+      "4": 160.00,
+      "3": 187.00,
+      "2": 248.00,
+      "1": 338.00,
+      "21": 484.00,
+      "20": 594.00,
+      "19": 934.00,
+      "17": 1065.00
+    },
+    "prallteller": {
+      "note": "Prix unique pour tous les diamètres",
+      "16": 35.00, "12": 35.00, "15": 35.00, "14": 35.00, "13": 35.00,
+      "18": 35.00, "11": 35.00, "6": 35.00, "5": 35.00, "4": 35.00,
+      "3": 35.00, "2": 35.00, "1": 35.00, "21": 35.00, "20": 35.00,
+      "19": 35.00, "17": 35.00
+    },
+    "lochblech_fix": {
+      "note": "Prix dépendant du diamètre de la cuve (en mm)",
+      "500": 87.00, "650": 91.00, "700": 99.00, "750": 108.00, "790": 118.00,
+      "850": 127.00, "900": 134.00, "950": 146.00, "1000": 154.00, "1100": 184.00,
+      "1200": 212.00, "1250": 228.00, "1300": 252.00, "1400": 297.00, "1500": 344.00,
+      "1600": 377.00, "1700": 421.00, "1800": 461.00, "1900": 502.00, "2000": 543.00,
+      "2100": 609.00, "2200": 666.00, "2300": 726.00, "2400": 786.00, "2500": 848.00
+    }
+  },
+  "tarifs_options_fixes": {
+    "37": { "label": "Thermomètre L=200", "prix": 25.00 },
+    "10": { "label": "Flansch 120/180 PN6", "prix": 219.00 },
+    "53": { "label": "Piquage résistance électrique", "prix": 27.00 }
+  },
+  "supplements": {
+    "extra_length_250": 24.00,
+    "extra_length_350": 34.00,
+    "extra_length_550": 52.00,
+    "parallel": 23.00
+  }
+}

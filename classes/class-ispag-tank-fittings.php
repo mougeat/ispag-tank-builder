@@ -20,7 +20,7 @@ class ISPAG_Tank_Fittings {
             self::$instance = new self();
         }
 
-        add_filter('ispag_get_fitting_btn', [self::$instance, 'get_fitting_btn'], 10, 2 );
+        add_filter('ispag_get_fitting_btn', [self::$instance, 'get_fitting_btn'], 10, 3 );
         add_filter('ispag_get_modal_fitting', [self::$instance, 'get_modal_fitting']);
         add_action('wp_ajax_ispag_load_fittings_form', [self::$instance, 'load_fittings_form']);
         add_action('wp_ajax_ispag_save_fittings', [self::$instance, 'ajax_save_fittings']);
@@ -30,9 +30,11 @@ class ISPAG_Tank_Fittings {
         add_action('ispag_delete_fittings_with_tank_id', [self::$instance, 'delete_fittings_with_tank_id'],10,2);
         add_filter('ispag_get_fittings_with_tank_id', [self::$instance, 'get_fittings_with_tank_id'],10,2);
     }
-
-    public function get_fitting_btn($title, $article_id){
-        return '<button type="button" class="ispag-btn ispag-btn-grey-outlined" id="open-tank-fittings-modal" data-article-id="'. $article_id . '">
+ 
+    public function get_fitting_btn($title, $article_id, $purchase_article_id = null){
+        $tank = new ISPAG_Tank_Designer();
+        $tank_datas = $tank->get_tank_data(null, $article_id);
+        return '<button type="button" class="ispag-btn ispag-btn-grey-outlined" id="open-tank-fittings-modal" data-article-id="'. $article_id . '" data-purchase-article-id="'. $purchase_article_id . '" data-tank-diameter="' . $tank_datas['dimensions']->Diameter . '">
             ' . __('Configure fittings', 'creation-reservoir') . '
         </button>';
     }
@@ -52,6 +54,8 @@ class ISPAG_Tank_Fittings {
         $template_welding_form = ob_get_clean();
         
         return '<div id="tank-fittings-modal" class="ispag-modal-fullscreen" style="display:none;">
+            <input type="text" id="current-editing-article-id" value="">
+            <input type="text" id="current-tank-diam" value="">
             <div class="ispag-modal-fullscreen-inner">
                 <div class="ispag-modal-fitting-left" id="ispag-modal-svg" style="height: 500px; border: 1px solid #ccc;">
                     <!-- Ici le dessin ou l’image -->
@@ -64,12 +68,8 @@ class ISPAG_Tank_Fittings {
                         <!-- Formulaire généré dynamiquement ici -->
                         
                     </form>
-                    <button type="button" class="ispag-btn ispag-btn-grey-outlined" id="add-fitting-row">
-                        <span class="dashicons dashicons-plus-alt"></span> ' . __('Add fitting', 'creation-reservoir') . '
-                    </button>
-                    <button type="button" class="ispag-btn ispag-btn-grey-outlined" id="add-welding-row">
-                        <span class="dashicons dashicons-plus-alt"></span> ' . __('Add welding / drilled plate', 'creation-reservoir') . '
-                    </button>
+                    
+                    
                     <button type="submit" class="ispag-btn ispag-btn-danger-outlined" id="ispag-btn-save-tank-fittings">
                         <span class="dashicons dashicons-media-archive"></span> ' . __('Save fittings', 'creation-reservoir') . '
                     </button>
@@ -174,27 +174,49 @@ class ISPAG_Tank_Fittings {
     public function load_fittings_form() {
         $article_id = intval($_POST['article_id'] ?? 0);
         $data = [];
+        
         if (!$article_id) {
             wp_send_json_error('Invalid article ID');
         }
+
         $connections = $this->get_all_fittings($article_id, false);
         $weldings = apply_filters('ispag_get_all_welding_drilled_plate', null, $article_id, false);
         
         ob_start();
-        echo '<input type="hidden" name="article_id" value="' . $article_id . '">';
-        foreach ($connections as $fitting):
-            include plugin_dir_path(__FILE__) . 'templates/form-tank-fittings.php'; 
-        endforeach;
+        echo '<input type="hidden" name="article_id" id="current-editing-article-id" value="' . $article_id . '">';
 
-        foreach ($weldings as $welding):
-            include plugin_dir_path(__FILE__) . 'templates/form-tank-welding.php'; 
-        endforeach;
+        // --- SECTION RACCORDS (FITTINGS) ---
+        echo '<div class="ispag-fittings-section">';
+        echo '<h3 class="ispag-modal-section-title"><span class="dashicons dashicons-admin-tools"></span> ' . __('Raccords et Accessoires', 'ispag') . '</h3>';
+        echo '<div id="fittings-container">'; // Conteneur pour le JS (duplication/suppression)
+        if (!empty($connections)) {
+            foreach ($connections as $fitting) {
+                include plugin_dir_path(__FILE__) . 'templates/form-tank-fittings.php'; 
+            }
+        }
+        echo '</div>';
+        echo '<button type="button" class="ispag-btn ispag-btn-grey-outlined" id="add-fitting-row">
+                <span class="dashicons dashicons-plus-alt"></span> ' . __('Add fitting', 'creation-reservoir') . '
+            </button>';
+        echo '</div>';
 
+        echo '<hr class="ispag-separator">'; // Séparateur visuel
 
+        // --- SECTION SOUDURE / TÔLES (WELDING) ---
+        echo '<div class="ispag-welding-section">';
+        echo '<h3 class="ispag-modal-section-title"><span class="dashicons dashicons-hammer"></span> ' . __('Soudure et Tôles perforées', 'ispag') . '</h3>';
+        echo '<div id="welding-container">';
+        if (!empty($weldings)) {
+            foreach ($weldings as $welding) {
+                include plugin_dir_path(__FILE__) . 'templates/form-tank-welding.php'; 
+            }
+        }
+        echo '</div>';
+        echo '<button type="button" class="ispag-btn ispag-btn-grey-outlined" id="add-welding-row">
+                <span class="dashicons dashicons-plus-alt"></span> ' . __('Add welding / drilled plate', 'creation-reservoir') . '
+            </button>';
+        echo '</div>';
 
-        // $svg_generator = new ISPAG_Tank_SVG_Generator();
-        // $svg_generator->load_data($article_id); // tu mets l’ID de l’article cuve ici
-        // $data['svg'] = $svg_generator->render_svg();
         $data['svg'] = apply_filters('ispag_design_tank_svg', null, $article_id, true); 
         $data['svg'] .= apply_filters('ispag_design_tank_top_view_svg', null, $article_id); 
 

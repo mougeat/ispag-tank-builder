@@ -32,7 +32,7 @@ class ISPAG_Nameplate_Generator extends ISPAG_PDF_Generator {
         $this->SetMargins(5, 5, 5);
         $this->AddPage();
         $this->SetAutoPageBreak(false);
-
+ 
         // --- 4. Dessin du cadre ---
         $this->SetDrawColor(0); 
         $this->SetLineWidth(0.6);
@@ -58,13 +58,25 @@ class ISPAG_Nameplate_Generator extends ISPAG_PDF_Generator {
 
         // --- 7. Données Techniques (Bilingue) ---
         $this->SetFont('Arial', '', 8);
+
+        // Récupération des données des échangeurs via ton filtre existant
+        $coils = apply_filters('ispag_get_heat_exchanger_datas', [], $article->Id);
+        $total_surface = 0;
+        $exchanger_details = "";
+
+        if (!empty($coils)) {
+            foreach ($coils as $coil) {
+                $total_surface += floatval($coil['coilSurface'] ?? 0);
+            }
+        }
+
         $ps = $dims['Pression_Max_bar'] ?? 0;
         $pt = $dims['Pression_Test_bar'] ?? (number_format($ps * 1.25, 2));
 
         $specs = [
             __('Material', 'creation-reservoir') . ' (MAT)'       => $mat_text,
             __('Volume', 'creation-reservoir') . ' (V)'           => ($dims['Volume_L'] ?? '0') . ' L',
-            __('Exch. Surface', 'creation-reservoir')             => '.......... m²',
+            __('Exch. Surface', 'creation-reservoir')             => ($total_surface > 0) ? $total_surface . ' m²' : '---',
             __('Design Pressure', 'creation-reservoir') . ' (PS)' => $ps . ' bar',
             __('Test Pressure', 'creation-reservoir') . ' (PT)'   => $pt . ' bar',
             __('Max. Temp.', 'creation-reservoir') . ' (TS)'      => ($dims['Temperature_Max'] ?? '0') . ' C'

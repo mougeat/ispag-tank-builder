@@ -10,6 +10,7 @@
     <input type="hidden" name="fitting[id][]" value="<?= esc_attr($fitting->fitting_id ?? 0) ?>" />
     <input type="hidden" name="fitting[type][]" />
     
+    
     <div class="ispag-input-wrapper" style="flex: 0 0 110px;">
         <label style="display:block; font-size:10px; color:#888; text-transform:uppercase;"><?= __('Diam.', 'creation-reservoir') ?></label>
         <select name="fitting[diameter][]" style="width: 100%; border-radius: 4px; border: 1px solid #ccc; font-weight: 600;">
@@ -30,7 +31,7 @@
             ?>
         </select>
     </div>
-
+ 
     <div class="ispag-input-wrapper" style="flex: 2; min-width: 160px;">
         <label style="display:block; font-size:10px; color:#888; text-transform:uppercase;"><?= __('Accessory', 'creation-reservoir') ?></label>
         <select name="fitting[accessories][]" style="width: 100%; border-radius: 4px; border: 1px solid #ccc;">
