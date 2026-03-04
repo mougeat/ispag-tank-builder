@@ -233,32 +233,32 @@ class ISPAG_Tank_Exchanger {
 
     public function save_heat_exchangers() {
         // 1. Log de début
-        error_log('--- ISPAG DEBUG: Début save_heat_exchangers ---');
+        // error_log('--- ISPAG DEBUG: Début save_heat_exchangers ---');
 
         // 2. Sécurité
         if (!current_user_can('generate_tank')) {
-            error_log('ISPAG ERROR: Utilisateur non autorisé');
+            // error_log('ISPAG ERROR: Utilisateur non autorisé');
             wp_send_json_error(__('Unauthorized', 'creation-reservoir'));
         }
 
         // 3. Récupération brute des données POST
-        error_log('POST raw data: ' . print_r($_POST, true));
+        // error_log('POST raw data: ' . print_r($_POST, true));
 
         $tank_id = isset($_POST['tank_id']) ? intval($_POST['tank_id']) : 0;
         $exchangers_json = isset($_POST['exchangers']) ? stripslashes($_POST['exchangers']) : '';
 
-        error_log("Tank ID: $tank_id");
-        error_log("JSON reçu: $exchangers_json");
+        // error_log("Tank ID: $tank_id");
+        // error_log("JSON reçu: $exchangers_json");
 
         if (!$tank_id || empty($exchangers_json)) {
-            error_log('ISPAG ERROR: Tank ID ou JSON vide');
+            // error_log('ISPAG ERROR: Tank ID ou JSON vide');
             wp_send_json_error(__('Données manquantes', 'creation-reservoir'));
         }
 
         $exchangers_array = json_decode($exchangers_json, true);
 
         if (!is_array($exchangers_array)) {
-            error_log('ISPAG ERROR: Échec du json_decode. Erreur JSON: ' . json_last_error_msg());
+            // error_log('ISPAG ERROR: Échec du json_decode. Erreur JSON: ' . json_last_error_msg());
             wp_send_json_error(__('Format de données invalide', 'creation-reservoir'));
         }
 
@@ -267,7 +267,7 @@ class ISPAG_Tank_Exchanger {
         foreach ($exchangers_array as $coil) {
             $totalSurface += floatval($coil['coilSurface'] ?? 0);
         }
-        error_log("Surface totale calculée: $totalSurface");
+        // error_log("Surface totale calculée: $totalSurface");
 
         global $wpdb;
         $table = $wpdb->prefix . 'achats_tank_heat_exchanger';
@@ -277,12 +277,12 @@ class ISPAG_Tank_Exchanger {
             "SELECT Id FROM $table WHERE tank_id = %d LIMIT 1", 
             $tank_id
         ));
-        error_log("Entrée existante (ID): " . ($exists ? $exists : 'Aucune'));
+        // error_log("Entrée existante (ID): " . ($exists ? $exists : 'Aucune'));
 
         $final_json = json_encode($exchangers_array, JSON_UNESCAPED_UNICODE);
 
         if ($exists) {
-            error_log("Tentative de UPDATE sur table: $table");
+            // error_log("Tentative de UPDATE sur table: $table");
             $result = $wpdb->update(
                 $table,
                 [
@@ -294,7 +294,7 @@ class ISPAG_Tank_Exchanger {
                 ['%d']
             );
         } else {
-            error_log("Tentative de INSERT sur table: $table");
+            // error_log("Tentative de INSERT sur table: $table");
             $result = $wpdb->insert(
                 $table,
                 [
@@ -307,11 +307,11 @@ class ISPAG_Tank_Exchanger {
         }
 
         if ($result === false) {
-            error_log('ISPAG SQL ERROR: ' . $wpdb->last_error);
+            // error_log('ISPAG SQL ERROR: ' . $wpdb->last_error);
             wp_send_json_error($wpdb->last_error);
         }
 
-        error_log('--- ISPAG DEBUG: Fin avec succès ---');
+        // error_log('--- ISPAG DEBUG: Fin avec succès ---');
         wp_send_json_success(__('Les données de l’échangeur ont été sauvegardées.', 'creation-reservoir'));
     }
 }

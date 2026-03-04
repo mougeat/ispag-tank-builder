@@ -57,7 +57,7 @@ class ISPAG_Tank_Description {
 
         // Sécurité critique : si ce n'est pas un réservoir, on arrête ici
         if (!$conception || !$dimensions) {
-            error_log("ISPAG Debug: Article $article_id n'est pas un réservoir ou données manquantes.");
+            // error_log("ISPAG Debug: Article $article_id n'est pas un réservoir ou données manquantes.");
             return $title; // On renvoie au moins le titre
         }
         

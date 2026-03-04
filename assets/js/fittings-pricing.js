@@ -1,147 +1,197 @@
 /**
  * Fichier : fittings-pricing.js
- * Intègre le calcul des raccords, accessoires complexes et tôles perforées (Lochblech)
+ * Version : 3.4.0 - PV Verrohrung Cumulative (Nb Tôles x 60€)
  */
 
+let pricingTimeout;
+let isAlertSuppressed = false;
+let lastSupplier = "";
+
+// Trace globale pour le log PHP
+window.lastFittingTrace = "";
+
 async function updateFittingsPrice() {
-    const articleId = jQuery('#current-editing-article-id').val();
-    const supplierEl = jQuery('#tank-supplier-display');
-    const supplier = supplierEl.attr('data-value') || supplierEl.data('value');
+    clearTimeout(pricingTimeout);
     
-    // Récupération des paramètres de la cuve
-    const tankDiameter = jQuery('#current-tank-diam').val(); 
-    const tankType = jQuery('select[name="tank[type]"]').val() || 'energy';
-    
-    const accPriceDisplay = jQuery('#tank-acc-price-' + articleId);
-
-    if (!supplier) return;
-
-    const accessoryMapping = {
-        "14": "bogenrohr",
-        "15": "spruehrohr",
-        "16": "prallteller"
-    };
-
-    const ids_gratuits_max_2_pouces = ["11", "12", "13", "14", "15", "16", "18"];
-    const fileName = supplier.replace(/\s+/g, '_') + '_accessories.json';
-    const jsonUrl = `${ispag_vars.plugin_url}/price/${fileName}`;
-
-    try {
-        const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error('Fichier JSON non trouvé');
+    pricingTimeout = setTimeout(async () => {
+        const articleId = jQuery('#current-editing-article-id').val();
+        const supplierEl = jQuery('#tank-supplier-display');
+        const supplierName = supplierEl.attr('data-value') || supplierEl.data('value') || "Fournisseur inconnu";
         
-        const data = await response.json();
-        const logic = data.logic;
-        const limit = (tankType === 'combi') ? logic.included_fittings_combi : logic.included_fittings_energy;
+        const tankPression = parseFloat(jQuery('#current-tank-pression').val()) || 0;
+        const pressureKey = (tankPression <= 6) ? "prix_pn6" : "prix_pn16";
 
-        let totalExtra = 0;
-        let standardFittingCount = 0;
+        if (supplierName !== lastSupplier) {
+            isAlertSuppressed = false;
+            lastSupplier = supplierName;
+        }
 
-        console.group(`🔍 CALCUL PRICING - ${supplier} (Cuve Ø${tankDiameter})`);
+        const tankDiameter = jQuery('#current-tank-diam').val(); 
+        const tankType = jQuery('select[name="tank[type]"]').val() || 'energy';
+        const accPriceDisplay = jQuery('#tank-acc-price-' + articleId);
 
-        // --- 1. CALCUL DES RACCORDS (FITTINGS) ---
-        jQuery('.fitting-row').each(function(index) {
-            const $row = jQuery(this);
-            const diaId = $row.find('select[name^="fitting[diameter]"]').val();
-            const rawAccId = $row.find('select[name^="fitting[accessories]"]').val();
-            const fHeight = parseInt($row.find('input[name^="fitting[height]"]').val()) || 0;
+        if (!supplierName || supplierName === "Fournisseur inconnu") return;
+
+        let missingDataLog = [];
+        const accessoryMapping = { "14": "bogenrohr", "15": "spruehrohr", "16": "prallteller" };
+        const ids_manchons_taraudes = ["11", "12", "13", "14", "15", "16", "18"];
+        
+        const fileName = supplierName.replace(/\s+/g, '_') + '_accessories.json';
+        const jsonUrl = `${ispag_vars.plugin_url}/price/${fileName}`;
+
+        try {
+            const response = await fetch(jsonUrl);
+            if (!response.ok) throw new Error('Fichier JSON non trouvé');
             
-            if (!diaId) return;
+            const data = await response.json();
+            const logic = data.logic;
 
-            let rowExtra = 0;
-            const raccordInfo = data.tarifs_raccords_standards[diaId];
+            // --- 1. COMPTAGE DES TÔLES PERFORÉES (WELDING CONTAINER) ---
+            let lochblechCount = 0;
+            let totalLochblechPrice = 0;
+            let lochTrace = "";
 
-            // Raccord & Quota
-            if (raccordInfo) {
-                const priceUnit = parseFloat(raccordInfo.prix_unitaire) || 0;
-                if (ids_gratuits_max_2_pouces.includes(diaId.toString())) {
-                    standardFittingCount++;
-                    if (standardFittingCount > limit) {
-                        rowExtra += priceUnit;
-                        console.log(` > Raccord #${index+1} : Hors Quota (+${priceUnit}€)`);
+            jQuery('#welding-container .fitting-row').each(function() {
+                const typeVal = jQuery(this).find('select[name="fitting[type][]"]').val();
+                if (typeVal === "22") { // drilled plate (35%)
+                    lochblechCount++;
+                    const lochTable = data.tarifs_accessoires_complexes.lochblech_fix;
+                    const priceLoch = lochTable ? parseFloat(lochTable[tankDiameter]) : NaN;
+
+                    if (!isNaN(priceLoch)) {
+                        totalLochblechPrice += priceLoch;
+                        lochTrace += `- Tôle perforée n°${lochblechCount} (Ø${tankDiameter}) : +${priceLoch.toFixed(2)}€\n`;
+                    } else {
+                        missingDataLog.push(`Prix Lochblech manquant (Ø${tankDiameter})`);
                     }
-                } else {
-                    rowExtra += priceUnit;
-                    console.log(` > Raccord #${index+1} : Bride/Spécial (+${priceUnit}€)`);
                 }
+            });
+
+            // Quota standard (10 ou 14)
+            const limit = (tankType === 'combi') ? logic.included_fittings_combi : logic.included_fittings_energy;
+
+            // --- 2. CALCUL DES RACCORDS ---
+            let totalFittings = 0;
+            let standardFittingCount = 0;
+            let fittingsTrace = "";
+
+            jQuery('.fitting-row').not('#welding-container .fitting-row').each(function(index) {
+                const $row = jQuery(this);
+                const diaId = $row.find('select[name^="fitting[diameter]"]').val();
+                const rawAccId = $row.find('select[name^="fitting[accessories]"]').val();
+                const fHeight = parseInt($row.find('input[name^="fitting[height]"]').val()) || 0;
+                
+                if (!diaId) return;
+
+                const dnInfo = (data.tarifs_raccords_standards && data.tarifs_raccords_standards[diaId]) 
+                                ? data.tarifs_raccords_standards[diaId] : null;
+                const dnName = dnInfo ? dnInfo.dn : `ID:${diaId}`;
+                
+                let rowPrice = 0;
+                let rowLabel = `- Ligne ${index + 1} (${dnName}) : `;
+
+                // A. Prix du raccord (soumis au quota)
+                if (dnInfo) {
+                    const priceUnit = parseFloat(dnInfo[pressureKey]);
+                    if (!isNaN(priceUnit)) {
+                        if (ids_manchons_taraudes.includes(diaId.toString())) {
+                            standardFittingCount++;
+                            if (standardFittingCount > limit) {
+                                rowPrice += priceUnit;
+                                rowLabel += `${priceUnit}€ (Hors quota)`;
+                            } else {
+                                rowLabel += `0€ (Inclus)`;
+                            }
+                        } else {
+                            rowPrice += priceUnit;
+                            rowLabel += `${priceUnit}€`;
+                        }
+                    }
+                }
+
+                // B. Accessoires + Plus-value cumulative Verrohrung
+                if (rawAccId && rawAccId !== "0") {
+                    const jsonKey = accessoryMapping[rawAccId] || rawAccId; 
+                    if (data.tarifs_accessoires_complexes && data.tarifs_accessoires_complexes[jsonKey]) {
+                        const priceAcc = parseFloat(data.tarifs_accessoires_complexes[jsonKey][diaId]);
+                        if (!isNaN(priceAcc)) {
+                            rowPrice += priceAcc;
+                            rowLabel += ` + ${priceAcc}€ (${jsonKey})`;
+                            
+                            // SI COUDE (Bogenrohr) : on ajoute 60€ par tôle présente
+                            if (jsonKey === "bogenrohr" && lochblechCount > 0) {
+                                const unitPV = parseFloat(data.supplements.Verrohrung_durch_Lochblech) || 60;
+                                // const totalPVRow = unitPV * lochblechCount;
+                                const totalPVRow = unitPV;
+                                rowPrice += totalPVRow;
+                                rowLabel += ` + ${totalPVRow}€ (Verrohrung durch Lochblech)`;
+                            }
+                        }
+                    }
+                }
+
+                // C. Longueurs
+                if (fHeight > logic.max_standard_length_mm) {
+                    let key = fHeight <= 250 ? "extra_length_250" : (fHeight <= 350 ? "extra_length_350" : "extra_length_550");
+                    const lenPrice = data.supplements ? parseFloat(data.supplements[key]) : 0;
+                    if (lenPrice > 0) {
+                        rowPrice += lenPrice;
+                        rowLabel += ` + ${lenPrice}€ (L=${fHeight})`;
+                    }
+                }
+                
+                fittingsTrace += rowLabel + ` = ${rowPrice.toFixed(2)}€\n`;
+                totalFittings += rowPrice;
+            });
+
+            // --- 3. SYNTHÈSE ---
+            const totalFinalBrut = totalFittings + totalLochblechPrice;
+
+            let finalTrace = `--- CALCUL FITTING ISPAG ---\n`;
+            // finalTrace += `Nombre de tôles détectées : ${lochblechCount}\n`;
+            finalTrace += `---------------------------------------\n`;
+            if (lochTrace) finalTrace += lochTrace + `\n`;
+            finalTrace += fittingsTrace;
+            finalTrace += `TOTAL FINAL : ${totalFinalBrut.toFixed(2)} €\n`;
+
+            window.lastFittingTrace = finalTrace;
+
+            if (missingDataLog.length > 0) {
+                accPriceDisplay.css('background-color', '#ffe6e6');
+                if (!isAlertSuppressed) {
+                    alert(`⚠️ Données manquantes :\n- ` + [...new Set(missingDataLog)].join("\n- "));
+                    isAlertSuppressed = true;
+                }
+            } else {
+                accPriceDisplay.css('background-color', '');
             }
 
-            // Accessoires Complexes (Bogenrohr, etc.)
-            const jsonKey = accessoryMapping[rawAccId] || rawAccId; 
-            if (data.tarifs_accessoires_complexes[jsonKey]) {
-                const priceAcc = parseFloat(data.tarifs_accessoires_complexes[jsonKey][diaId]) || 0;
-                rowExtra += priceAcc;
-                if(priceAcc > 0) console.log(` > Accessoire ${jsonKey} : +${priceAcc}€`);
-            }
+            accPriceDisplay.val(totalFinalBrut.toFixed(2)).trigger('change');
 
-            // Longueur Hors Standard
-            if (fHeight > logic.max_standard_length_mm) {
-                let lenPrice = 0;
-                if (fHeight <= 250) lenPrice = data.supplements.extra_length_250;
-                else if (fHeight <= 350) lenPrice = data.supplements.extra_length_350;
-                else lenPrice = data.supplements.extra_length_550;
-                rowExtra += lenPrice;
-                console.log(` > Supplément Longueur : +${lenPrice}€`);
-            }
-
-            totalExtra += rowExtra;
-        });
-
-        // --- 2. CALCUL WELDING (TÔLES PERFORÉES) ---
-        jQuery('.welding-row').each(function() {
-            const $row = jQuery(this);
-            const weldingType = $row.find('select[name^="welding[type]"]').val(); 
-
-            if (weldingType === 'lochblech' || weldingType === '22') { // "22" est l'ID SQL de la tôle
-                const priceLoch = data.lochblech_fix[tankDiameter] || 0;
-                totalExtra += parseFloat(priceLoch);
-                console.log(` > Tôle Perforée Ø${tankDiameter} : +${priceLoch}€`);
-            } 
-            // Autres soudures simples si définies
-            else if (data.tarifs_welding && data.tarifs_welding[weldingType]) {
-                totalExtra += parseFloat(data.tarifs_welding[weldingType]);
-            }
-        });
-
-        console.log(`%cTOTAL ACCESSOIRES : ${totalExtra.toFixed(2)}€`, "color: green; font-weight: bold;");
-        console.groupEnd();
-
-        // Mise à jour de l'input de prix dans l'interface WordPress
-        accPriceDisplay.val(totalExtra.toFixed(2)).trigger('change');
-
-    } catch (error) {
-        console.error("Erreur pricing :", error.message);
-    }
+        } catch (error) {
+            console.error("Erreur technique pricing :", error.message);
+        }
+    }, 150);
 }
 
-
-// --- ÉCOUTEURS D'ÉVÉNEMENTS ---
-
-// Changement sur n'importe quel champ de raccord
+// --- ÉCOUTEURS ---
 jQuery(document).on('change input', 'select[name^="fitting"], input[name^="fitting"]', function() {
     updateFittingsPrice();
 });
 
-// Changement sur le diamètre ou type de cuve (influence le quota et le Lochblech)
 jQuery(document).on('change input', 'select[name="tank[diameter]"], input[name="tank[diameter]"], select[name="tank[type]"]', function() {
     updateFittingsPrice();
 });
 
-// Déclencher le calcul lors de la duplication d'une ligne
 jQuery(document).on('click', '.btn-duplicate', function() {
-    // On attend un court instant que le script de duplication 
-    // ait terminé d'ajouter la ligne au DOM
-    setTimeout(function() {
-        console.log("🔄 Ligne dupliquée détectée, recalcul du prix...");
-        updateFittingsPrice();
-    }, 100); 
+    setTimeout(() => updateFittingsPrice(), 100); 
 });
-// Déclencher le calcul lors de la suppression d'une ligne
+
 jQuery(document).on('click', '.btn-delete-fitting', function() {
-    // On utilise un délai un peu plus long (200ms) car les scripts 
-    // de suppression ont souvent une petite animation (fadeOut)
-    setTimeout(function() {
-        console.log("🗑️ Ligne supprimée, recalcul du prix...");
-        updateFittingsPrice();
-    }, 200); 
+    setTimeout(() => updateFittingsPrice(), 200); 
+});
+
+jQuery(document).on('change input', '#current-tank-pression', function() {
+    isAlertSuppressed = false; 
+    updateFittingsPrice();
 });

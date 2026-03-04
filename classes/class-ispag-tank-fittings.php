@@ -34,8 +34,16 @@ class ISPAG_Tank_Fittings {
     public function get_fitting_btn($title, $article_id, $purchase_article_id = null){
         $tank = new ISPAG_Tank_Designer();
         $tank_datas = $tank->get_tank_data(null, $article_id);
-        return '<button type="button" class="ispag-btn ispag-btn-grey-outlined" id="open-tank-fittings-modal" data-article-id="'. $article_id . '" data-purchase-article-id="'. $purchase_article_id . '" data-tank-diameter="' . $tank_datas['dimensions']->Diameter . '">
-            ' . __('Configure fittings', 'creation-reservoir') . '
+        return '<button type="button"
+                class="ispag-btn ispag-btn-grey-outlined"
+                id="open-tank-fittings-modal"
+                data-article-id="'. $article_id . '"
+                data-purchase-article-id="'. $purchase_article_id . '"
+                data-tank-diameter="' . $tank_datas['dimensions']->Diameter . '"
+                data-tank-pression="' . $tank_datas['dimensions']->MaxPressure . '"
+                data-tank-using-temp="' . $tank_datas['dimensions']->usingTemperature . '"
+                data-tank-insulation-thickness="' . $tank_datas['insulation']->InsulationThickness . '">
+                    ' . __('Configure fittings', 'creation-reservoir') . '
         </button>';
     }
 
@@ -54,8 +62,11 @@ class ISPAG_Tank_Fittings {
         $template_welding_form = ob_get_clean();
         
         return '<div id="tank-fittings-modal" class="ispag-modal-fullscreen" style="display:none;">
-            <input type="text" id="current-editing-article-id" value="">
-            <input type="text" id="current-tank-diam" value="">
+            <input type="hidden" id="current-editing-article-id" value="">
+            <input type="hidden" id="current-tank-diam" value="">
+            <input type="hidden" id="current-tank-pression" value="">
+            <input type="hidden" id="current-tank-using-temp" value="">
+            <input type="hidden" id="current-tank-insulation-thickness" value="">
             <div class="ispag-modal-fullscreen-inner">
                 <div class="ispag-modal-fitting-left" id="ispag-modal-svg" style="height: 500px; border: 1px solid #ccc;">
                     <!-- Ici le dessin ou l’image -->

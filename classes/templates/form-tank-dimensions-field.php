@@ -43,7 +43,7 @@
         <div class="ispag-field" style="flex: 1; min-width: 200px;">
             <div class="field-group" style="margin-bottom: 15px;">
                 <label><strong><?php echo __('Ground clearance', 'creation-reservoir'); ?> (mm)</strong></label>
-                <input type="number" name="tank[clearance]" value="<?= esc_attr($data['dimensions']->GroundClearance ?? '50') ?>" min="0" style="width: 100%;">
+                <input type="number" name="tank[clearance]" value="<?= esc_attr($data['dimensions']->GroundClearance ?? '50') ?>" min="0" max="500" style="width: 100%;">
             </div>
 
             <div class="field-group">

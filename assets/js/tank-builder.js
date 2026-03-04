@@ -541,6 +541,9 @@ jQuery(document).ready(function($) {
         const articleId = $(this).data('article-id');
         const purchaseArticleId = $(this).data('purchase-article-id');
         const tank_diam = $(this).data('tank-diameter');
+        const tank_pression = $(this).data('tank-pression');
+        const tank_using_temp = $(this).data('tank-using-temp');
+        const tank_insulation_thickness = $(this).data('tank-insulation-thickness');
         $('#tank-fittings-modal').fadeIn();
 
         // Met à jour le lien 3D
@@ -548,6 +551,9 @@ jQuery(document).ready(function($) {
 
         $('#current-editing-article-id').val(purchaseArticleId);
         $('#current-tank-diam').val(tank_diam);
+        $('#current-tank-pression').val(tank_pression);
+        $('#current-tank-using-temp').val(tank_using_temp);
+        $('#current-insulation-thickness').val(tank_insulation_thickness);
 
         $('#fittings-form').html('<p>Chargement...</p>');
 
@@ -559,6 +565,12 @@ jQuery(document).ready(function($) {
             if (response.success) {
                 $('#fittings-form').html(response.data['html']);
                 $('#ispag-modal-svg').html(response.data['svg']);
+
+                // 🔥 EXECUTION DU CALCUL INITIAL DU PRIX
+                setTimeout(function() {
+                    updateFittingsPrice();
+                }, 50);
+
             } else {
                 $('#fittings-form').html('<p>Erreur de chargement</p>');
             }

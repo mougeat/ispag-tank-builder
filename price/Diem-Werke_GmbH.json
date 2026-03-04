@@ -1,7 +1,11 @@
 {
   "fournisseur": "Diem-Werke GmbH",
   "unite_monetaire": "EUR",
+  "discount_defaut": 38.4,
   "derniere_mise_a_jour": "2026-02-25",
+  "logic": {
+    "surcharge_soudure_sur_place": 20
+  },
   "grille_tarifaire": {
     "500": {
       "1800": { "3bar": 851, "6bar": 851 },
@@ -227,6 +231,44 @@
       "4070": { "3bar": 14334, "6bar": 19770 },
       "4570": { "3bar": 14969, "6bar": 20512 },
       "5070": { "3bar": 16236, "6bar": 21886 }
+    }
+  },
+  "accessoires": {
+    "pieds": {
+      "unite": "3_pieces",
+      "rohrfüße": [
+        { "volume_max_litres": 1500, "prix": 63 },
+        { "volume_max_litres": 3000, "prix": 119 },
+        { "volume_max_litres": 14999, "prix": 238 }
+      ],
+      "unp_füße": [
+        { "volume_max_litres": 3000, "prix": 119 },
+        { "volume_max_litres": 15000, "prix": 238 },
+        { "volume_max_litres": 20000, "prix": 404 },
+        { "volume_max_litres": 40000, "prix": 835 }
+      ],
+      "regles": {
+        "hauteur_manteau_max_rohr": 2999,
+        "volume_max_rohr": 14999,
+        "passage_unp_ou_standring": "si limite depassee",
+        "quatrieme_pied_formule": "(prix / 3) * 4"
+      }
+    },
+    "ground_clearance": {
+      "base_mm": 50,
+      "plus_values": [
+        { "diametre_max_mm": 1000, "hauteur_max_mm": 500, "prix": 39 },
+        { "diametre_max_mm": 2000, "hauteur_max_mm": 500, "prix": 79 },
+        { "diametre_max_mm": 3000, "hauteur_max_mm": 500, "prix": 143 }
+      ]
+    },
+    "traitement_surface": {
+      "formule_m2": "((diametre * diametre * 2) + (diametre * 4 * hauteur_manteau))",
+      "options": {
+        "exterieur_2_couches_appret": { "prix_m2": 12 },
+        "exterieur_zinc_1K": { "prix_m2": 18 },
+        "exterieur_epoxy_zinc_2K": { "prix_m2": 21, "note": "60-80µ sans sablage" }
+      }
     }
   }
 }

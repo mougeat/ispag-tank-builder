@@ -32,6 +32,9 @@ class ISPAG_Tank_Designer {
         add_filter('ispag_auto_saver_tank_data', [self::$instance, 'save_tank_data'], 10, 3);
         add_action('ispag_get_tank_created_by_id', [self::$instance, 'get_tank_created_by_id'],10, 2);
 
+        add_action('wp_ajax_ispag_save_tank_unit_price', [self::$instance, 'save_tank_unit_price']);
+        add_action('wp_ajax_nopriv_ispag_save_tank_unit_price', [self::class, 'save_tank_unit_price']);
+
  
         // get_tank_id_by_article_id
     }
@@ -466,6 +469,78 @@ class ISPAG_Tank_Designer {
         return (int) $current_user_id;
     }
 
+    public static function save_tank_unit_price() {
+        // 1. Récupération et nettoyage des données
+        $article_id = isset($_POST['article_id']) ? intval($_POST['article_id']) : 0;
+        $price      = isset($_POST['price'])      ? floatval($_POST['price']) : 0;
+        $discount   = isset($_POST['discount'])   ? floatval($_POST['discount']) : 0;
+        
+        // Récupération du log détaillé (on utilise stripslashes pour nettoyer l'encodage JSON/AJAX)
+        $log_details = isset($_POST['log_details']) ? stripslashes($_POST['log_details']) : 'Aucun détail de calcul fourni.';
 
+        // 2. Validation
+        if (!$article_id || $price <= 0) {
+            wp_send_json_error(['message' => 'Données invalides : ID ou Prix manquant']);
+            wp_die();
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'achats_articles_cmd_fournisseurs';
+
+        // 3. Mise à jour de la Base de Données
+        $data_to_update = array(
+            'UnitPrice' => $price,
+            'discount'  => $discount
+        );
+
+        $updated = $wpdb->update(
+            $table,
+            $data_to_update,
+            array('Id' => $article_id)
+        );
+
+        if ($updated !== false) {
+            // 4. Gestion du Log de Debug (Fichier texte)
+            try {
+                $upload_dir = wp_upload_dir();
+                $debug_dir  = $upload_dir['basedir'] . '/ispag_debug_pricing';
+
+                // Création du dossier sécurisé s'il n'existe pas
+                if (!file_exists($debug_dir)) {
+                    wp_mkdir_p($debug_dir);
+                    file_put_contents($debug_dir . '/index.php', '<?php // Silence is golden');
+                }
+
+                // Préparation du contenu du fichier
+                $current_user = wp_get_current_user();
+                $file_content = "====================================================\n";
+                $file_content .= "RAPPORT DE CALCUL - ARTICLE ID: " . $article_id . "\n";
+                $file_content .= "GÉNÉRÉ PAR : " . $current_user->display_name . " (ID: " . $current_user->ID . ")\n";
+                $file_content .= "DATE : " . date('d/m/Y H:i:s') . "\n";
+                $file_content .= "====================================================\n\n";
+                $file_content .= $log_details;
+
+                // Écriture du fichier (écrase le précédent pour cet article)
+                $filename = $debug_dir . '/article_' . $article_id . '_debug.txt';
+                file_put_contents($filename, $file_content);
+
+                wp_send_json_success([
+                    'message' => 'Prix, remise et log de debug mis à jour',
+                    'debug_file' => 'article_' . $article_id . '_debug.txt'
+                ]);
+
+            } catch (Exception $e) {
+                // Si le log échoue, on renvoie quand même le succès de la DB mais avec un warning
+                wp_send_json_success([
+                    'message' => 'Prix mis à jour en DB, mais erreur lors de la création du log.',
+                    'error_log' => $e->getMessage()
+                ]);
+            }
+        } else {
+            wp_send_json_error(['message' => 'Erreur DB : ' . $wpdb->last_error]);
+        }
+        
+        wp_die();
+    }
 
 }
