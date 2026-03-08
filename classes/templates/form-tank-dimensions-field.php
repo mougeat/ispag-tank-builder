@@ -84,8 +84,7 @@
                     <span style="font-weight: bold;">€</span>
                 </div>
                 <small style="color: #666; font-size: 0.85em;">
-                    <?php echo __('Under development, not to be taken into account at this time', 'creation-reservoir'); ?>
-                    <?php echo __('Manufacturer\'s base price based on dimensions', 'creation-reservoir'); ?>
+                    <?php echo __('Raw tank price based on dimensions', 'creation-reservoir'); ?>
                 </small>
             </div>
         </div>

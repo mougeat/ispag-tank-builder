@@ -1,33 +1,93 @@
 /**
  * Fichier : tank-pricing.js
- * Version : 3.7.0 - PV Soudure dynamique + Arrondi Peinture
+ * Version : 4.4.0 - Gestion silencieuse et complète
  */
 
-// Variable globale pour stocker le détail du calcul en cours
 let lastPricingTrace = "";
 
+/**
+ * Logique de vente centralisée
+ */
+function calculateSalesPriceFromPurchase(purchasePrice, volumeLiters, supplierDiscount = 0) {
+    const isProjectOrPurchase = jQuery('input[name="isProjectOrPurchase"]').val();
+    const salesCoefType = jQuery('#ispag-coef-select').val();
+    
+    let price = parseFloat(purchasePrice) || 0;
+    let details = "";
+
+    if (isProjectOrPurchase !== 'project') {
+        return { 
+            finalPrice: price, 
+            trace: `MODE PURCHASE : Prix brut conservé.\n` 
+        };
+    }
+
+    details += `--- APPLICATION LOGIQUE PROJET (CLIENT) ---\n`;
+
+    if (supplierDiscount > 0) {
+        const discountAmount = price * (supplierDiscount / 100);
+        price = price - discountAmount;
+        details += `- Application Remise Fournisseur (${supplierDiscount}%) : ${price.toFixed(2)} € (Net)\n`;
+    }
+
+    const customsFee = parseFloat(ispag_vars.custom_fee) || 0;
+    if (customsFee > 0) {
+        const feeRate = customsFee / 100;
+        if (1 - feeRate > 0) {
+            price = price / (1 - feeRate);
+            details += `- Dédouanement (${customsFee}%) : ${price.toFixed(2)} €\n`;
+        }
+    }
+
+    let coef = parseFloat(ispag_vars.default_coef) || 1; 
+    let labelCoef = "Standard";
+    if (salesCoefType === 'wpcb_sales_coef_offre_revendeur') {
+        coef = parseFloat(ispag_vars.coef_revendeur);
+        labelCoef = "Revendeur";
+    } else if (salesCoefType === 'wpcb_sales_coef_low') {
+        coef = parseFloat(ispag_vars.coef_low);
+        labelCoef = "Bas (Low)";
+    }
+
+    price = price * coef;
+    details += `- Coefficient ${labelCoef} (${coef}) : ${price.toFixed(2)} €\n`;
+
+    if (price < 6000) {
+        const volumeM3 = (parseFloat(volumeLiters) || 0) / 1000;
+        const transportFee = volumeM3 * 400;
+        price += transportFee;
+        details += `- Frais prix < 6000 (${volumeM3.toFixed(3)} m³ * 400) : +${transportFee.toFixed(2)} €\n`;
+    }
+
+    return { finalPrice: price, trace: details };
+}
+
 async function updateTankPrice() {
-    console.log("--- Début updateTankPrice ---");
     const articleId = jQuery('#current-editing-article-id').val();
     const supplierEl = jQuery(document).find('#tank-supplier-display');
     const supplier = supplierEl.attr('data-value') || supplierEl.data('value');
     
     const priceDisplay = jQuery('#tank-price-display');
-    const priceBarDisplay = jQuery('#tank-bare-price-' + articleId);
+    const priceBarDisplay = jQuery(document).find('#tank-bare-price-' + articleId);
     const priceValue = jQuery('#tank-price-value');
 
-    // Récupération des valeurs du formulaire
+    // Reset affichage (silencieux)
+    const resetDisplay = () => {
+        if (priceDisplay.length) priceDisplay.val("---");
+        if (priceValue.length) priceValue.val("0");
+        const btnId = `btn-save-total-${articleId}`;
+        jQuery(`#${btnId}`).closest('.btn-container-db').remove();
+    };
+
     const diameter = parseInt(jQuery('select[name="tank[diameter]"], input[name="tank[diameter]"]').val());
     const height = parseInt(jQuery('input[name="tank[height]"]').val());
     const volume = parseInt(jQuery('input[name="tank[volume]"]').val()) || 0;
     const pressure = parseFloat(jQuery('input[name="tank[max_pressure]"]').val()) || 3;
-    const tankTypeId = jQuery('#tank-typ').val(); 
     const supportValue = jQuery('select[name="tank[support]"]').val(); 
-    const groundClearance = parseInt(jQuery('input[name="tank[clearance]"]').val()) || 50; 
     const nbWelding = parseInt(jQuery('#welding-nb').val()) || 0;
 
     if (!supplier || isNaN(diameter) || isNaN(height)) {
-        if (priceDisplay.length) priceDisplay.val("---");
+        resetDisplay();
         return;
     }
 
@@ -36,108 +96,88 @@ async function updateTankPrice() {
 
     try {
         const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error('Fichier JSON non trouvé');
-        const data = await response.json();
+        if (!response.ok) {
+            resetDisplay();
+            return; // Sortie silencieuse si fichier manquant
+        }
         
-        // --- INITIALISATION DE LA TRACE ---
+        const data = await response.json();
+        if (!data.grille_tarifaire) {
+            resetDisplay();
+            return;
+        }
+
         let trace = `--- DÉTAILS DU CALCUL ISPAG (${new Date().toLocaleString()}) ---\n`;
         trace += `FOURNISSEUR : ${data.fournisseur}\n`;
         trace += `CONFIG : Ø${diameter}mm, Ht:${height}mm, Vol:${volume}L, Pression:${pressure}bar\n`;
-        trace += `NOMBRE DE SOUDURE : ${nbWelding}\n`;
         trace += `---------------------------------------\n`;
 
-        // 1. RÉCUPÉRATION DU DISCOUNT
         const supplierDiscount = parseFloat(data.discount_defaut) || 0;
         priceValue.attr('data-discount', supplierDiscount);
 
-        // 2. RECHERCHE PRIX DE BASE DANS LA GRILLE
         const grille = data.grille_tarifaire;
         const sortedDiameters = Object.keys(grille).map(Number).sort((a, b) => a - b);
         const targetDia = sortedDiameters.find(d => d >= diameter);
+
+        if (!targetDia) { resetDisplay(); return; }
+
         const heightsForDia = grille[targetDia];
         const sortedHeights = Object.keys(heightsForDia).map(Number).sort((a, b) => a - b);
         const targetHeight = sortedHeights.find(h => h >= height);
 
+        if (!targetHeight) { resetDisplay(); return; }
+
         const pressKey = (pressure <= 3) ? '3bar' : '6bar';
         let basePrice = heightsForDia[targetHeight][pressKey];
-        trace += `PRIX DE BASE (Grille) [${targetDia}x${targetHeight} @ ${pressKey}] : ${basePrice.toFixed(2)} €\n`;
 
-        // 3. PLUS-VALUE SOUDURE SUR PLACE (Si nbWelding > 0)
-        if (nbWelding > 0) {
-            const tauxSoudure = (data.logic && data.logic.surcharge_soudure_sur_place) ? parseFloat(data.logic.surcharge_soudure_sur_place) : 0;
-            if (tauxSoudure > 0) {
-                const pvSoudure = basePrice * (tauxSoudure / 100);
-                basePrice += pvSoudure;
-                trace += `PV SOUDURE SUR PLACE (${nbWelding} détectée(s), +${tauxSoudure}%) : +${pvSoudure.toFixed(2)} €\n`;
-            }
+        if (basePrice === undefined || basePrice === null) { resetDisplay(); return; }
+
+        trace += `PRIX ACHAT BRUT BASE : ${basePrice.toFixed(2)} €\n`;
+
+        // Surcharge soudure sur place
+        if (nbWelding > 0 && data.logic?.surcharge_soudure_sur_place) {
+            const tauxSoudure = parseFloat(data.logic.surcharge_soudure_sur_place);
+            const pvSoudure = basePrice * (tauxSoudure / 100);
+            basePrice += pvSoudure;
+            trace += `PV SOUDURE (+${tauxSoudure}%) : +${pvSoudure.toFixed(2)} €\n`;
         }
 
-        // 4. CALCUL OPTIONS : PIEDS
-        let feetPrice = 0;
-        if (supportValue === "10" && data.accessoires.pieds) {
-            const config = data.accessoires.pieds;
-            let pied = config.rohrfüße.find(p => volume <= p.volume_max_litres) || config.unp_füße.find(p => volume <= p.volume_max_litres);
+        // Calcul des options (Pieds)
+        let optionsPrice = 0;
+        if (supportValue === "10" && data.accessoires?.pieds) {
+            let pied = data.accessoires.pieds.rohrfüße?.find(p => volume <= p.volume_max_litres) || 
+                       data.accessoires.pieds.unp_füße?.find(p => volume <= p.volume_max_litres);
             if (pied) {
-                feetPrice = pied.prix;
-                trace += `OPTION Pieds : +${feetPrice.toFixed(2)} €\n`;
+                optionsPrice += pied.prix;
+                trace += `OPTION PIEDS : +${pied.prix.toFixed(2)} €\n`;
             }
         }
 
-        // 5. CALCUL OPTIONS : GARDE AU SOL
-        let gcPrice = 0;
-        if (groundClearance > 50 && data.accessoires.ground_clearance) {
-            const gcConfig = data.accessoires.ground_clearance.plus_values.find(p => diameter <= p.diametre_max_mm);
-            if (gcConfig) {
-                gcPrice = gcConfig.prix;
-                trace += `OPTION Garde au sol (${groundClearance}mm) : +${gcPrice.toFixed(2)} €\n`;
-            }
-        }
+        const totalPurchaseBrut = basePrice + optionsPrice;
+        const salesCalculation = calculateSalesPriceFromPurchase(totalPurchaseBrut, volume, supplierDiscount);
+        const finalDisplayPrice = salesCalculation.finalPrice;
+        
+        lastPricingTrace = trace + salesCalculation.trace;
 
-        // 6. CALCUL OPTIONS : PEINTURE (ARRONDI M2 SUPÉRIEUR)
-        let paintPrice = 0;
-        if ((tankTypeId === "6" || tankTypeId === "7") && data.accessoires.traitement_surface) {
-            const dM = diameter / 1000;
-            const hM = height / 1000;
-            const rawSurface = (dM * dM * 2) + (dM * 4 * hM);
-            const surfaceM2 = Math.ceil(rawSurface); // Arrondi m2 supérieur
-            
-            const prixUnitM2 = data.accessoires.traitement_surface.options.exterieur_zinc_1K.prix_m2;
-            paintPrice = surfaceM2 * prixUnitM2;
-            trace += `OPTION Peinture (Surf réelle: ${rawSurface.toFixed(2)}m² -> Arrondie: ${surfaceM2}m² * ${prixUnitM2.toFixed(2)}) : +${paintPrice.toFixed(2)} €\n`;
-        }
-
-        const finalTankPrice = basePrice + feetPrice + gcPrice + paintPrice;
-        trace += `TOTAL CUVE (Brut) : ${finalTankPrice.toFixed(2)} €\n`;
-
-        // 7. AJOUT PRIX RACCORDS (FITTINGS)
-        const accPrice = parseFloat(jQuery('#tank-acc-price-' + articleId).val()) || 0;
-        if (accPrice > 0) {
-            trace += `TOTAL RACCORDS (Accessoires) : +${accPrice.toFixed(2)} €\n`;
-        }
-
-        // On stocke la trace pour l'envoi AJAX
-        lastPricingTrace = trace;
-
-        // Mise à jour de l'affichage
-        priceDisplay.val(finalTankPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2 }));
-        priceValue.val(finalTankPrice.toFixed(2));
+        // Affichage final
+        priceDisplay.val(finalDisplayPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2 }));
+        priceValue.val(finalDisplayPrice.toFixed(2));
           
         if(priceBarDisplay.length) {
-            priceBarDisplay.val(finalTankPrice.toFixed(2))
+            priceBarDisplay.val(finalDisplayPrice.toFixed(2))
                            .attr('data-discount', supplierDiscount)
                            .trigger('change');
             calculateTotalCombinedPrice(articleId);
         }
 
     } catch (error) {
-        console.error("Erreur pricing:", error.message);
+        resetDisplay();
     }
 }
 
 function calculateTotalCombinedPrice(articleId) {
     const bareInput = jQuery('#tank-bare-price-' + articleId);
     const accInput = jQuery('#tank-acc-price-' + articleId);
-    
     const bareValue = parseFloat(bareInput.val()) || 0;
     const accValue = parseFloat(accInput.val()) || 0;
     const total = bareValue + accValue;
@@ -147,15 +187,9 @@ function calculateTotalCombinedPrice(articleId) {
 
     if (bareValue > 0) {
         if (!jQuery(`#${btnId}`).length) {
-            const buttonHtml = `
-                <div class="ispag-row btn-container-db" style="margin-top:5px;">
-                    <button type="button" id="${btnId}" data-id="${articleId}"
-                            class="ispag-btn btn-insert-tank-price" 
-                            style="background-color:#2c3e50; color:white; width:100%; border:none; padding:4px 8px; cursor:pointer; font-size:11px; font-weight:bold; border-radius:4px;">
-                            <i class="fas fa-save"></i> Reporter
-                    </button>
-                </div>`;
-            container.append(buttonHtml);
+            container.append(`<div class="ispag-row btn-container-db" style="margin-top:5px;">
+                <button type="button" id="${btnId}" data-id="${articleId}" class="ispag-btn btn-insert-tank-price" style="background-color:#2c3e50; color:white; width:100%; border:none; padding:4px 8px; cursor:pointer; font-size:11px; font-weight:bold; border-radius:4px;">
+                <i class="fas fa-save"></i> Reporter</button></div>`);
         }
     } else {
         jQuery(`#${btnId}`).closest('.btn-container-db').remove();
@@ -166,11 +200,9 @@ function calculateTotalCombinedPrice(articleId) {
 function saveTotalToDatabase(articleId) {
     const totalPrice = calculateTotalCombinedPrice(articleId);
     const discountValue = parseFloat(jQuery('#tank-bare-price-' + articleId).attr('data-discount')) || 0;
-    
-    // FUSION DES LOGS (Cuve + Raccords de la fenêtre globale)
     const fullLog = lastPricingTrace + (window.lastFittingTrace || "");
-
     const btn = jQuery(`#btn-save-total-${articleId}`);
+
     btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
 
     jQuery.ajax({
@@ -186,41 +218,27 @@ function saveTotalToDatabase(articleId) {
         success: function(response) {
             if (response.success) {
                 btn.html('✅ Mis à jour').css('background-color', '#27ae60');
-                const netPrice = totalPrice * (1 - (discountValue / 100));
-                const netPriceCeil = Math.ceil(netPrice);
-                btn.closest('.ispag-article').find('.ispag-article-prix-net').text(netPriceCeil.toLocaleString('fr-FR') + ' €');
-
-                setTimeout(() => { 
-                    btn.html('<i class="fas fa-save"></i> Reporter').css('background-color', '#2c3e50');
-                    btn.prop('disabled', false);
-                }, 2000);
+                const netPrice = Math.ceil(totalPrice * (1 - (discountValue / 100)));
+                btn.closest('.ispag-article').find('.ispag-article-prix-net').text(netPrice.toLocaleString('fr-FR') + ' €');
+                setTimeout(() => { btn.html('<i class="fas fa-save"></i> Reporter').css('background-color', '#2c3e50').prop('disabled', false); }, 2000);
             } else {
-                alert("Erreur : " + (response.data ? response.data.message : 'Inconnue'));
                 btn.prop('disabled', false).html('Réessayer');
             }
         },
-        error: function(xhr) {
-            console.error("Erreur critique AJAX :", xhr.responseText);
-            btn.prop('disabled', false).html('Erreur');
-        }
+        error: function() { btn.prop('disabled', false).html('Erreur'); }
     });
 }
 
 // --- ÉCOUTEURS ---
-
-// Écoute les changements sur les paramètres de la cuve ET les soudures
-jQuery(document).on('change input', 'select[name^="tank["], input[name^="tank["], #welding-container select', function() {
+jQuery(document).on('change input', 'select[name^="tank["], input[name^="tank["], #welding-nb, input[name="isProjectOrPurchase"], #ispag-coef-select', function() {
     updateTankPrice();
 });
 
-// Écoute les changements de prix manuels ou calculés pour mettre à jour le bouton
 jQuery(document).on('change input', '[id^="tank-bare-price-"], [id^="tank-acc-price-"]', function() {
     const id = jQuery(this).attr('id').split('-').pop();
     calculateTotalCombinedPrice(id);
 });
 
-// Action du bouton "Reporter"
 jQuery(document).on('click', '.btn-insert-tank-price', function() {
-    const id = jQuery(this).data('id');
-    saveTotalToDatabase(id);
+    saveTotalToDatabase(jQuery(this).data('id'));
 });

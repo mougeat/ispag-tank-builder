@@ -60,7 +60,11 @@ class ISPAG_Tank_Manager {
 
         // Localize spécifique pour le pricing (pour récupérer le chemin du dossier /price/)
         wp_localize_script('ispag-tank-pricing', 'ispag_vars', [
-            'plugin_url' => plugins_url('', dirname(__FILE__, 1)), // Remonte au dossier racine du plugin
+            'plugin_url'        => plugins_url('', dirname(__FILE__, 1)), // Remonte au dossier racine du plugin
+            'custom_fee'        => get_option('wpcb_custom_fee'),
+            'default_coef'      => floatval(get_option('wpcb_sales_coef')),
+            'coef_revendeur'    =>floatval(get_option('wpcb_sales_coef_offre_revendeur')),
+            'coef_low'          =>floatval(get_option('wpcb_sales_coef_low')),
         ]);
 
     }
