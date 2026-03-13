@@ -63,116 +63,91 @@ function calculateSalesPriceFromPurchase(purchasePrice, volumeLiters, supplierDi
 }
 
 async function updateTankPrice() {
-    const articleId = jQuery('#current-editing-article-id').val();
-    const supplierEl = jQuery(document).find('#tank-supplier-display');
-    const supplier = supplierEl.attr('data-value') || supplierEl.data('value');
+    console.group("--- DÉBOGAGE PRICING ISPAG ---");
     
-    const priceDisplay = jQuery('#tank-price-display');
+    const articleId = jQuery('#current-editing-article-id').val();
+    
+    // Sélecteurs
     const priceBarDisplay = jQuery(document).find('#tank-bare-price-' + articleId);
-    const priceValue = jQuery('#tank-price-value');
-
-    // Reset affichage (silencieux)
-    const resetDisplay = () => {
-        if (priceDisplay.length) priceDisplay.val("---");
-        if (priceValue.length) priceValue.val("0");
-        const btnId = `btn-save-total-${articleId}`;
-        jQuery(`#${btnId}`).closest('.btn-container-db').remove();
-    };
-
+    const priceDisplay = jQuery('#tank-price-display'); // Le champ dans la modal
+    const supplierEl = jQuery('#tank-supplier-display');
+    
+    const supplier = supplierEl.attr('data-value') || supplierEl.data('value');
     const diameter = parseInt(jQuery('select[name="tank[diameter]"], input[name="tank[diameter]"]').val());
-    const height = parseInt(jQuery('input[name="tank[height]"]').val());
-    const volume = parseInt(jQuery('input[name="tank[volume]"]').val()) || 0;
-    const pressure = parseFloat(jQuery('input[name="tank[max_pressure]"]').val()) || 3;
-    const supportValue = jQuery('select[name="tank[support]"]').val(); 
-    const nbWelding = parseInt(jQuery('#welding-nb').val()) || 0;
+    const heightTotal = parseInt(jQuery('input[name="tank[height]"]').val());
+    const material = jQuery('#tank-material').val(); 
 
-    if (!supplier || isNaN(diameter) || isNaN(height)) {
-        resetDisplay();
+    if (!supplier || isNaN(diameter) || isNaN(heightTotal)) {
+        console.groupEnd();
         return;
     }
 
-    const fileName = supplier.replace(/\s+/g, '_') + '.json';
-    const jsonUrl = `${ispag_vars.plugin_url}/price/${fileName}`;
-
     try {
+        const fileName = supplier.replace(/\s+/g, '_') + '.json';
+        const jsonUrl = `${ispag_vars.plugin_url}/price/${fileName}`;
         const response = await fetch(jsonUrl);
-        if (!response.ok) {
-            resetDisplay();
-            return; // Sortie silencieuse si fichier manquant
-        }
-        
         const data = await response.json();
-        if (!data.grille_tarifaire) {
-            resetDisplay();
-            return;
-        }
 
-        let trace = `--- DÉTAILS DU CALCUL ISPAG (${new Date().toLocaleString()}) ---\n`;
-        trace += `FOURNISSEUR : ${data.fournisseur}\n`;
-        trace += `CONFIG : Ø${diameter}mm, Ht:${height}mm, Vol:${volume}L, Pression:${pressure}bar\n`;
-        trace += `---------------------------------------\n`;
-
-        const supplierDiscount = parseFloat(data.discount_defaut) || 0;
-        priceValue.attr('data-discount', supplierDiscount);
-
+        let basePrice = 0;
         const grille = data.grille_tarifaire;
-        const sortedDiameters = Object.keys(grille).map(Number).sort((a, b) => a - b);
-        const targetDia = sortedDiameters.find(d => d >= diameter);
+        const targetDia = Object.keys(grille).map(Number).sort((a, b) => a - b).find(d => d >= diameter);
+        const targetHeight = targetDia ? Object.keys(grille[targetDia]).map(Number).sort((a, b) => a - b).find(h => h >= heightTotal) : null;
 
-        if (!targetDia) { resetDisplay(); return; }
-
-        const heightsForDia = grille[targetDia];
-        const sortedHeights = Object.keys(heightsForDia).map(Number).sort((a, b) => a - b);
-        const targetHeight = sortedHeights.find(h => h >= height);
-
-        if (!targetHeight) { resetDisplay(); return; }
-
-        const pressKey = (pressure <= 3) ? '3bar' : '6bar';
-        let basePrice = heightsForDia[targetHeight][pressKey];
-
-        if (basePrice === undefined || basePrice === null) { resetDisplay(); return; }
-
-        trace += `PRIX ACHAT BRUT BASE : ${basePrice.toFixed(2)} €\n`;
-
-        // Surcharge soudure sur place
-        if (nbWelding > 0 && data.logic?.surcharge_soudure_sur_place) {
-            const tauxSoudure = parseFloat(data.logic.surcharge_soudure_sur_place);
-            const pvSoudure = basePrice * (tauxSoudure / 100);
-            basePrice += pvSoudure;
-            trace += `PV SOUDURE (+${tauxSoudure}%) : +${pvSoudure.toFixed(2)} €\n`;
+        if (targetHeight) {
+            const pressKey = (parseFloat(jQuery('input[name="tank[max_pressure]"]').val()) || 3) <= 3 ? '3bar' : '6bar';
+            basePrice = grille[targetDia][targetHeight][pressKey];
         }
 
-        // Calcul des options (Pieds)
         let optionsPrice = 0;
-        if (supportValue === "10" && data.accessoires?.pieds) {
-            let pied = data.accessoires.pieds.rohrfüße?.find(p => volume <= p.volume_max_litres) || 
-                       data.accessoires.pieds.unp_füße?.find(p => volume <= p.volume_max_litres);
-            if (pied) {
-                optionsPrice += pied.prix;
-                trace += `OPTION PIEDS : +${pied.prix.toFixed(2)} €\n`;
-            }
+        // Calcul Zinc
+        const techResponse = await fetch(`${ispag_vars.plugin_url}/assets/js/tank_data.json`);
+        const techData = await techResponse.json();
+        const bottomHeight = techData.arrayBottomHeight[material]?.[diameter] || 0;
+        const mantleHeight = heightTotal - (2 * bottomHeight);
+        const tankType = jQuery('select[name="tank[type]"]').val();
+
+        if ((tankType === "6" || tankType === "7") && data.accessoires?.traitement_surface) {
+            const surfaceM2 = Math.ceil(((diameter/1000)**2 * 2) + ((diameter/1000) * 4 * (mantleHeight/1000)));
+            optionsPrice += surfaceM2 * data.accessoires.traitement_surface.options.exterieur_zinc_1K.prix_m2;
         }
 
+        // Calcul final
         const totalPurchaseBrut = basePrice + optionsPrice;
-        const salesCalculation = calculateSalesPriceFromPurchase(totalPurchaseBrut, volume, supplierDiscount);
-        const finalDisplayPrice = salesCalculation.finalPrice;
+        const sales = calculateSalesPriceFromPurchase(totalPurchaseBrut, (parseInt(jQuery('input[name="tank[volume]"]').val()) || 0), (parseFloat(data.discount_defaut) || 0));
         
-        lastPricingTrace = trace + salesCalculation.trace;
+        // --- ARRONDI ---
+        const finalRoundedPrice = Math.ceil(sales.finalPrice);
+        const priceFormatted = finalRoundedPrice.toFixed(2);
 
-        // Affichage final
-        priceDisplay.val(finalDisplayPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2 }));
-        priceValue.val(finalDisplayPrice.toFixed(2));
-          
-        if(priceBarDisplay.length) {
-            priceBarDisplay.val(finalDisplayPrice.toFixed(2))
-                           .attr('data-discount', supplierDiscount)
-                           .trigger('change');
+        console.log(`[7] Prix final : ${finalRoundedPrice}€`);
+
+        // --- ÉCRITURE ---
+        
+        // 1. On écrit dans la modal (champ visuel)
+        if (priceDisplay.length) {
+            priceDisplay.val(finalRoundedPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2 }));
+        }
+
+        // 2. On écrit dans l'article (champ caché)
+        if (priceBarDisplay.length) {
+            // Utiliser .prop('value', ...) est parfois plus fiable que .val() sur certains navigateurs pour les inputs cachés
+            priceBarDisplay.val(priceFormatted);
+            
+            console.log("%c[8] SUCCÈS : Écrit dans #tank-bare-price-" + articleId, "color: green;");
+            
+            // On déclenche le calcul global
             calculateTotalCombinedPrice(articleId);
+            
+            // On ne trigger le change qu'à la toute fin
+            priceBarDisplay.trigger('change');
+        } else {
+            console.error("[8] Élément #tank-bare-price-" + articleId + " introuvable");
         }
 
     } catch (error) {
-        resetDisplay();
+        console.error("Erreur:", error);
     }
+    console.groupEnd();
 }
 
 function calculateTotalCombinedPrice(articleId) {

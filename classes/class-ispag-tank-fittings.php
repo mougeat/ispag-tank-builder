@@ -34,6 +34,10 @@ class ISPAG_Tank_Fittings {
     public function get_fitting_btn($title, $article_id, $purchase_article_id = null){
         $tank = new ISPAG_Tank_Designer();
         $tank_datas = $tank->get_tank_data(null, $article_id);
+        if(!$tank_datas) return;
+        $article_repo = new ISPAG_Article_Repository();
+        $article = $article_repo->get_article_by_id(null, $article_id);
+
         return '<button type="button"
                 class="ispag-btn ispag-btn-grey-outlined"
                 id="open-tank-fittings-modal"
@@ -42,9 +46,13 @@ class ISPAG_Tank_Fittings {
                 data-tank-diameter="' . $tank_datas['dimensions']->Diameter . '"
                 data-tank-pression="' . $tank_datas['dimensions']->MaxPressure . '"
                 data-tank-using-temp="' . $tank_datas['dimensions']->usingTemperature . '"
-                data-tank-insulation-thickness="' . $tank_datas['insulation']->InsulationThickness . '">
-                    ' . __('Configure fittings', 'creation-reservoir') . '
+                data-tank-insulation-thickness="' . $tank_datas['insulation']->InsulationThickness . '"
+                data-tank-supplier="' . $article->fournisseur_nom . '"
+                title="' . __('Configure fittings', 'creation-reservoir') . '"
+                >
+                    <span class="dashicons dashicons-admin-tools"></span>
         </button>';
+        // 
     }
 
     public function delete_fittings_with_tank_id($html, $tank_id){
@@ -63,10 +71,14 @@ class ISPAG_Tank_Fittings {
         
         return '<div id="tank-fittings-modal" class="ispag-modal-fullscreen" style="display:none;">
             <input type="hidden" id="current-editing-article-id" value="">
+            <input type="hidden" name="isProjectOrPurchase" value="project">
+            <input type="hidden" id="tank-supplier-display" value="">
             <input type="hidden" id="current-tank-diam" value="">
             <input type="hidden" id="current-tank-pression" value="">
             <input type="hidden" id="current-tank-using-temp" value="">
             <input type="hidden" id="current-tank-insulation-thickness" value="">
+            
+            
             <div class="ispag-modal-fullscreen-inner">
                 <div class="ispag-modal-fitting-left" id="ispag-modal-svg" style="height: 500px; border: 1px solid #ccc;">
                     <!-- Ici le dessin ou l’image -->

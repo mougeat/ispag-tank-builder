@@ -50,6 +50,13 @@ class ISPAG_Tank_Manager {
         wp_enqueue_script('ispag-tank-builder', plugin_dir_url(__FILE__) . '../assets/js/tank-builder.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-tank-pricing', plugin_dir_url(__FILE__) . '../assets/js/tank-pricing.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-tank-fitting', plugin_dir_url(__FILE__) . '../assets/js/fittings-pricing.js', ['jquery'], false, true);
+        // wp_enqueue_script('ispag-dxf-engine', plugin_dir_url(__FILE__) . '../assets/js/ispag-dxf-engine.js', ['jquery'], false, true); 
+        
+        // 2. SCRIPTS DU MOTEUR DXF (Ordre crucial)
+        wp_enqueue_script('ispag-dxf-utils', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-dxf-utils.js', [], false, true);
+        wp_enqueue_script('ispag-dxf-layout', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-dxf-layout.js', ['ispag-dxf-utils'], false, true);         
+        wp_enqueue_script('ispag-dxf-geometry', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-tank-geometry.js', ['ispag-dxf-layout'], false, true);
+        wp_enqueue_script('ispag-dxf-engine', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-engine-main.js', ['ispag-dxf-geometry'], false, true);
 
         wp_localize_script('ispag-tank-builder', 'ISPAG_TANK', [
             'ajax_url' => admin_url('admin-ajax.php'),

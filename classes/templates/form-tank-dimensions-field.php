@@ -61,7 +61,7 @@
 
             <div class="field-group" style="margin-bottom: 15px;">
                 <label><strong><?php echo __('Test pressure', 'creation-reservoir'); ?> (bar)</strong></label>
-                <input type="number" step="0.1" name="tank[test_pressure]" value="<?= esc_attr($data['dimensions']->TestPressure ?? '') ?>" style="width: 100%;">
+                <input type="number" step="0.1" name="tank[test_pressure]" value="<?= esc_attr($data['dimensions']->TestPressure ?? '') ?>" style="width: 100%; background-color: #f8f9fa; cursor: not-allowed;" readonly >
             </div>
 
             <div class="field-group">

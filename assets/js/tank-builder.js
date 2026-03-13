@@ -303,6 +303,60 @@ $(document).on('change',
     }
 );
 
+// Fonction pour gérer l'état (activé/désactivé) du champ pression d'essais
+function toggleTestPressureState() {
+    const isAuto = $('#tank-auto-calculate').is(':checked');
+    const inputPressionEssais = $('input[name="tank[test_pressure]"]');
+    
+    if (isAuto) {
+        inputPressionEssais.prop('readonly', true).css('background-color', '#f0f0f0');
+    } else {
+        inputPressionEssais.prop('readonly', false).css('background-color', '#fff');
+    }
+}
+
+// 1. Au chargement et quand on clique sur la case à cocher
+$(document).on('change', '#tank-auto-calculate', function() {
+    toggleTestPressureState();
+    
+    // Si on vient de cocher, on force le premier calcul
+    if ($(this).is(':checked')) {
+        $('input[name="tank[max_pressure]"]').trigger('change');
+    }
+});
+
+// 2. Logique de calcul de la pression
+$(document).on('change', '#tank-material, input[name="tank[max_pressure]"]', function() {
+    
+    if (!$('#tank-auto-calculate').is(':checked')) return;
+
+    const materiau = $('#tank-material').val();
+    const pressionService = parseFloat($('input[name="tank[max_pressure]"]').val());
+    const inputPressionEssais = $('input[name="tank[test_pressure]"]');
+
+    if (isNaN(pressionService) || pressionService <= 0) return;
+
+    let multiplicateur = 0;
+
+    if (pressionService >= 16) {
+        multiplicateur = 1.44;
+    } else {
+        if (materiau == "2") { // Acier
+            multiplicateur = 1.5;
+        } else if (materiau == "1" || materiau == "3") { // Inox
+            multiplicateur = 2;
+        }
+    }
+
+    if (multiplicateur > 0) {
+        const pressionEssais = (pressionService * multiplicateur).toFixed(1);
+        inputPressionEssais.val(pressionEssais);
+    }
+});
+
+// Initialisation au chargement de la page (si la case est déjà cochée par défaut)
+toggleTestPressureState();
+
 $(document).on('change', 
     
     'input[name="tank[height]"]', 
@@ -544,18 +598,35 @@ jQuery(document).ready(function($) {
         const tank_pression = $(this).data('tank-pression');
         const tank_using_temp = $(this).data('tank-using-temp');
         const tank_insulation_thickness = $(this).data('tank-insulation-thickness');
-        $('#tank-fittings-modal').fadeIn();
+        const supplier_name = $(this).data('tank-supplier');
+        
+
+        if (purchaseArticleId) {
+            // Si l'ID Purchase existe, on est en mode achat
+            finalIdToEdit = purchaseArticleId;
+            mode = "purchase";
+        } else {
+            // Sinon, on prend l'ID projet et on passe en mode projet
+            finalIdToEdit = articleId;
+            mode = "project";
+        }
 
         // Met à jour le lien 3D
         $('#tank-fittings-modal a.display-tank-3d').attr('href', '/rendu-3d/?article_id=' + articleId);
 
-        $('#current-editing-article-id').val(purchaseArticleId);
+        $('#current-editing-article-id').val(finalIdToEdit);
         $('#current-tank-diam').val(tank_diam);
         $('#current-tank-pression').val(tank_pression);
         $('#current-tank-using-temp').val(tank_using_temp);
         $('#current-insulation-thickness').val(tank_insulation_thickness);
+        $('#tank-supplier-display').val(supplier_name).attr('data-value', supplier_name);
+
+        $('input[name="isProjectOrPurchase"]').val(mode);
+
+        console.log(`%c MODE DÉTECTÉ : ${mode.toUpperCase()} (ID: ${finalIdToEdit})`, "background: #34495e; color: #fff; padding: 2px 5px;");
 
         $('#fittings-form').html('<p>Chargement...</p>');
+        $('#tank-fittings-modal').fadeIn();
 
         $.post(ajaxurl, {
             action: 'ispag_load_fittings_form',
