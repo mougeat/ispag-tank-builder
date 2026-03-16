@@ -14,11 +14,13 @@ class ISPAG_Tank_Repository {
                 td.*,
                 tc.Value as tankTypeRead,
                 tm.Value as tankMaterialRead,
-                ts.Value as tankSupportRead
+                ts.Value as tankSupportRead,
+                ti.Value as insulationThickness
             FROM {$wpdb->prefix}achats_tank_dimensions td
             LEFT JOIN {$wpdb->prefix}achats_tank_conception tc ON td.TankType = tc.Id
             LEFT JOIN {$wpdb->prefix}achats_tank_conception tm ON td.Material = tm.Id
             LEFT JOIN {$wpdb->prefix}achats_tank_conception ts ON td.Support = ts.Id
+            LEFT JOIN {$wpdb->prefix}achats_tank_conception ti ON td.InsulationThickness = ti.Id
             WHERE td.customerTankId = %d
         ", $customer_tank_id), ARRAY_A);
 
@@ -38,6 +40,8 @@ class ISPAG_Tank_Repository {
                 flange.ExternalDiameter as Bride_Ext_mm,
                 flange.InternalDiamter as Bride_Int_mm,
                 flange.Thickness as Epaisseur_Bride_mm,
+                flange.Drilling AS DiamDrillings,
+                flange.NbDrilling AS NbDrilling,
                 type.Value as Type_raccord_label,
                 accessories.Value as Accessories_label
             FROM {$wpdb->prefix}achats_tank_connection conn
@@ -56,21 +60,22 @@ class ISPAG_Tank_Repository {
         $data = [
             'tank_id'   => $tank['customerTankId'],
             'dimensions_principales' => [
-                'Designed_by'      => $tank['userId'],
-                'Volume_L'         => $tank['Volume'],
-                'Diametre_mm'      => $tank['Diameter'],
-                'Hauteur_mm'       => $tank['Height'],
-                'Pression_Max_bar' => $tank['MaxPressure'],
-                'Pression_Test_bar' => $tank['TestPressure'],
-                'Temperature_Max'  => $tank['usingTemperature'],
-                'Matiere_ID'       => $tank['Material'],
-                'Matiere'          => $tank['tankMaterialRead'],
-                'Ground_clearance' => $tank['GroundClearance'],
-                'Support_ID'       => $tank['Support'],
-                'Support'          => $tank['tankSupportRead'],
-                'Type_ID'          => $tank['TankType'],
-                'Type'             => $tank['tankTypeRead'],
-                'Bottom_Height_mm' => $bottom_height
+                'Designed_by'           => $tank['userId'],
+                'Volume_L'              => $tank['Volume'],
+                'Diametre_mm'           => $tank['Diameter'],
+                'Hauteur_mm'            => $tank['Height'],
+                'Pression_Max_bar'      => $tank['MaxPressure'],
+                'Pression_Test_bar'     => $tank['TestPressure'],
+                'Temperature_Max'       => $tank['usingTemperature'],
+                'Matiere_ID'            => $tank['Material'],
+                'Matiere'               => $tank['tankMaterialRead'],
+                'Ground_clearance'      => $tank['GroundClearance'],
+                'Support_ID'            => $tank['Support'],
+                'Support'               => $tank['tankSupportRead'],
+                'Type_ID'               => $tank['TankType'],
+                'Type'                  => $tank['tankTypeRead'],
+                'Bottom_Height_mm'      => $bottom_height,
+                'insulationThickness'   => !empty($tank['insulationThickness']) ? $tank['insulationThickness'] : 160
             ],
             'piquages_techniques' => $piquages
         ];

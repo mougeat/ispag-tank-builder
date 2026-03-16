@@ -25,6 +25,19 @@ window.IspagDxfEngine = {
         const R = D / 2;
         const GC = parseFloat(dim.Ground_clearance) || 330;
         const f = parseFloat(dim.Bottom_Height_mm) || 280;
+        const Support = dim.Support;
+        const iso = parseFloat(dim.insulationThickness) || 100;
+        // On crée un objet de configuration propre pour drawNozzle
+        const configGlobal = {
+            tank: {
+                diametre: parseFloat(dim.Diametre_mm) || 1200,
+                hauteurTotale: parseFloat(dim.Hauteur_mm) || 1955,
+                groundClearance: parseFloat(dim.Ground_clearance) || 330,
+                bottomHeight: parseFloat(dim.Bottom_Height_mm) || 280,
+                insulationThickness: parseFloat(dim.insulationThickness) || 100,
+                support: dim.Support || 'legs'
+            }
+        };
         
         let entities = [];
 
@@ -50,18 +63,23 @@ window.IspagDxfEngine = {
         // 4. Génération de la géométrie
         if (window.TankGeometry) {
             // Dessin du corps, des pieds et des cotations principales
-            window.TankGeometry.drawVesselBody(this, entities, centerX, faceYBase, R, Htot, f, GC, s, dessusY);
+            window.TankGeometry.drawVesselBody(this, entities, centerX, faceYBase, R, Htot, f, GC, s, dessusY, Support);
             
             // Dessin de la vue de dessus
             window.TankGeometry.drawTopView(this, entities, centerX, dessusY, R, s);
 
-            // Dessin des piquages et soudures
+            // Dans generateEntities, section 4 :
             if (specs.piquages_techniques) {
                 specs.piquages_techniques.forEach((p, i) => {
                     if (p.Type_raccord_label === "Welding") {
                         window.TankGeometry.drawWelding(this, entities, centerX, faceYBase, R, parseFloat(p.Elevation_mm), s);
                     } else {
-                        window.TankGeometry.drawNozzle(this, entities, centerX, faceYBase, dessusY, R, p, i, s);
+                        // On passe bien l'index 'i' pour avoir les repères 1, 2, 3...
+                        window.TankGeometry.drawNozzle(this, entities, centerX, faceYBase, dessusY, R, p, i, s, configGlobal);
+                        // Si c'est un bend pipe, on rajoute la partie intérieure
+                        if (p.Accessories_label === "bend pipe") {
+                            window.TankGeometry.drawBendPipe(this, entities, centerX, faceYBase, R, p, s, configGlobal);
+                        }
                     }
                 });
             }

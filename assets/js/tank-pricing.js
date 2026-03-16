@@ -113,6 +113,9 @@ async function updateTankPrice() {
 
         // Calcul final
         const totalPurchaseBrut = basePrice + optionsPrice;
+        if (priceBarDisplay.length) {
+            priceBarDisplay.attr('data-discount', discountDefaut); 
+        }
         const sales = calculateSalesPriceFromPurchase(totalPurchaseBrut, (parseInt(jQuery('input[name="tank[volume]"]').val()) || 0), (parseFloat(data.discount_defaut) || 0));
         
         // --- ARRONDI ---
