@@ -65,7 +65,10 @@ function calculateSalesPriceFromPurchase(purchasePrice, volumeLiters, supplierDi
 async function updateTankPrice() {
     console.group("--- DÉBOGAGE PRICING ISPAG ---");
     
+    lastPricingTrace = '';
+
     const articleId = jQuery('#current-editing-article-id').val();
+    
     
     // Sélecteurs
     const priceBarDisplay = jQuery(document).find('#tank-bare-price-' + articleId);
@@ -96,6 +99,9 @@ async function updateTankPrice() {
         if (targetHeight) {
             const pressKey = (parseFloat(jQuery('input[name="tank[max_pressure]"]').val()) || 3) <= 3 ? '3bar' : '6bar';
             basePrice = grille[targetDia][targetHeight][pressKey];
+
+            // --- 2. AJOUT DU PRIX DE BASE DANS LA TRACE ---
+            lastPricingTrace += `Prix de base cuve (${targetDia}x${targetHeight} - ${pressKey}) : ${basePrice.toFixed(2)} €\n`;
         }
 
         let optionsPrice = 0;
@@ -108,15 +114,64 @@ async function updateTankPrice() {
 
         if ((tankType === "6" || tankType === "7") && data.accessoires?.traitement_surface) {
             const surfaceM2 = Math.ceil(((diameter/1000)**2 * 2) + ((diameter/1000) * 4 * (mantleHeight/1000)));
-            optionsPrice += surfaceM2 * data.accessoires.traitement_surface.options.exterieur_zinc_1K.prix_m2;
+            const valZinc = surfaceM2 * data.accessoires.traitement_surface.options.exterieur_zinc_1K.prix_m2;
+            optionsPrice += valZinc;
+            lastPricingTrace += `- Option Zinc : +${valZinc.toFixed(2)} €\n`;
+        }
+
+        // Calcul Ground Clearance (Pieds)
+        const clearance = parseInt(jQuery('input[name="tank[clearance]"]').val()) || 0;
+        const baseClearance = data.accessoires?.ground_clearance?.base_mm || 50;
+
+        if (clearance > baseClearance && data.accessoires?.ground_clearance?.plus_values) {
+            const rule = data.accessoires.ground_clearance.plus_values.find(r => diameter <= r.diametre_max_mm);
+            if (rule) {
+                const clearancePrice = parseFloat(rule.prix) || 0;
+                optionsPrice += clearancePrice;
+                lastPricingTrace += `- Plus-value Garde au sol (${clearance}mm) : +${clearancePrice.toFixed(2)} €\n`;
+            }
+        }
+
+        // Calcul du prix des PIEDS
+        const supportType = jQuery('select[name="tank[support]"], input[name="tank[support]"]').val();
+        const volumeLiters = parseInt(jQuery('input[name="tank[volume]"]').val()) || 0;
+        const nbPieds = parseInt(jQuery('select[name="tank[legs_nb]"]').val()) || 3; 
+
+        // On n'applique la plus-value QUE si le type de support est "Pieds" (valeur 10)
+        if (supportType == "10" && data.accessoires?.pieds) {
+            let prixBasePieds = 0;
+            let typePiedsUtilise = "";
+
+            // Sélection du type de profilé (Rohr vs UNP) selon les limites du JSON
+            if (volumeLiters >= data.accessoires.pieds.regles.volume_max_rohr || mantleHeight >= data.accessoires.pieds.regles.hauteur_manteau_max_rohr) {
+                const rule = data.accessoires.pieds.unp_füße.find(r => volumeLiters <= r.volume_max_litres);
+                prixBasePieds = rule ? rule.prix : data.accessoires.pieds.unp_füße[data.accessoires.pieds.unp_füße.length - 1].prix;
+                typePiedsUtilise = "UNP";
+            } else {
+                const rule = data.accessoires.pieds.rohrfüße.find(r => volumeLiters <= r.volume_max_litres);
+                prixBasePieds = rule ? rule.prix : data.accessoires.pieds.rohrfüße[data.accessoires.pieds.rohrfüße.length - 1].prix;
+                typePiedsUtilise = "Rohr";
+            }
+
+            // Calcul du prix final (Forfait pour 3 pieds de base, prorata si 4)
+            let prixFinalPieds = prixBasePieds;
+            if (nbPieds === 4) {
+                prixFinalPieds = (prixBasePieds / 3) * 4;
+            }
+
+            optionsPrice += prixFinalPieds;
+            lastPricingTrace += `- Pieds (${nbPieds}x ${typePiedsUtilise}) : +${prixFinalPieds.toFixed(2)} €\n`;
+            console.log(`[6c] Support Pieds détecté (${nbPieds}x ${typePiedsUtilise}). Prix: ${prixFinalPieds}€`);
         }
 
         // Calcul final
         const totalPurchaseBrut = basePrice + optionsPrice;
+        const discountDefaut = parseFloat(data.discount_defaut) || 0;
         if (priceBarDisplay.length) {
             priceBarDisplay.attr('data-discount', discountDefaut); 
         }
         const sales = calculateSalesPriceFromPurchase(totalPurchaseBrut, (parseInt(jQuery('input[name="tank[volume]"]').val()) || 0), (parseFloat(data.discount_defaut) || 0));
+        lastPricingTrace += sales.trace;
         
         // --- ARRONDI ---
         const finalRoundedPrice = Math.ceil(sales.finalPrice);

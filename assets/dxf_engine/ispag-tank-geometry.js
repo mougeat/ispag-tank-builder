@@ -190,76 +190,78 @@ window.TankGeometry = {
         const dTxt = epB > 0 ? tubeL + 80 : tubeL + 60;
         engine.addText(entities, cx + s((R + dTxt) * cosA), dessusY + s((R + dTxt) * sinA), (index + 1), 0, "PIQUAGES", s(35), 1);
     },
+    /**
+     * Dessine un piquage de type Bend Pipe biseauté à largeur constante dans le DXF.
+     * @version 4.0.0
+     */
     drawBendPipe: function(engine, entities, cx, faceY, R, p, s, config) {
-    const alt = parseFloat(p.Elevation_mm || 0);
-    const dInt = parseFloat(p.Bride_Int_mm || 50);
-    const Htot = config.tank.hauteurTotale;
-    const GC = config.tank.groundClearance;
-    
-    const ang = parseFloat(p.Angle_degres || 0);
-    const rad = (ang - 90) * Math.PI / 180;
-    const cosA = Math.cos(rad);
-    const direction = cosA >= 0 ? 1 : -1;
-    
-    const xBase = cx + s(R * cosA);
-    const yBase = faceY + s(alt);
-    const r = s(dInt / 2);
+        const alt = parseFloat(p.Elevation_mm || 0);
+        const dInt = parseFloat(p.Bride_Int_mm || 50);
+        const Htot = config.tank.hauteurTotale;
+        
+        const ang = parseFloat(p.Angle_degres || 0);
+        const rad = (ang - 90) * Math.PI / 180;
+        const cosA = Math.cos(rad);
+        const direction = cosA >= 0 ? 1 : -1;
+        
+        const xBase = cx + s(R * cosA);
+        const yBase = faceY + s(alt);
+        const r = s(dInt / 2); 
 
-    // 1. Logique de direction (Correction Y : vDir > 0 descend, vDir < 0 monte)
-    let vDir = 1; 
-    if (alt > GC && alt < (Htot / 2)) {
-        vDir = -1;   // Vers le bas
-    } else if (alt >= (Htot / 2) && alt <= Htot) {
-        vDir = 1;  // Vers le haut
-    } else if (alt <= GC && alt > 0) {
-        vDir = 1;  // Vers le haut
-    } else if (alt > Htot) {
-        vDir = -1;   // Vers le bas
-    }
+        // Direction : monte si en haut, descend si en bas
+        let vDir = (alt > Htot / 2) ? 1 : -1; 
 
-    // 2. Dimensions pour un coude à 90°
-    const L_horiz = s(80);  
-    const L_vert = s(120); 
+        const L_horiz = s(60);   
+        const L_oblique = s(100); 
+        const angleAlpha = Math.PI / 4; // 45°
 
-    // Points de la jonction (L'onglet à 45° pour un coude à 90°)
-    const xH = xBase - (L_horiz * direction);
-    const yTopH = yBase - r;
-    const yBotH = yBase + r;
+        // 1. Point de pivot central (le "coude" théorique)
+        const ax1 = xBase - (L_horiz * direction);
+        const ay1 = yBase;
 
-    // 3. Calcul des points de sortie (Tube vertical)
-    // Le tube descend ou monte verticalement, donc X ne change plus après l'onglet
-    const xEndLeft = xH - (r * direction); // On décale de 'r' pour l'épaisseur du coude
-    const xEndRight = xH + (r * direction);
-    const yEnd = yBase + (L_vert * vDir);
+        // 2. Calcul de l'onglet (Miter)
+        // Le décalage horizontal pour que la coupe à 45° soit parfaite
+        // Décalage = r * tan(22.5°)
+        const miterOffset = r * Math.tan(angleAlpha / 2);
 
-    // --- DESSIN ---
+        // 3. Points de jonction précis
+        // On ajuste le X pour que les lignes horizontales et obliques se connectent pile au bord
+        const xJuncHaut = ax1 + (miterOffset * direction * vDir);
+        const xJuncBas  = ax1 - (miterOffset * direction * vDir);
+        
+        const yJuncHaut = ay1 - r;
+        const yJuncBas  = ay1 + r;
 
-    // Partie horizontale
-    entities.push(engine.createLine(xBase, yTopH, xH, yTopH, "PIQUAGES"));
-    entities.push(engine.createLine(xBase, yBotH, xH, yBotH, "PIQUAGES"));
+        // 4. Points de sortie (Extrémité du tube)
+        // On calcule la fin de l'axe central
+        const ax2 = ax1 - (L_oblique * Math.cos(angleAlpha) * direction);
+        const ay2 = ay1 + (L_oblique * Math.sin(angleAlpha) * vDir);
 
-    // Partie coudée à 90° (Traits verticaux parallèles)
-    // On crée un décalage horizontal de 'r' pour que le tube vertical ait la même largeur
-    const xV1 = xH; 
-    const xV2 = xH - (r * 2 * direction); 
+        // Décalage perpendiculaire pour l'extrémité
+        const dx = r * Math.sin(angleAlpha);
+        const dy = r * Math.cos(angleAlpha);
 
-    if (vDir > 0) { // Vers le bas
-        // Ligne extérieure du coude (Haut -> Extérieur bas)
-        entities.push(engine.createLine(xH, yTopH, xV2, yTopH, "PIQUAGES"));
-        entities.push(engine.createLine(xV2, yTopH, xV2, yEnd, "PIQUAGES"));
-        // Ligne intérieure (Bas -> Intérieur bas)
-        entities.push(engine.createLine(xH, yBotH, xH, yEnd, "PIQUAGES"));
-    } else { // Vers le haut
-        // Ligne extérieure du coude (Bas -> Extérieur haut)
-        entities.push(engine.createLine(xH, yBotH, xV2, yBotH, "PIQUAGES"));
-        entities.push(engine.createLine(xV2, yBotH, xV2, yEnd, "PIQUAGES"));
-        // Ligne intérieure (Haut -> Intérieur haut)
-        entities.push(engine.createLine(xH, yTopH, xH, yEnd, "PIQUAGES"));
-    }
+        const xEndHaut = ax2 - (dx * direction * vDir);
+        const yEndHaut = ay2 - (dy * vDir);
+        const xEndBas  = ax2 + (dx * direction * vDir);
+        const yEndBas  = ay2 + (dy * vDir);
 
-    // Bouchon final (Horizontal)
-    entities.push(engine.createLine(xH, yEnd, xV2, yEnd, "PIQUAGES"));
-},
+        // --- DESSIN ---
+
+        // Lignes horizontales (du réservoir jusqu'à l'onglet)
+        entities.push(engine.createLine(xBase, yJuncHaut, xJuncHaut, yJuncHaut, "PIQUAGES"));
+        entities.push(engine.createLine(xBase, yJuncBas,  xJuncBas,  yJuncBas,  "PIQUAGES"));
+
+        // Lignes obliques (de l'onglet jusqu'à la fin)
+        entities.push(engine.createLine(xJuncHaut, yJuncHaut, xEndHaut, yEndHaut, "PIQUAGES"));
+        entities.push(engine.createLine(xJuncBas,  yJuncBas,  xEndBas,  yEndBas,  "PIQUAGES"));
+
+        // Ligne d'onglet (le pli du tube) -> Rend le dessin beaucoup plus "pro"
+        entities.push(engine.createLine(xJuncHaut, yJuncHaut, xJuncBas, yJuncBas, "PIQUAGES"));
+
+        // Bouchon final (perpendiculaire à l'axe oblique)
+        entities.push(engine.createLine(xEndHaut, yEndHaut, xEndBas, yEndBas, "PIQUAGES"));
+    },
     /**
      * Gestion dynamique des supports
      */
