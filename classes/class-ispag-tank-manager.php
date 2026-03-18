@@ -105,7 +105,7 @@ class ISPAG_Tank_Manager {
         $tank_datas = (new ISPAG_Tank_Repository())->get_tank_details($article_id);
 
         // 2. Générer le PDF
-        $generator = new ISPAG_Nameplate_Generator();
+        $generator = new ISPAG_Nameplate_SVG_Generator();
         $generator->generate_nameplate($project, $article, $tank_datas);
         exit;
     }

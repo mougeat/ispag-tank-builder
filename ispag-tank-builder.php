@@ -11,6 +11,7 @@ defined('ABSPATH') || exit;
 // Autochargement des classes
 require_once plugin_dir_path(__FILE__) . 'classes/class-ispag-tank-manager.php';
 require_once plugin_dir_path(__FILE__) . 'classes/class-ispag-nameplate-generator.php';
+require_once plugin_dir_path(__FILE__) . 'classes/class-ispag-nameplate-svg-generator.php';
 
 // Init du plugin
 // add_action('plugins_loaded', ['ISPAG_Tank_Manager', 'init']);
@@ -40,4 +41,5 @@ add_action('plugins_loaded', function () {
     ISPAG_Tank_DXF_Exporter::init();
 
     new ISPAG_Nameplate_Generator();
+    new ISPAG_Nameplate_SVG_Generator();
 }); 
