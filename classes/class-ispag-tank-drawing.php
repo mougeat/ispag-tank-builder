@@ -148,6 +148,9 @@ class ISPAG_Tank_Drawing {
 
     public function ispag_validate_pdf_plan_callback() {
         global $wpdb;
+        
+        // 1. On protège la sortie pour éviter la corruption du JSON
+        ob_start();
 
         $drawing_id = isset($_POST['drawing_id']) ? (int) $_POST['drawing_id'] : 0;
         $article_id = isset($_POST['article_id']) ? (int) $_POST['article_id'] : 0;
@@ -155,23 +158,19 @@ class ISPAG_Tank_Drawing {
         $date = sanitize_text_field($_POST['date'] ?? '');
 
         if (!$drawing_id || !$article_id || !$user || !$date) {
+            ob_end_clean();
             wp_send_json_error("Missing data.");
         }
 
         $original_path = get_attached_file($drawing_id);
         if (!file_exists($original_path)) {
+            ob_end_clean();
             wp_send_json_error("PDF file not found.");
         }
 
-        // Nouveau fichier
-        $validated_path = str_replace('.pdf', '-validated.pdf', $original_path);
-
-        // Libs nécessaires
-        // require_once __DIR__ . '/fpdf/fpdf.php';
-        // require_once __DIR__ . '/fpdi/autoload.php';
-
         try {
             $pdf = new \setasign\Fpdi\Fpdi();
+            // Attention : cette méthode doit être robuste !
             $original_path = $this->decompress_pdf_for_fpdi($original_path);
             $pageCount = $pdf->setSourceFile($original_path);
 
@@ -182,92 +181,83 @@ class ISPAG_Tank_Drawing {
                 $pdf->useTemplate($tpl);
                 $pdf->SetFont('Arial', '', 10);
                 $pdf->SetTextColor(0, 102, 0);
-                $pdf->SetXY(10, $size['height'] - 40);
-                $text = __('Validated by', 'creation-reservoir') . " : $user\n" . __('on', 'creation-reservoir') . " : $date";
-                $pdf->MultiCell(0, 8, mb_convert_encoding($text, 'ISO-8859-1', 'UTF-8'));
+                $pdf->SetXY(10, $size['height'] - 20); // Remonté un peu pour être sûr qu'il soit visible
+                
+                $text = "Validated by : $user on : $date";
+                // Nettoyage UTF-8 vers ISO pour FPDF
+                $pdf->MultiCell(0, 8, iconv('UTF-8', 'windows-1252', $text));
             }
 
-            $ulpoadedFileName = 'valid_' . basename( $original_path );
             $wp_upload_dir = wp_upload_dir();
-            $uploadedfile = trailingslashit ( $wp_upload_dir['path'] ) . $ulpoadedFileName;
+            $ulpoadedFileName = 'valid_' . time() . '_' . basename($original_path);
+            $uploadedfile = trailingslashit($wp_upload_dir['path']) . $ulpoadedFileName;
+            
             $pdf->Output($uploadedfile, 'F');
 
+            // Création de l'attachement
             $attachment = array(
-            'guid' => trailingslashit ($wp_upload_dir['url']) . basename( $uploadedfile ),
-            'post_mime_type' => 'application/pdf',
-            'post_title' => preg_replace('/\.[^.]+$/', '', basename($ulpoadedFileName)),
-            'post_content' => '',
-            'post_status' => 'inherit'
+                'guid'           => trailingslashit($wp_upload_dir['url']) . $ulpoadedFileName,
+                'post_mime_type' => 'application/pdf',
+                'post_title'     => 'Validated Plan - ' . $article_id,
+                'post_content'   => '',
+                'post_status'    => 'inherit'
             );
-             // Id of attachment if needed
-            $attach_id = wp_insert_attachment( $attachment, $uploadedfile);
-            if (empty($attach_id) || !is_numeric($attach_id)) {
-                wp_send_json_error("Attachment creation failed.");
+
+            $attach_id = wp_insert_attachment($attachment, $uploadedfile);
+
+            if (is_wp_error($attach_id) || !$attach_id) {
+                throw new Exception("Attachment creation failed.");
             }
-            else{
-                $article = apply_filters('ispag_get_article_by_id', null, $article_id);
-                $article_achat = apply_filters('ispag_get_achat_article_by_project_article_id', null, $article_id);
-                $deal_id = $article->hubspot_deal_id;
 
-                
-                if (!$article_achat) {
-                    wp_send_json_error("Article not found.");
-                }
-                // else{
-                //     wp_send_json_error("Article founded : " . $article_achat);
-                // }
-                
-                $achat_id = $article_achat->IdCommande;
+            // Récupération des données liées
+            $article = apply_filters('ispag_get_article_by_id', null, $article_id);
+            $article_achat = apply_filters('ispag_get_achat_article_by_project_article_id', null, $article_id);
 
-                if(!$deal_id){
-                    wp_send_json_error("Deal ID not found");
-                } elseif(!$achat_id){
-                    wp_send_json_error("Achat ID not found");
-                }
-                else{
-                    $userId = get_current_user_id();
-
-                    $inserted = $wpdb-> insert(
-                
-                        $wpdb->prefix.'achats_historique',
-                        [
-                            'Id' => '',
-                            'hubspot_deal_id' => $deal_id,
-                            'purchase_order' => $achat_id,
-                            'Date' => time(),
-                            'dateReadable' => date('Y-m-d H:i:s'),
-                            'IdUser' => $userId,
-                            'Historique' => $article_id,
-                            'IdMedia' => $attach_id,
-                            'ClassCss' => 'drawingApproval'
-                            
-                        ]
-                    ); 
-
-                    $updated = $wpdb->update(
-                        $wpdb->prefix.'achats_details_commande',
-                        [
-                            'DrawingApproved' => '1'
-                        ],
-                        [ 'Id' => $article_id ]
-                        
-                    ); 
-
-                    if ($inserted === false || $updated === false) {
-                        $error = $wpdb->last_error;
-                        wp_send_json_error("Database error: $error");
-                    } else{
-                        do_action('ispag_send_telegram_notification', null, 'drawing_validated', true, true, $deal_id, true);
-                    }
-                    
-                }
+            if (!$article || !$article_achat) {
+                throw new Exception("Article or Purchase data not found.");
             }
+
+            $deal_id = $article->hubspot_deal_id;
+            $achat_id = $article_achat->IdCommande;
+            $userId = get_current_user_id();
+
+            // Insertion Historique
+            $wpdb->insert(
+                $wpdb->prefix . 'achats_historique',
+                [
+                    'hubspot_deal_id' => $deal_id,
+                    'purchase_order'  => $achat_id,
+                    'Date'            => time(),
+                    'dateReadable'    => date('Y-m-d H:i:s'),
+                    'IdUser'          => $userId,
+                    'Historique'      => $article_id,
+                    'IdMedia'         => $attach_id,
+                    'ClassCss'        => 'drawingApproval'
+                ]
+            );
+
+            // Update Statut Commande
+            $wpdb->update(
+                $wpdb->prefix . 'achats_details_commande',
+                ['DrawingApproved' => '1'],
+                ['Id' => $article_achat->Id] // Utilisation de l'ID de la commande, pas de l'article projet !
+            );
+
+            // Telegram : On notifie seulement si l'utilisateur actuel n'est PAS un gestionnaire
+            if ( ! current_user_can( 'manage_order' ) ) {
+                do_action('ispag_send_telegram_notification', null, 'drawing_validated', true, true, $deal_id, true);
+            }
+
+            // Nettoyage final
+
+            // Nettoyage final avant envoi JSON
+            if (ob_get_length()) ob_clean();
+            wp_send_json_success("Drawing validated successfully.");
 
         } catch (Exception $e) {
+            if (ob_get_length()) ob_clean();
             wp_send_json_error("PDF error: " . $e->getMessage());
         }
-
-        wp_send_json_success("Drawing validated successfully.");
     }
     
 }
