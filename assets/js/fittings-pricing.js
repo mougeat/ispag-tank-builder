@@ -61,12 +61,13 @@ async function updateFittingsPrice() {
             // --- 2. RACCORDS ---
             let totalFittingsPurchase = 0;
             let standardFittingCount = 0;
-            let fittingsTrace = "";
+            let fittingsTrace = ""; // Initialisation déjà présente
             const limit = (tankType === 'combi') ? logic.included_fittings_combi : logic.included_fittings_energy;
 
             jQuery('.fitting-row').not('#welding-container .fitting-row').each(function(index) {
                 const $row = jQuery(this);
                 const diaId = $row.find('select[name^="fitting[diameter]"]').val();
+                const diaText = $row.find('select[name^="fitting[diameter]"] option:selected').text(); // Pour le log
                 const rawAccId = $row.find('select[name^="fitting[accessories]"]').val();
                 const fHeight = parseInt($row.find('input[name^="fitting[height]"]').val()) || 0;
                 
@@ -74,15 +75,22 @@ async function updateFittingsPrice() {
 
                 const dnInfo = data.tarifs_raccords_standards?.[diaId];
                 let rowPrice = 0;
+                let rowLog = `- Raccord ${diaText}`;
 
                 // Calcul raccord + quota
                 if (dnInfo) {
                     const priceUnit = parseFloat(dnInfo[pressureKey]);
                     if (["11", "12", "13", "14", "15", "16", "18"].includes(diaId.toString())) {
                         standardFittingCount++;
-                        if (standardFittingCount > limit) rowPrice += priceUnit;
+                        if (standardFittingCount > limit) {
+                            rowPrice += priceUnit;
+                            rowLog += ` : +${priceUnit}€ (Hors quota > ${limit})`;
+                        } else {
+                            rowLog += ` : Inclus (Quota ${standardFittingCount}/${limit})`;
+                        }
                     } else {
                         rowPrice += priceUnit;
+                        rowLog += ` : +${priceUnit}€ (Standard)`;
                     }
                 }
 
@@ -91,18 +99,24 @@ async function updateFittingsPrice() {
                     const jsonKey = { "14": "bogenrohr", "15": "spruehrohr", "16": "prallteller" }[rawAccId] || rawAccId;
                     const priceAcc = parseFloat(data.tarifs_accessoires_complexes?.[jsonKey]?.[diaId] || 0);
                     rowPrice += priceAcc;
+                    rowLog += ` + Acc. ${jsonKey} (+${priceAcc}€)`;
                     
                     if (jsonKey === "bogenrohr" && lochblechCount > 0) {
-                        rowPrice += parseFloat(data.supplements.Verrohrung_durch_Lochblech) || 60;
+                        const extraLoch = parseFloat(data.supplements.Verrohrung_durch_Lochblech) || 60;
+                        rowPrice += extraLoch;
+                        rowLog += ` + PV Traversée Tôle (+${extraLoch}€)`;
                     }
                 }
 
                 // Longueur
                 if (fHeight > logic.max_standard_length_mm) {
                     let key = fHeight <= 250 ? "extra_length_250" : (fHeight <= 350 ? "extra_length_350" : "extra_length_550");
-                    rowPrice += parseFloat(data.supplements?.[key] || 0);
+                    const priceLen = parseFloat(data.supplements?.[key] || 0);
+                    rowPrice += priceLen;
+                    rowLog += ` + Longueur ${fHeight}mm (+${priceLen}€)`;
                 }
                 
+                fittingsTrace += rowLog + ` | Sous-total: ${rowPrice}€\n`; // Ajout à la trace
                 totalFittingsPurchase += rowPrice;
             });
 
@@ -111,10 +125,15 @@ async function updateFittingsPrice() {
             const sales = calculateSalesPriceFromPurchase(totalFinalBrutAchat, 0, 0); 
             const finalPriceRounded = Math.ceil(sales.finalPrice);
 
-            console.log(`[3] Total Achat Brut: ${totalFinalBrutAchat.toFixed(2)}€`);
-            console.log(`%c[4] PRIX VENTE FINAL : ${finalPriceRounded}€`, "color: #e67e22; font-weight: bold; font-size: 12px;");
-
-            window.lastFittingTrace = `--- LOG FITTINGS ---\nACHAT: ${totalFinalBrutAchat}€\n${lochTrace}\n${sales.trace}\nTOTAL: ${finalPriceRounded}€`;
+            // MISE À JOUR ICI :
+            window.lastFittingTrace = `\n--- LOG FITTINGS & ACCESSOIRES ---\n` +
+                                    `DÉTAIL ACHAT :\n` +
+                                    (lochTrace || "- Aucune tôle perforée\n") +
+                                    (fittingsTrace || "- Aucun raccord payant\n") +
+                                    `TOTAL ACHAT BRUT : ${totalFinalBrutAchat.toFixed(2)}€\n` +
+                                    `--------------------------\n` +
+                                    sales.trace + // Contient la logique coef/douane/transport
+                                    `TOTAL VENTE ACCESSOIRES : ${finalPriceRounded}€\n`;
 
             if (accPriceDisplay.length) {
                 accPriceDisplay.val(finalPriceRounded.toFixed(2));
