@@ -32,18 +32,20 @@ class ISPAG_Tank_Insulation {
 
     public function render_insulation_selector($html, $article_id) {
         $types = $this->get_insulation_options('insulationType');
+        $covers = $this->get_insulation_options('insulationCover');
         $thicknesses = $this->get_insulation_options('insulationThickness');
 
         // Récupère les valeurs existantes
         $tank = $this->wpdb->get_row(
             $this->wpdb->prepare(
-                "SELECT insulation, InsulationThickness FROM {$this->wpdb->prefix}achats_tank_dimensions WHERE customerTankId = %d LIMIT 1",
+                "SELECT insulation, InsulationThickness, insulationCover FROM {$this->wpdb->prefix}achats_tank_dimensions WHERE customerTankId = %d LIMIT 1",
                 $article_id
             )
         );
 
         $selected_type = $tank->insulation ?? 0;
         $selected_thickness = $tank->InsulationThickness ?? 0;
+        $selected_covering = $tank->insulationCover ?? '';
 
         // echo '<pre>';
         // var_dump($tank);
@@ -56,6 +58,20 @@ class ISPAG_Tank_Insulation {
                 <option value="0"><?= __('– None –', 'creation-reservoir'); ?></option>
                 <?php foreach ($types as $id => $label): ?>
                     <option value="<?= esc_attr($id); ?>" <?= selected((int)$selected_type, (int)$id, false); ?>>
+                        <?= esc_html__($label, 'creation-reservoir'); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <label for="insulation-cover"><?php _e('Type of covering', 'creation-reservoir'); ?></label>
+            <select id="insulation-cover" name="tank[insulationCover]" class="ispag-insulation-cover">
+                <option value="53"><?= __('– None –', 'creation-reservoir'); ?></option>
+                <?php foreach ($covers as $id => $label): ?>
+                    <?php 
+                    // On saute l'itération si l'ID est 53 car il est déjà affiché au-dessus
+                    if ((int)$id === 53) continue; 
+                    ?>
+                    <option value="<?= esc_attr($id); ?>" <?= selected((int)$selected_covering, (int)$id, false); ?>>
                         <?= esc_html__($label, 'creation-reservoir'); ?>
                     </option>
                 <?php endforeach; ?>
@@ -97,7 +113,7 @@ class ISPAG_Tank_Insulation {
 
 
     // Récupérer la valeur texte dans tank_conception via l'ID
-    private function get_conception_value($id) {
+    public function get_conception_value($id) {
         $id = intval($id);
         if ($id <= 0) return '';
 
@@ -139,13 +155,15 @@ class ISPAG_Tank_Insulation {
         // Récupérer les textes via les IDs
         $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0);
         $type_text = $this->get_conception_value($ins['insulationType'] ?? 0);
+        $cover_text = $this->get_conception_value($ins['insulationCover'] ?? 0);
 
         // Ex : "Insulation 130mm for 500L tank (height under 2500mm)"
         $title = sprintf(
-            __('%dL tank %dmm %s (height %s %smm)', 'creation-reservoir'),
+            __('%dL tank %dmm %s %s (height %s %smm)', 'creation-reservoir'),
             $volume,
             $thickness_text,
             __($type_text, 'creation-reservoir') ,
+            __($cover_text, 'creation-reservoir') ,
             
             __($tank_height_text, 'creation-reservoir') ,
             $tank_height
@@ -176,6 +194,7 @@ class ISPAG_Tank_Insulation {
         // Récupérer les textes via les IDs
         $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0);
         $type_text = $this->get_conception_value($ins['insulationType'] ?? 0);
+        $cover_text = $this->get_conception_value($ins['insulationCover'] ?? 0);
 
         $title = sprintf(
             __('%dmm %s for %dL tank (height %s %smm)', 'creation-reservoir'),
@@ -186,8 +205,14 @@ class ISPAG_Tank_Insulation {
             $tank_height
         );
 
+        $coat = sprintf(
+            __('%s', 'creation-reservoir'),
+            __($cover_text, 'creation-reservoir') ,
+        );
+
         // $desc = $this->get_insulation_title('', $article_id);
         $desc = $title;
+        $desc .= '<br />' . $coat;
         $desc .= '<br />' . __('Installation lead time: on request', 'creation-reservoir');
         $desc .= '<br />' . __('Notice period: 2 to 3 weeks after call', 'creation-reservoir');
         $desc .= '<br />' . __('Price includes on-site installation on non-connected tank.', 'creation-reservoir');

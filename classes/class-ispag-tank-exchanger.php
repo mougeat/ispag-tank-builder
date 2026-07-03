@@ -32,31 +32,10 @@ class ISPAG_Tank_Exchanger {
 
         add_action('ispag_delete_exchanger_with_tank_id', [self::$instance, 'delete_exchanger_with_tank_id'],10,2);
 
+        add_action('wp_ajax_ispag_add_heat_exchanger_form', [self::$instance, 'ispag_handle_ajax_exchanger_form']);
 
-        add_action('wp_ajax_ispag_add_heat_exchanger_form', function () {
-            if (!current_user_can('edit_posts')) wp_die();
 
-            $coil_nb = isset($_POST['coil_nb']) ? intval($_POST['coil_nb']) : 1;
-            $tank_id = isset($_POST['tank_id']) ? intval($_POST['tank_id']) : 0;
-
-            global $wpdb;
-            $table = $wpdb->prefix . 'achats_tank_heat_exchanger';
-
-            $data = [];
-            if ($tank_id) {
-                $row = $wpdb->get_row($wpdb->prepare(
-                    "SELECT * FROM $table WHERE tank_id = %d", $tank_id
-                ));
-                if ($row) {
-                    $json = json_decode($row->coilDetails, true);
-                    $data = $json['coil' . $coil_nb] ?? [];
-                }
-            }
-
-            $form = (new ISPAG_Tank_Exchanger)->render_heat_exchanger_form($tank_id, $coil_nb, $data);
-            echo $form;
-            wp_die();
-        });
+        
 
     }
 
@@ -76,7 +55,19 @@ class ISPAG_Tank_Exchanger {
         // 2. On localise IMMÉDIATEMENT sur le handle enregistré
         wp_localize_script($handle, 'ispag_ajax', [
             'url'   => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('ispag_exchanger_nonce')
+            'nonce' => wp_create_nonce('ispag_exchanger_nonce'),
+            'i18n' => [
+                'select_action'  => __('Please select an action.', 'ispag-crm'),
+                'select_contact' => __('Please select at least one contact.', 'ispag-crm'),
+                'confirm_delete' => __('Are you sure you want to delete the selected contacts?', 'ispag-crm'),
+                'high'           => __('A - High', 'ispag-crm'),
+                'medium'         => __('B - Medium', 'ispag-crm'),
+                'low'            => __('C - Low', 'ispag-crm'),
+                'company_id'     => __('Company ID', 'ispag-crm'),
+                'select_owner'   => __('-- Select owner --', 'ispag-crm'),
+                'preparing'      => __('Preparing...', 'ispag-crm'),
+                'prepare_meeting'=> __('Prepare meeting', 'ispag-crm'),
+            ]
         ]);
 
         // 3. On envoie au navigateur
@@ -97,6 +88,48 @@ class ISPAG_Tank_Exchanger {
             . __('Heat exchanger', 'creation-reservoir') 
             . '</button>' 
             . $this->heat_exchanger_modal($tank_id);
+    }
+
+    public function ispag_handle_ajax_exchanger_form() {
+        error_log("--- AJAX ISPAG : Début de l'appel ---");
+        
+        // Log des données reçues
+        error_log("Données POST reçues : " . print_r($_POST, true));
+
+        if (!current_user_can('edit_posts')) {
+            error_log("ERREUR : Utilisateur n'a pas les droits edit_posts");
+            wp_die('Accès refusé');
+        }
+
+        $coil_nb = isset($_POST['coil_nb']) ? intval($_POST['coil_nb']) : 1;
+        $tank_id = isset($_POST['tank_id']) ? intval($_POST['tank_id']) : 0;
+
+        if ($tank_id === 0) {
+            wp_send_json_error(['message' => 'ID du réservoir manquant.']);
+        }
+        
+        error_log("Traitement pour Tank ID: $tank_id | Coil No: $coil_nb");
+
+        // On instancie la classe
+        if (!class_exists('ISPAG_Tank_Exchanger')) {
+            error_log("ERREUR : La classe ISPAG_Tank_Exchanger n'existe pas !");
+            wp_die('Classe introuvable');
+        }
+
+        $exchanger_manager = new ISPAG_Tank_Exchanger();
+        $form_html = $exchanger_manager->render_heat_exchanger_form($tank_id, $coil_nb, []);
+
+        if (empty($form)) {
+            error_log("ALERTE : Le formulaire rendu est vide.");
+        } else {
+            error_log("SUCCÈS : Formulaire généré (Taille : " . strlen($form) . " caractères)");
+        }
+
+        wp_send_json_success($form_html);
+        // echo $form;
+        
+        // error_log("--- AJAX ISPAG : Fin de l'appel (wp_die) ---");
+        // wp_die();
     }
 
     public function heat_exchanger_modal($tank_id = null) {

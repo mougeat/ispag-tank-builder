@@ -13,14 +13,11 @@ async function setIspagTankRestrictionsValue() {
 
     const data = await response.json();
     arrayBottomHeight = data.arrayBottomHeight;
-    restrictions      = data.restrictions;
+    restrictions = data.restrictions;
 
-    // console.log('setIspagTankRestrictionsValue', restrictions);
-    // console.log('arrayBottomHeight', arrayBottomHeight);
-
-    // 👇 déclenche l’événement quand c’est prêt
+    // 👇 Déclencher un événement personnalisé quand les données sont prêtes
     isDataLoaded = true;
-    jQuery(document).trigger('restrictions:ready');
+    jQuery(document).trigger('ispag:restrictions_loaded');
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error);
   }

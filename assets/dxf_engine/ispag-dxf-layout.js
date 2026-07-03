@@ -7,16 +7,16 @@ window.DxfLayout = {
     },
     drawTable: function(entities, x, y, w, data) {
         const rowH = 75; 
-        const colW = [150, 750, 250, 250];
+        const colW = [150, 1150, 250, 250];
         let curY = y;
         const drawRow = (rowData, isHeader) => {
             let curX = x;
             rowData.forEach((txt, i) => {
                 // Sécurité : on s'assure que txt est bien une chaîne et on nettoie les symboles
-                let cleanTxt = String(txt).replace('°', ' deg'); 
-                cleanTxt = String(cleanTxt).replace('Ø', ' diam'); 
+                // let cleanTxt = String(txt).replace('°', ' deg'); 
+                // cleanTxt = String(cleanTxt).replace('Ø', ' diam'); 
                 
-                window.DxfUtils.addText(entities, curX + 20, curY - (rowH/2), cleanTxt, 0, "TABLEAU", isHeader ? 26 : 22, 4);
+                window.DxfUtils.addText(entities, curX + 20, curY - (rowH/2), txt, 0, "TABLEAU", isHeader ? 26 : 22, 4);
                 curX += colW[i];
             });
             curY -= rowH;
@@ -55,7 +55,7 @@ window.DxfLayout = {
         const rowMid = y + 180;
         entities.push(utils.createLine(col1, rowMid, x + w, rowMid, l));
         utils.addText(entities, col1 + 25, y + h - 45, "CLIENT: " + clientNettoye, 0, l, 20, 4);
-        utils.addText(entities, col1 + 25, y + h - 120, "OBJET: " + objetNettoye, 0, l, 40, 4);
+        utils.addText(entities, col1 + 25, y + h - 160, "OBJET: " + objetNettoye, 0, l, 40, 4);
 
         const col3 = col1 + 750;
         entities.push(utils.createLine(col3, y, col3, rowMid, l));

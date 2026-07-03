@@ -29,7 +29,7 @@ class ISPAG_Tank_Designer {
         add_action('ispag_duplicate_tank_data', [self::$instance, 'duplicate_tank_data'], 10, 2);
         add_filter('ispag_get_tank_id_by_article_id', [self::$instance, 'get_tank_id_by_article_id'], 10, 1);
         add_filter('ispag_get_tank_datas', [self::$instance, 'get_tank_data'], 10, 2);
-        add_filter('ispag_auto_saver_tank_data', [self::$instance, 'save_tank_data'], 10, 3);
+        add_filter('ispag_auto_saver_tank_data', [self::$instance, 'save_tank_data'], 10, 3); 
         add_action('ispag_get_tank_created_by_id', [self::$instance, 'get_tank_created_by_id'],10, 2);
 
         add_action('wp_ajax_ispag_save_tank_unit_price', [self::$instance, 'save_tank_unit_price']);
@@ -115,12 +115,14 @@ class ISPAG_Tank_Designer {
         
 
         $insulation = $this->wpdb->get_row($this->wpdb->prepare(
-            "SELECT it.Value AS InsulationThickness, i.Value AS insulation
+            "SELECT it.Value AS InsulationThickness, i.Value AS insulation, c.Value AS insulationCover
                 FROM {$this->dimension_table} dt
                 LEFT JOIN {$this->conception_table} it
                     ON it.Id = dt.InsulationThickness
                 LEFT JOIN {$this->conception_table} i
                     ON i.Id = dt.insulation
+                LEFT JOIN {$this->conception_table} c
+                    ON c.Id = dt.insulationCover
                 WHERE dt.customerTankId = %d", $article_id
         ));
 
@@ -135,9 +137,11 @@ class ISPAG_Tank_Designer {
         if(empty($conception_id)){
             return;
         }
-        return $this->wpdb->get_var($this->wpdb->prepare(
+        $text = $this->wpdb->get_var($this->wpdb->prepare(
             "SELECT Value FROM {$this->conception_table} WHERE Id = %d", $conception_id
         ));    
+
+        return __($text, 'creation-reservoir');
 
     }
 
@@ -218,6 +222,7 @@ class ISPAG_Tank_Designer {
             'usingTemperature'    => 'temperature',
             'insulation'          => 'insulation',
             'InsulationThickness' => 'InsulationThickness',
+            'insulationCover'     => 'insulationCover',
             'Diameter'            => 'diameter',
             'Height'              => 'height'
         ];
@@ -274,7 +279,7 @@ class ISPAG_Tank_Designer {
         // Filtres additionnels (Soudures / Isolation)
         $nb_welding = $data_received['nbWelding'] ?? 0;
         apply_filters('ispag_auto_welding_saver', '', $deal_id, $article_id, $nb_welding);
-        apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '');
+        apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '', $newData['insulationCover'] ?? '');
 
         $debug['success'] = true;
         return $debug;

@@ -128,3 +128,40 @@
     border-radius: 4px;
     margin-bottom: 20px;
 }
+
+
+/* Style pour l'alerte de transport exceptionnel */
+#tank-transport-alert {
+  display: none;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #856404;
+}
+
+#tank-transport-alert.tank-transport-alert.exceptional_simple {
+  background: #d1ecf1;
+  border-color: #17a2b8;
+  color: #0c5460;
+}
+
+#tank-transport-alert.tank-transport-alert.exceptional_complex {
+  background: #f8d7da;
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+#tank-transport-alert .dashicons-warning {
+  color: #ffc107;
+}
+
+#tank-transport-alert.exceptional_simple .dashicons-warning {
+  color: #17a2b8;
+}
+
+#tank-transport-alert.exceptional_complex .dashicons-warning {
+  color: #dc3545;
+}

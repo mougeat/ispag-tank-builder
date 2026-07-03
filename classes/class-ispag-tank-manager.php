@@ -4,6 +4,7 @@ class ISPAG_Tank_Manager {
     public static function init() {
 
         require_once __DIR__ . '/class-ispag-tank-designer.php';
+        require_once __DIR__ . '/class-ispag-plate-heat-exchanger-designer.php';
         require_once __DIR__ . '/class-ispag-tank-description.php';
         require_once __DIR__ . '/class-ispag-tank-fittings.php';
         require_once __DIR__ . '/class-ispag-tank-svg-generator.php';
@@ -21,6 +22,7 @@ class ISPAG_Tank_Manager {
         require_once __DIR__ . '/class-ispag-tank-repository.php';
         global $ispag_tank_designer;
         $ispag_tank_designer = new ISPAG_Tank_Designer();
+        ISPAG_Plate_Heat_exchanger_Designer::init();
         // $ispag_tank_description = new ISPAG_Tank_Description();
 
         // Charge tous les assets nécessaires
@@ -45,35 +47,56 @@ class ISPAG_Tank_Manager {
     }
 
     public static function enqueue_assets() {
-
+        // Styles
         wp_enqueue_style('ispag-tank-builder', plugin_dir_url(__FILE__) . '../assets/css/tank-builder.css');
+
+        // Scripts principaux
         wp_enqueue_script('ispag-tank-builder', plugin_dir_url(__FILE__) . '../assets/js/tank-builder.js', ['jquery'], false, true);
+        wp_enqueue_script('ispag-exchanger-builder', plugin_dir_url(__FILE__) . '../assets/js/exchanger-builder.js', ['jquery', 'ispag-tank-builder'], false, true);
         wp_enqueue_script('ispag-tank-pricing', plugin_dir_url(__FILE__) . '../assets/js/tank-pricing.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-tank-fitting', plugin_dir_url(__FILE__) . '../assets/js/fittings-pricing.js', ['jquery'], false, true);
-        // wp_enqueue_script('ispag-dxf-engine', plugin_dir_url(__FILE__) . '../assets/js/ispag-dxf-engine.js', ['jquery'], false, true); 
-        
-        // 2. SCRIPTS DU MOTEUR DXF (Ordre crucial)
+
+        // 👇 Ajouter le script de vérification de transport
+        wp_enqueue_script(
+            'ispag-tank-transport-checker',
+            plugin_dir_url(__FILE__) . '../assets/js/tank-transport-checker.js',
+            ['jquery', 'ispag-tank-builder'], // Dépend de jQuery et tank-builder.js
+            false,
+            true
+        );
+
+        // Scripts DXF
         wp_enqueue_script('ispag-dxf-utils', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-dxf-utils.js', [], false, true);
-        wp_enqueue_script('ispag-dxf-layout', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-dxf-layout.js', ['ispag-dxf-utils'], false, true);         
+        wp_enqueue_script('ispag-dxf-layout', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-dxf-layout.js', ['ispag-dxf-utils'], false, true);
         wp_enqueue_script('ispag-dxf-geometry', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-tank-geometry.js', ['ispag-dxf-layout'], false, true);
         wp_enqueue_script('ispag-dxf-engine', plugin_dir_url(__FILE__) . '../assets/dxf_engine/ispag-engine-main.js', ['ispag-dxf-geometry'], false, true);
 
+        // Localisation pour tank-builder.js
         wp_localize_script('ispag-tank-builder', 'ISPAG_TANK', [
             'ajax_url' => admin_url('admin-ajax.php'),
-            'jsonUrl' => plugins_url('../assets/js/tank_data.json', __FILE__),
+            'jsonUrl' => plugins_url('../assets/json/tank_data.json', __FILE__),
             'nonce'    => wp_create_nonce('ispag_tank_nonce'),
             'text_error_saving_fitting' => __('error while saving fitting', 'creation-reservoir'),
         ]);
 
-        // Localize spécifique pour le pricing (pour récupérer le chemin du dossier /price/)
-        wp_localize_script('ispag-tank-pricing', 'ispag_vars', [
-            'plugin_url'        => plugins_url('', dirname(__FILE__, 1)), // Remonte au dossier racine du plugin
-            'custom_fee'        => get_option('wpcb_custom_fee'),
-            'default_coef'      => floatval(get_option('wpcb_sales_coef')),
-            'coef_revendeur'    =>floatval(get_option('wpcb_sales_coef_offre_revendeur')),
-            'coef_low'          =>floatval(get_option('wpcb_sales_coef_low')),
+        // 👇 Localisation pour tank-transport-checker.js
+        wp_localize_script('ispag-tank-transport-checker', 'ISPAG_TRANSPORT', [
+            'transportRulesUrl' => plugins_url('../assets/json/transport-rules.json', __FILE__),
+            'messages' => [
+                'standard' => __('Transport standard possible en Suisse.', 'creation-reservoir'),
+                'exceptional_simple' => __('Transport exceptionnel nécessitant une autorisation simple.', 'creation-reservoir'),
+                'exceptional_complex' => __('Transport exceptionnel nécessitant une autorisation spéciale (escorte possible).', 'creation-reservoir'),
+            ],
         ]);
 
+        // Localisation pour le pricing
+        wp_localize_script('ispag-tank-pricing', 'ispag_vars', [
+            'plugin_url'        => plugins_url('', dirname(__FILE__, 1)),
+            'custom_fee'        => get_option('wpcb_custom_fee'),
+            'default_coef'      => floatval(get_option('wpcb_sales_coef')),
+            'coef_revendeur'    => floatval(get_option('wpcb_sales_coef_offre_revendeur')),
+            'coef_low'          => floatval(get_option('wpcb_sales_coef_low')),
+        ]);
     }
 
     public static function get_namesplate_btn($html, $article_id) {
@@ -105,10 +128,10 @@ class ISPAG_Tank_Manager {
         $tank_datas = (new ISPAG_Tank_Repository())->get_tank_details($article_id);
 
         // 2. Générer le PDF
-        $generator = new ISPAG_Nameplate_SVG_Generator();
+        $generator = new ISPAG_Nameplate_Generator();
         $generator->generate_nameplate($project, $article, $tank_datas);
         exit;
-    }
+    } 
 
     public static function delete_tank_with_article_id($html, $article_id){
         global $wpdb;
@@ -180,23 +203,38 @@ class ISPAG_Tank_Manager {
                 $article_id
             )
         );
-
         // Insertion dans la table historique
-        $table_historique = $wpdb->prefix.'achats_historique';
-        $timestamp = current_time('timestamp');
-        $now = current_time('mysql');
+        $table_historique = $wpdb->prefix . 'achats_historique';
+        $timestamp        = current_time('timestamp');
+        $now              = current_time('mysql');
 
-        $wpdb->insert($table_historique, [
-            'purchase_order'  => $poid,
-            'Date'            => $timestamp,
-            'dateReadable'    => $now,
-            'IdUser'          => $user_id,
-            'Historique'      => $article_id,
-            'IdMedia'         => $attach_id,
-            'is_task'         => 0,
-            'is_done'         => 0,
-            'ClassCss'        => $doc_type,
-        ]);
+        $wpdb->insert(
+            $table_historique, 
+            [
+                'hubspot_deal_id' => 0, // Ajouté car absent et NOT NULL en BDD
+                'purchase_order'  => $poid,
+                'Date'            => (int) $timestamp, // Sécurisation du BIGINT
+                'dateReadable'    => $now,
+                'IdUser'          => $user_id,
+                'Historique'      => $article_id,
+                'IdMedia'         => $attach_id,
+                'is_task'         => 0,
+                'is_done'         => 0,
+                'ClassCss'        => $doc_type,
+            ],
+            [
+                '%d', // hubspot_deal_id
+                '%d', // purchase_order
+                '%d', // Date
+                '%s', // dateReadable
+                '%d', // IdUser
+                '%s', // Historique
+                '%d', // IdMedia
+                '%d', // is_task
+                '%d', // is_done
+                '%s'  // ClassCss
+            ]
+        );
 
         
     }

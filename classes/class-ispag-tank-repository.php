@@ -52,6 +52,8 @@ class ISPAG_Tank_Repository {
             ORDER BY conn.Height ASC
         ", $tank['Id']), ARRAY_A);
 
+        // error_log('TANK SPECS PIQUAGES ' . print_r($piquages, true));
+
         // 4. Générer la description formatée pour le tableau DXF
         foreach ($piquages as &$p) {
             $p['Description_Complete'] = $this->generate_connection_label($p);

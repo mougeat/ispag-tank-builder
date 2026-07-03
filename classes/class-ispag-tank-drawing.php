@@ -69,7 +69,7 @@ class ISPAG_Tank_Drawing {
             FROM {$wpdb->prefix}achats_historique
             WHERE Historique = %d
             AND ClassCss IN ($placeholders)
-            ORDER BY Date DESC
+            ORDER BY dateReadable DESC
             LIMIT 1
         ";
 
@@ -148,9 +148,27 @@ class ISPAG_Tank_Drawing {
 
     public function ispag_validate_pdf_plan_callback() {
         global $wpdb;
+
+        // 1. Définition du chemin vers la librairie dans l'AUTRE plugin
+        $fpdi_path = WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdi/autoload.php';
+        $fpdf_path = WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdf/fpdf.php'; // FPDI a besoin de FPDF
         
-        // 1. On protège la sortie pour éviter la corruption du JSON
-        ob_start();
+        // 2. Chargement manuel des fichiers si la classe n'existe pas
+        if ( ! class_exists( '\setasign\Fpdi\Fpdi' ) ) {
+            if ( file_exists( $fpdf_path ) ) {
+                require_once( $fpdf_path );
+            }
+            if ( file_exists( $fpdi_path ) ) {
+                require_once( $fpdi_path );
+            } else {
+                // Si le fichier n'est pas trouvé, on arrête proprement avant le Fatal Error
+                if (ob_get_length()) ob_end_clean();
+                wp_send_json_error( "Librairie FPDI introuvable dans : " . $fpdi_path );
+            }
+        }
+
+        // 3. Nettoyage du tampon pour éviter les erreurs JSON
+        if (ob_get_length()) ob_clean();;
 
         $drawing_id = isset($_POST['drawing_id']) ? (int) $_POST['drawing_id'] : 0;
         $article_id = isset($_POST['article_id']) ? (int) $_POST['article_id'] : 0;
@@ -181,7 +199,7 @@ class ISPAG_Tank_Drawing {
                 $pdf->useTemplate($tpl);
                 $pdf->SetFont('Arial', '', 10);
                 $pdf->SetTextColor(0, 102, 0);
-                $pdf->SetXY(10, $size['height'] - 20); // Remonté un peu pour être sûr qu'il soit visible
+                $pdf->SetXY(10, $size['height'] - 30); // Remonté un peu pour être sûr qu'il soit visible
                 
                 $text = "Validated by : $user on : $date";
                 // Nettoyage UTF-8 vers ISO pour FPDF
@@ -228,11 +246,25 @@ class ISPAG_Tank_Drawing {
                     'hubspot_deal_id' => $deal_id,
                     'purchase_order'  => $achat_id,
                     'Date'            => time(),
-                    'dateReadable'    => date('Y-m-d H:i:s'),
+                    'dateReadable'    => current_time('mysql'), // Synchro avec l'heure du site WP
                     'IdUser'          => $userId,
                     'Historique'      => $article_id,
                     'IdMedia'         => $attach_id,
+                    'is_task'         => 0, // Obligatoire (NOT NULL)
+                    'is_done'         => 0, // Obligatoire (NOT NULL)
                     'ClassCss'        => 'drawingApproval'
+                ],
+                [
+                    '%d', // hubspot_deal_id
+                    '%d', // purchase_order
+                    '%d', // Date
+                    '%s', // dateReadable
+                    '%d', // IdUser
+                    '%s', // Historique
+                    '%d', // IdMedia
+                    '%d', // is_task
+                    '%d', // is_done
+                    '%s'  // ClassCss
                 ]
             );
 

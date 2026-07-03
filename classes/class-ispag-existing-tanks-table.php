@@ -27,6 +27,15 @@ class ISPAG_Existing_Tanks_Table {
     }
 
     public function ispag_render_tanks_table($atts) {
+        if ( ! current_user_can( 'display_sales_prices' ) ) {
+            return '<div class="ispag-alert ispag-alert-danger">
+                        <i class="dashicons dashicons-lock"></i> 
+                        <strong>' . esc_html__( 'Restricted access', 'ispag-crm' ) . ' :</strong> ' . 
+                         esc_html__( 'You do not have the necessary rights to view this order.', 'ispag-crm' ) . '<br/>
+                        <a href ="'. home_url( '/wp-login.php' ) . '">' . esc_html__( 'To login page', 'ispag-crm' ) . '</a>
+                    </div>';
+        }
+
         $paged = get_query_var('paged') ? get_query_var('paged') : (isset($_GET['paged']) ? intval($_GET['paged']) : 1);
         if ($paged < 1) $paged = 1;
         

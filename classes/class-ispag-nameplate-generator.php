@@ -28,7 +28,7 @@ class ISPAG_Nameplate_Generator extends ISPAG_PDF_Generator {
 
         // --- 3. Configuration PDF ---
         $this->SetTitle(iconv('UTF-8', 'windows-1252', $serial_number)); 
-        $this->SetAuthor('ISPAG');
+        $this->SetAuthor('ispag-crm');
         $this->SetMargins(5, 5, 5);
         $this->AddPage();
         $this->SetAutoPageBreak(false);

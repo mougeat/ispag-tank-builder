@@ -20,11 +20,11 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             self::$instance = new self();
         }
 
-        add_filter('ispag_auto_insulation_saver', [self::$instance, 'maybe_add_insulation_article'], 10, 5);
+        add_filter('ispag_auto_insulation_saver', [self::$instance, 'maybe_add_insulation_article'], 10, 6);
         
     }
 
-    public function maybe_add_insulation_article($html, $deal_id, $article_id, $selected_type, $selected_thickness) {
+    public function maybe_add_insulation_article($html, $deal_id, $article_id, $selected_type, $selected_thickness, $selected_cover) {
         
         
         $tank = apply_filters('ispag_get_tank_datas', null, $article_id);
@@ -37,7 +37,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         // echo "[DEBUG] tank data:\n";
         // var_dump($tank);
         
-
+ 
         if (!$tank) {
             // echo "[DEBUG] Pas de données de cuve. Abort.\n";
             return ob_get_clean();
@@ -47,7 +47,8 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             floatval($tank['dimensions']->Volume),
             floatval($tank['dimensions']->Height),
             intval($selected_type),
-            intval($selected_thickness)
+            intval($selected_thickness),
+            intval($selected_cover)
         );
 
         if ($matching_article) {
@@ -62,7 +63,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         return ob_get_clean(); // On renvoie les logs capturés
     }
 
-    private function find_matching_insulation_article($volume, $height, $type, $thickness) {
+    private function find_matching_insulation_article($volume, $height, $type, $thickness, $cover) {
         $height_case = $height > 2500 ? 'over' : 'under';
         $articles = $this->wpdb->get_results(
             "SELECT * FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2"
@@ -76,15 +77,27 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             if (!isset($data->insulation)) continue;
 
             $i = $data->insulation;
+           // On extrait et convertit les valeurs du JSON pour la comparaison
+            $i_type      = isset($i->insulationType) ? intval($i->insulationType) : null;
+            $i_thickness = isset($i->insulationThickness) ? intval($i->insulationThickness) : null;
+            $i_cover     = isset($i->insulationCover) ? intval($i->insulationCover) : null;
+            $i_height    = isset($i->tankHeight) ? $i->tankHeight : '';
+            $i_volume    = isset($i->tankVolum) ? floatval($i->tankVolum) : 0;
+
+            // 3. Vérification de tous les critères
             if (
-                intval($i->insulationType) === $type &&
-                intval($i->insulationThickness) === $thickness &&
-                $i->tankHeight === $height_case &&
-                floatval($i->tankVolum) >= $volume &&
-                floatval($i->tankVolum) - $volume < $min_surplus_vol
+                $i_type === intval($type) &&
+                $i_thickness === intval($thickness) &&
+                $i_cover === intval($cover) &&
+                $i_height === $height_case &&
+                $i_volume >= $volume
             ) {
-                $best = $article;
-                $min_surplus_vol = floatval($i->tankVolum) - $volume;
+                // Calcul du surplus pour trouver l'isolation la plus proche du volume réel
+                $surplus = $i_volume - $volume;
+                if ($surplus < $min_surplus_vol) {
+                    $best = $article;
+                    $min_surplus_vol = $surplus;
+                }
             }
         }
 
@@ -95,6 +108,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
     private function insert_insulation_article($deal_id, $tank_id, $article) {
         $title = apply_filters('ispag_get_insulation_title', '', $article->Id);
         $description = apply_filters('ispag_get_insulation_description', '', $article->Id);
+        $default_supplier = 17;
         
         ISPAG_Article_Repository::ini(); // assure que le filtre est dispo
         $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);
@@ -106,7 +120,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             ];
         }
 
-        $demande_achat = $article->sales_price != 0 ? true : false;
+        // $demande_achat = $article->sales_price != 0 ? true : false;
 
         // Vérifie si une ligne existe déjà
         $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
@@ -118,13 +132,14 @@ class ISPAG_Tank_Insulation_Auto_Saver {
 
 
         $data = [
-            'linked_tank' => $tank_id,
+            'linked_tank'       => $tank_id,
             'IdArticleStandard' => $article->Id,
-            'Article' => $title,
-            'Description' => $description,
-            'sales_price' => $article->sales_price,
-            'Qty' => $tank->Qty,
-            'DemandeAchatOk' => $demande_achat,
+            'Article'           => $title,
+            'Description'       => $description,
+            'sales_price'       => $article->sales_price,
+            'Qty'               => $tank->Qty,
+            
+            'IdFournisseur'     => $default_supplier,
         ];
 
         if ($existing_id) {

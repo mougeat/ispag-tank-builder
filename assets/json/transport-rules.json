@@ -1,0 +1,18 @@
+{
+  "standard_limits": {
+    "max_width": 2550,   
+    "max_length": 13500, 
+    "max_weight": 40000  
+  },
+  "exceptional_limits": {
+    "simple_permit": {
+      "max_width": 3000, 
+      "max_length": 25000
+    }
+  },
+  "messages": {
+    "standard": "Transport standard possible en Suisse.",
+    "exceptional_simple": "Transport exceptionnel nécessitant une autorisation simple (sans escorte).",
+    "exceptional_complex": "Transport exceptionnel nécessitant une autorisation spéciale (avec escorte possible)."
+  }
+}

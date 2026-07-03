@@ -101,6 +101,7 @@ class ISPAG_Tank_Welding_Auto_Saver {
     private function insert_welding_article($deal_id, $tank_id, $article) {
         $title = apply_filters('ispag_get_welding_title', '', $article->Id);
         $description = apply_filters('ispag_get_welding_description', '', $article->Id);
+        $default_supplier = 25;
 
         ISPAG_Article_Repository::ini();
         $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);
@@ -109,7 +110,7 @@ class ISPAG_Tank_Welding_Auto_Saver {
             return ['success' => false, 'error' => 'No tank found'];
         }
 
-        $demande_achat = $article->sales_price != 0;
+        // $demande_achat = $article->sales_price != 0;
 
         $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
             "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
@@ -119,13 +120,15 @@ class ISPAG_Tank_Welding_Auto_Saver {
         ));
 
         $data = [
-            'linked_tank' => $tank_id,
+            'linked_tank'       => $tank_id,
             'IdArticleStandard' => $article->Id,
-            'Article' => $title,
-            'Description' => $description,
-            'sales_price' => $article->sales_price,
-            'Qty' => $tank->Qty,
-            'DemandeAchatOk' => $demande_achat,
+            'Article'           => $title,
+            'Description'       => $description,
+            'sales_price'       => $article->sales_price,
+            'Qty'               => $tank->Qty,
+
+            'IdFournisseur'     => $default_supplier,
+
         ];
 
         if ($existing_id) {

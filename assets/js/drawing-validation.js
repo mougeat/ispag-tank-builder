@@ -24,7 +24,7 @@ if (btn) {
       .then(res => {
 //        console.log('AJAX response:', res);
         if (res.success) {
-          alert(ispag_validation.drawingValidatedMessage + ' !');
+          // alert(ispag_validation.drawingValidatedMessage + ' !');
           if (window.opener) {
             window.opener.location.reload();
             window.close();

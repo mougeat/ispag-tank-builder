@@ -21,11 +21,75 @@ jQuery(document).ready(function($) {
         // Appelle la fonction qui gère les fournisseurs et les diamètres
         updateSupplierByMaterial(this);
     });
-
-    
+   
 });
 
+// Utilise 'change' ou 'input' plutôt que 'blur' pour une réactivité immédiate
+$(document).on('change', 'input[name="tank[nbWelding]"]', async function() {
+    // 1. Correction de la faute de frappe : nbWelding (et pas ndWelding)
+    // 2. Conversion en entier pour la comparaison
+    const nbWelding = parseInt($(this).val(), 10); 
 
+    // Si on a plus de 2 soudures (donc 3 tronçons ou plus)
+    if (nbWelding > 2) {
+        const confirmed = await ispagConfirm(ispag_texts.warning_nb_welding, {
+            labelOk:     ispag_texts.continue,
+            labelCancel: ispag_texts.cancel || 'Annuler',
+            danger:      false,
+        });
+
+        // Si l'utilisateur annule, on remet la valeur à 2 ou on vide
+        if (!confirmed) {
+            $(this).val(2); 
+            return;
+        }
+    }
+});
+
+// Listener sur le changement d'isolation
+$(document).on('change', 'select[name="tank[insulation]"]', function() {
+    const insulationId = $(this).val();
+    const typeId = $('#tank-typ').find(':selected').data('id'); 
+    
+    console.log("Changement isolation détecté :", insulationId, "pour Type :", typeId);
+    updateInsulationDependencies(insulationId, typeId);
+});
+
+async function updateInsulationDependencies(insulationId, typeId) {
+    await setIspagTankRestrictionsValue();
+    
+    // Vérification de la disponibilité des données globales
+    if (typeof restrictions === 'undefined') {
+        console.error("ispagTankRestrictions n'est pas défini.");
+        return;
+    }
+
+    const $coverSelect = $('select[name="tank[insulationCover]"]');
+    const $thicknessSelect = $('select[name="tank[InsulationThickness]"]');
+
+    ispagInsulation = restrictions['insulation'][insulationId];
+    
+    const allowedCovers = ispagInsulation['insulationCover'].map(String);
+    $('select[name="tank[insulationCover]"] option').each(function () {
+        const val = $(this).val();
+        if (val === '' || allowedCovers.includes(val)) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
+
+    const allowedThickness = ispagInsulation['InsulationThickness'].map(String);
+    $('select[name="tank[InsulationThickness]"] option').each(function () {
+        const val = $(this).val();
+        if (val === '' || allowedThickness.includes(val)) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
+
+} 
 
  
 async function updateTankDefaultsFromSelect(selectEl) {
@@ -41,31 +105,23 @@ async function updateTankDefaultsFromSelect(selectEl) {
     }
 }
 function updateTankDefaults(typId) {
-    // Vérification de la disponibilité des données
     if (!restrictions.typ || !restrictions.typ[typId] || !restrictions.typ[typId].default) return;
 
     const defaults = restrictions.typ[typId].default;
     const allowed = restrictions.typ[typId].restrictions;
 
-    const $supportSelect = $('select[name="tank[support]"]');
+    // --- Matériau ---
     const $materialSelect = $('select[name="tank[materiau]"]');
-
-    // --- Support ---
-    const currentSupport = String($supportSelect.val());
-    if (
-        defaults.Support !== undefined &&
-        (!currentSupport || !allowed.Support.includes(parseInt(currentSupport)))
-    ) {
-        $supportSelect.val(defaults.Support).trigger('change');
+    const currentMaterial = String($materialSelect.val());
+    if (defaults.Material !== undefined && (!currentMaterial || !allowed.Material.includes(parseInt(currentMaterial)))) {
+        $materialSelect.val(defaults.Material).trigger('change'); // 👈 Déclenche updateSupplierByMaterial
     }
 
-    // --- Matériau ---
-    const currentMaterial = String($materialSelect.val());
-    if (
-        defaults.Material !== undefined &&
-        (!currentMaterial || !allowed.Material.includes(parseInt(currentMaterial)))
-    ) {
-        $materialSelect.val(defaults.Material).trigger('change');
+    // --- Support ---
+    const $supportSelect = $('select[name="tank[support]"]');
+    const currentSupport = String($supportSelect.val());
+    if (defaults.Support !== undefined && (!currentSupport || !allowed.Support.includes(parseInt(currentSupport)))) {
+        $supportSelect.val(defaults.Support).trigger('change');
     }
 
     // --- Pression service ---
@@ -86,33 +142,10 @@ function updateTankDefaults(typId) {
 
     // --- Isolation ---
     if (defaults.insulation !== undefined) {
-        $('input[name="tank[insulation]"]').val(defaults.insulation);
+        $('input[name="tank[insulation]"]').val(defaults.insulation).trigger('change');
     }
 
-    // --- Supplier (Gestion Datalist Dynamique) ---
-    if (defaults.supplier_name !== undefined) {
-        const $supplierInput = $('input[name="supplier"]');
-        const $supplierDatalist = $('#supplier-list');
-
-        // 1. On vide la datalist actuelle
-        $supplierDatalist.empty();
-
-        // 2. On s'assure que supplier_name est traité comme un tableau
-        const suppliers = Array.isArray(defaults.supplier_name) ? defaults.supplier_name : [defaults.supplier_name];
-
-        // 3. On remplit la datalist avec les nouveaux fournisseurs autorisés
-        suppliers.forEach(function(name) {
-            $supplierDatalist.append($('<option>').val(name));
-        });
-
-        // 4. Mise à jour de la valeur de l'input : 
-        // Si la valeur actuelle est vide ou n'est plus dans la liste autorisée, on met le 1er par défaut
-        if (!$supplierInput.val() || !suppliers.includes($supplierInput.val())) {
-            $supplierInput.val(suppliers[0]);
-        }
-    }
-
-    // Appliquer les restrictions de sélection (affichage/masquage des options)
+    // --- Appliquer les restrictions ---
     restrictTankOptions(typId);
 }
 
@@ -164,6 +197,23 @@ function restrictTankOptions(typId) {
         });
     } 
 
+    // Cover
+    if (rules.cover) {
+        const allowedCovers = rules.cover.map(String);
+        $('select[name="tank[cover]"] option').each(function () {
+            const val = $(this).val();
+            if (val === '0') {
+                $(this).show();
+                return; // Passe à l'option suivante
+            }
+            if (val === '' || allowedCovers.includes(val)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    } 
+
         // Isolation épaisseur
     if (rules.InsulationThickness) {
         const allowedInsulationThickness = rules.InsulationThickness.map(String);
@@ -182,92 +232,107 @@ function restrictTankOptions(typId) {
     }
     
 }
-
 function updateSupplierByMaterial(selectEl) {
     const $ = jQuery;
-    // 1. On récupère les IDs actuels
-    const materialId = $(selectEl).val(); // ID du matériau (1, 2 ou 3)
-    const typeId = $('#tank-typ').val();   // ID du type de réservoir (4, 5, 8...)
+    const materialId = $(selectEl).val();
+    const typeId = $('#tank-typ').find(':selected').data('id');
 
     const $supplierDatalist = $('#supplier-list');
     const $supplierInput = $('input[name="supplier"]');
 
-    // --- PARTIE 1 : RÉPARER LES FOURNISSEURS ---
+    // 1. Récupérer tous les fournisseurs autorisés (matériau + type)
     let allSuppliers = new Set();
 
-    // On pioche dans les deux sources du JSON pour être sûr d'avoir TML Group
-    if (restrictions.material && restrictions.material[materialId]) {
-        const matSupp = restrictions.material[materialId].default.supplier_name;
-        matSupp.forEach(s => allSuppliers.add(s));
-    }
-    if (restrictions.typ && restrictions.typ[typeId]) {
-        const typSupp = restrictions.typ[typeId].default.supplier_name;
-        typSupp.forEach(s => allSuppliers.add(s));
+    // Fournisseurs du matériau
+    if (restrictions.material?.[materialId]?.default?.supplier_name) {
+        restrictions.material[materialId].default.supplier_name.forEach(s => allSuppliers.add(s));
     }
 
+    // Fournisseurs du type
+    if (restrictions.typ?.[typeId]?.default?.supplier_name) {
+        restrictions.typ[typeId].default.supplier_name.forEach(s => allSuppliers.add(s));
+    }
+
+    // 2. Mettre à jour la datalist
     $supplierDatalist.empty();
-    allSuppliers.forEach(s => $supplierDatalist.append($('<option>').val(s)));
+    const supplierArray = Array.from(allSuppliers);
+    supplierArray.forEach(s => $supplierDatalist.append($('<option>').val(s)));
 
-    // Si le champ est vide, on met le premier par défaut
-    if (!$supplierInput.val() && allSuppliers.size > 0) {
-        $supplierInput.val(Array.from(allSuppliers)[0]);
+    // 3. Gérer le fournisseur actuel
+    const currentSupplier = $supplierInput.val();
+    if (supplierArray.length > 0) {
+        if (!allSuppliers.has(currentSupplier)) {
+            $supplierInput.val(supplierArray[0]);
+            console.log(`[SUPPLIER] "${currentSupplier}" non autorisé. Remplacé par : ${supplierArray[0]}`);
+        }
+        // Sinon, on garde currentSupplier
     }
 
-    // --- PARTIE 2 : RESTAURER LES DIAMÈTRES ---
-    // TRÈS IMPORTANT : Les diamètres dépendent du MATÉRIAU (Inox vs Acier)
+    // 4. Mettre à jour les diamètres
     if (materialId) {
-        updateDiameterDatalistByType(materialId); 
+        updateDiameterDatalistByMaterial(materialId);
     }
-    
-    // On force le recalcul des calculs (hauteur/volume) car le fond change selon le matériau
-    $('[name="tank[diameter]"]').trigger('change');
 }
-async function updateDiameterDatalistByType(typeId) {
-    // On s'assure que les données sont prêtes
-    await setIspagTankRestrictionsValue();
 
-    // console.log('[DEBUG] Start updateDiameterDatalistByType');
-    // console.log('[DEBUG] Materiau de cuve', typeId);
-    // console.log('[DEBUG] Current diam', currentDiam);
-    // console.log('[DEBUG] Liste des restrictions', arrayBottomHeight);
+async function updateDiameterDatalistByMaterial(materialId) {
+    // 👇 Vérifier que les données sont chargées
+    if (!isDataLoaded) {
+        await setIspagTankRestrictionsValue();
+        await new Promise((resolve) => {
+            jQuery(document).one('ispag:restrictions_loaded', resolve);
+        });
+    }
 
-       
-    // On récupère les diamètres valides depuis l'objet global
-    const diameters = Object.keys(arrayBottomHeight[typeId] || {}).filter(d => arrayBottomHeight[typeId][d] > 0);
+    const $select = jQuery('select[name="tank[diameter]"]');
+    if (!$select.length) {
+        console.error('[ERROR] Élément select[name="tank[diameter]"] introuvable.');
+        return;
+    }
 
-    // console.log('[DEBUG] Liste des diamètres', diameters);
-    
-    const selectEl = document.getElementById('tank-diameter');
-    if (!selectEl) return;
+    // 👇 Vérifier que arrayBottomHeight[materialId] existe
+    if (!arrayBottomHeight || !arrayBottomHeight[materialId]) {
+        console.error(`[ERROR] arrayBottomHeight[${materialId}] introuvable.`);
+        $select.empty();
+        $select.append(new Option('-- Sélectionnez un matériau --', ''));
+        return;
+    }
 
-    
-    const currentDiam = selectEl.getAttribute('data-current-diameter');
-    // console.log('Current diam', currentDiam);
-    
-    
+    const dataForMaterial = arrayBottomHeight[materialId];
+    const diameters = Object.keys(dataForMaterial)
+        .filter(d => parseFloat(dataForMaterial[d]) > 0)
+        .map(Number);
 
+    const currentDiam = $select.attr('data-current-diameter');
+    $select.empty();
+    $select.append(new Option('-- Select --', ''));
 
-    // 1. VIDAGE COMPLET DU SELECT
-    selectEl.options.length = 0;
-
-    // 2. AJOUT DE L'OPTION PAR DÉFAUT
-    const defaultOption = document.createElement('option');
-    defaultOption.value = "";
-    defaultOption.textContent = "-- Select --";
-    selectEl.appendChild(defaultOption);
-
-    // 3. REMPLISSAGE AVEC LES NOUVELLES DONNÉES
     diameters.forEach(d => {
         const option = new Option(d + ' mm', d);
-        
-        // Si la valeur correspond au diamètre actuel, on la sélectionne
         if (currentDiam && d.toString() === currentDiam.toString()) {
             option.selected = true;
         }
-        
-        selectEl.add(option);
+        $select.append(option);
     });
-    // console.log('[DEBUG] End updateDiameterDatalistByType');
+
+    const finalVal = $select.val();
+    if (finalVal) {
+        $select.attr('data-current-diameter', finalVal);
+    }
+
+    $select.trigger('change');
+    if ($select.data('select2')) {
+        $select.trigger('change.select2');
+    }
+}
+
+/**
+ * Met à jour la liste des diamètres en fonction du type de réservoir.
+ */
+async function updateDiameterDatalistByType(typeId, forcedDiameter = null) {
+    const materialId = $('select[name="tank[materiau]"]').val();
+    if (materialId) {
+        await updateDiameterDatalistByMaterial(materialId);
+    }
 }
  
 
@@ -527,6 +592,8 @@ function findClosestDiameter(targetVolume, bottomHeight, clearance, conceptionId
 // Sauvegarde des données techniques du réservoir
 function saveTankData(articleId, is_purchase = false) {
 
+    saveHeatExchangerData(articleId, is_purchase);
+
     const tank = {
         type:           $('[name="tank[type]"]').val(),
         materiau:       $('[name="tank[materiau]"]').val(),
@@ -540,6 +607,7 @@ function saveTankData(articleId, is_purchase = false) {
         clearance:      $('[name="tank[clearance]"]').val(),
         temperature:    $('[name="tank[temperature]"]').val(),
         insulation:     $('[name="tank[insulation]"]').val(),
+        insulationCover: $('[name="tank[insulationCover]"]').val(),
         InsulationThickness: $('[name="tank[InsulationThickness]"]').val(),
         nbWelding:      $('[name="tank[nbWelding]"]').val()
     };
@@ -548,24 +616,7 @@ function saveTankData(articleId, is_purchase = false) {
     const deal_id = getUrlParam('deal_id');
     const achat_id = getUrlParam('poid');
 
-    // On récupère les valeurs de manière sécurisée
-    // const tank = {
-    //     type:           form.find('select[name="tank[type]"]').val(),
-    //     materiau:       form.find('select[name="tank[materiau]"]').val(),
-    //     support:        form.find('select[name="tank[support]"]').val(),
-    //     diameter:       form.find('select[name="tank[diameter]"]').val(),
-    //     height:         form.find('input[name="tank[height]"]').val(),
-    //     volume:         form.find('input[name="tank[volume]"]').val(),
-    //     tipping:        form.find('input[name="tank[tipping]"]').val(),
-    //     max_pressure:   form.find('input[name="tank[max_pressure]"]').val(),
-    //     test_pressure:  form.find('input[name="tank[test_pressure]"]').val(),
-    //     clearance:      form.find('input[name="tank[clearance]"]').val(),
-    //     temperature:    form.find('input[name="tank[temperature]"]').val(),
-    //     // Attention : Insulation et Welding sont souvent dans des blocs séparés
-    //     insulation:     form.find('select[name="tank[insulation]"]').val(),
-    //     InsulationThickness: form.find('select[name="tank[InsulationThickness]"]').val(),
-    //     nbWelding:      form.find('input[name="tank[nbWelding]"]').val()
-    // };
+
 
     console.log("Données envoyées au serveur :", tank); // Pour tes tests
 
@@ -581,7 +632,7 @@ function saveTankData(articleId, is_purchase = false) {
         if (!response.success) {
             console.error('Erreur cuve : ', response.data);
         } else {
-            console.log('Succès sauvegarde technique');
+            console.log('Succès sauvegarde technique', response.data);
         }
     }).fail(xhr => {
         console.error('Erreur critique AJAX', xhr.responseText);

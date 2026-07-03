@@ -22,7 +22,15 @@ class ISPAG_Tank_Description {
         // }, 10, 2);
     }
 
-    public function generate_tank_title($title, $article_id) {
+    public function generate_tank_title($title, $article_id, $target_locale = null) {
+
+        // 1. Forcer la locale AVANT toute opération
+        if (!empty($target_locale)) {
+            $previous_locale = switch_to_locale($target_locale);
+        }
+
+        // error_log('[DEBUG] Locale dans tank title: ' . (function_exists('pll_current_language') ? pll_current_language() : get_locale()));
+
         $tank_designer = new ISPAG_Tank_Designer();
         $datas = $tank_designer->get_tank_data(null, $article_id);
         
@@ -47,6 +55,18 @@ class ISPAG_Tank_Description {
 
     public function generate_tank_description($title, $article_id, $is_purchase, $target_locale = null) {
         
+        // Charger le domaine de traduction pour Polylang
+        if (function_exists('pll_load_textdomain')) {
+            pll_load_textdomain('creation-reservoir');
+        }
+
+        // 1. Forcer la locale AVANT toute opération
+        if (!empty($target_locale)) {
+            $previous_locale = switch_to_locale($target_locale);
+        }
+
+        // error_log('[DEBUG] Locale dans tank description: ' . (function_exists('pll_current_language') ? pll_current_language() : get_locale()));
+        
         $tank_designer = new ISPAG_Tank_Designer();
         $fittings_designer = new ISPAG_Tank_Fittings();
         $ispag_welding = new ISPAG_Tank_Welding();
@@ -61,10 +81,6 @@ class ISPAG_Tank_Description {
             return $title; // On renvoie au moins le titre
         }
         
-        if(!empty($target_locale)){
-            $previous_locale = switch_to_locale($target_locale);
-        }
-        
 
         if (!$conception || !$dimensions) {
             return 'ERREUR';
@@ -73,7 +89,7 @@ class ISPAG_Tank_Description {
         $lines = [];
 
         // On passe le titre déjà généré ou on le génère ici
-        $lines[] = $this->generate_tank_title($title, $article_id);
+        $lines[] = $this->generate_tank_title($title, $article_id, $target_locale);
 
         // Utilisation de l'opérateur de coalescence ?? pour éviter les Warnings
         $lines[] = __('Uninsulated diameter', 'creation-reservoir') . ' : ' . number_format($dimensions->Diameter ?? 0, 0, ',', ' ') . ' mm';
@@ -104,6 +120,8 @@ class ISPAG_Tank_Description {
         if(!empty($target_locale)){
             restore_previous_locale();
         }
+
+        // error_log('[DEBUG] tank description in : ' . (function_exists('pll_current_language') ? pll_current_language() : get_locale()) . ' - ' . print_r($lines, true));
 
         return implode("\n", $lines);
     }
@@ -144,7 +162,7 @@ class ISPAG_Tank_Description {
             LEFT JOIN {$wpdb->prefix}achats_doc_types dt ON dt.slug = h.ClassCss
             WHERE h.Historique = %d
             AND h.ClassCss IN ($placeholders)
-            ORDER BY h.Date DESC
+            ORDER BY h.dateReadable	DESC
             LIMIT 1
         ";
 

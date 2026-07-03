@@ -52,7 +52,7 @@ window.IspagDxfEngine = {
 
         // 2. Calcul de l'échelle automatique
         const totalNeededH = Htot + D + 800;
-        let scale = Math.min(availableW / (D + 600), 2800 / totalNeededH, 1.0) * 0.9;
+        let scale = Math.min(availableW / (D + 600), 2800 / totalNeededH, 1.0) * 0.8;
         const s = (v) => v * scale;
         
         // 3. Calcul des points de référence verticaux
@@ -95,9 +95,9 @@ window.IspagDxfEngine = {
                     (p.Elevation_mm || "0") + " mm", 
                     (p.Angle_degres || "0") + "°"
                 ]);
-            
+             
             if (window.DxfLayout.drawTable) {
-                window.DxfLayout.drawTable(entities, frameX2 - 1300, frameY2 - 100, 1200, nozzleData);
+                window.DxfLayout.drawTable(entities, frameX2 - 1840, frameY2 - 100, 1200, nozzleData);
             }
             if (window.DxfLayout.drawCartouche) {
                 window.DxfLayout.drawCartouche(entities, frameX2 - 1640, frameY1 + 40, 1600, 520, dim, specs, project);
@@ -135,11 +135,34 @@ window.IspagDxfEngine = {
             type: 'MTEXT', 
             layer: layer, 
             point: { x: x, y: y }, 
-            text: String(txt), 
+            text: this.cleanTex(String(txt)), 
             rotation: rot, 
             height: h, 
             attachment: att || 1 
         });
+    },
+    cleanTex: function(txt) {
+        if (txt === null || txt === undefined) return "";
+        
+        return String(txt)
+            // 1. Suppression du caractère parasite Â (souvent lié à l'encodage des symboles)
+            .replace(/Â/g, '') 
+            .replace(/[\xC2\xA0]/g, '')
+            
+            // 2. Symboles de diamètres et angles
+            .replace(/°/g, ' deg')
+            .replace(/Ø/g, ' diam')
+            
+            // 3. Fractions
+            .replace(/½/g, '1/2')
+            .replace(/¼/g, '1/4')
+            .replace(/¾/g, '3/4')
+            
+            // 4. Nettoyage technique
+            .replace(/[\r\n]+/g, " ") 
+            .replace(/\^/g, "\\^")
+            .replace(/[^\x00-\x7F]/g, "")
+            .trim();
     },
 
     /**

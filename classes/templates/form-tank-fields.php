@@ -3,6 +3,9 @@
  * ISPAG Tank Design Sub-template
  * @version 2.1.8
  */
+$user_can = current_user_can('manage_order'); 
+$can_view_prices = current_user_can('display_sales_prices');
+$allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE['ispag_allow_prices'] === 'true';
 ?>
 <div class="ispag-tank-fields detail-block">
     <div class="card-header" style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">

@@ -202,7 +202,7 @@ class ISPAG_Tank_Welding {
                 value="<?= esc_attr($nb_welding); ?>" 
                 min="0" 
                 step="1"
-                class="ispag-welding-nb" />
+                class="ispag-welding-nb" /> 
         </div>
         <?php
         return ob_get_clean();

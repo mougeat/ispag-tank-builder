@@ -33,6 +33,17 @@ class ISPAG_Nameplate_SVG_Generator {
             $qr_base64 = 'data:image/png;base64,' . base64_encode(wp_remote_retrieve_body($qr_data));
         }
 
+        // --- Préparation du Logo en Base64 ---
+        $logo_base64 = '';
+        if (!empty($this->logo_url)) {
+            $logo_data = wp_remote_get($this->logo_url);
+            if (!is_wp_error($logo_data)) {
+                $logo_body = wp_remote_retrieve_body($logo_data);
+                $logo_type = wp_remote_retrieve_header($logo_data, 'content-type');
+                $logo_base64 = 'data:' . $logo_type . ';base64,' . base64_encode($logo_body);
+            }
+        }
+
         if (ob_get_length()) ob_end_clean();
 
         header('Content-Type: image/svg+xml; charset=UTF-8');
@@ -58,8 +69,8 @@ class ISPAG_Nameplate_SVG_Generator {
         echo '<rect x="2" y="2" width="116" height="76" fill="none" stroke="black" stroke-width="0.6" />' . "\n";
 
         // Logo ISPAG
-        if (!empty($this->logo_url)) {
-            echo '<image xlink:href="' . esc_url($this->logo_url) . '" x="5" y="5" height="12" width="35" />' . "\n";
+        if (!empty($logo_base64)) {
+            echo '<image xlink:href="' . $logo_base64 . '" x="5" y="5" height="12" width="35" />' . "\n";
         }
 
         // Adresse En-tête

@@ -1,6 +1,6 @@
 /**
  * Fichier : tank-pricing.js
- * Version : 4.4.0 - Gestion silencieuse et complète
+ * Version : 4.5.0 - Gestion silencieuse et complète + Soudure sur place
  */
 
 let lastPricingTrace = "";
@@ -11,14 +11,14 @@ let lastPricingTrace = "";
 function calculateSalesPriceFromPurchase(purchasePrice, volumeLiters, supplierDiscount = 0) {
     const isProjectOrPurchase = jQuery('input[name="isProjectOrPurchase"]').val();
     const salesCoefType = jQuery('#ispag-coef-select').val();
-    
+
     let price = parseFloat(purchasePrice) || 0;
     let details = "";
 
     if (isProjectOrPurchase !== 'project') {
-        return { 
-            finalPrice: price, 
-            trace: `MODE PURCHASE : Prix brut conservé.\n` 
+        return {
+            finalPrice: price,
+            trace: `MODE PURCHASE : Prix brut conservé.\n`
         };
     }
 
@@ -39,7 +39,7 @@ function calculateSalesPriceFromPurchase(purchasePrice, volumeLiters, supplierDi
         }
     }
 
-    let coef = parseFloat(ispag_vars.default_coef) || 1; 
+    let coef = parseFloat(ispag_vars.default_coef) || 1;
     let labelCoef = "Standard";
     if (salesCoefType === 'wpcb_sales_coef_offre_revendeur') {
         coef = parseFloat(ispag_vars.coef_revendeur);
@@ -63,25 +63,21 @@ function calculateSalesPriceFromPurchase(purchasePrice, volumeLiters, supplierDi
 }
 
 async function updateTankPrice() {
-    console.group("--- DÉBOGAGE PRICING ISPAG ---");
-    
     lastPricingTrace = '';
 
     const articleId = jQuery('#current-editing-article-id').val();
-    
-    
+
     // Sélecteurs
     const priceBarDisplay = jQuery(document).find('#tank-bare-price-' + articleId);
-    const priceDisplay = jQuery('#tank-price-display'); // Le champ dans la modal
+    const priceDisplay = jQuery('#tank-price-display');
     const supplierEl = jQuery('#tank-supplier-display');
-    
+
     const supplier = supplierEl.attr('data-value') || supplierEl.data('value');
     const diameter = parseInt(jQuery('select[name="tank[diameter]"], input[name="tank[diameter]"]').val());
     const heightTotal = parseInt(jQuery('input[name="tank[height]"]').val());
-    const material = jQuery('#tank-material').val(); 
+    const material = jQuery('#tank-material').val();
 
     if (!supplier || isNaN(diameter) || isNaN(heightTotal)) {
-        console.groupEnd();
         return;
     }
 
@@ -100,8 +96,16 @@ async function updateTankPrice() {
             const pressKey = (parseFloat(jQuery('input[name="tank[max_pressure]"]').val()) || 3) <= 3 ? '3bar' : '6bar';
             basePrice = grille[targetDia][targetHeight][pressKey];
 
-            // --- 2. AJOUT DU PRIX DE BASE DANS LA TRACE ---
+            // --- AJOUT DU PRIX DE BASE DANS LA TRACE ---
             lastPricingTrace += `Prix de base cuve (${targetDia}x${targetHeight} - ${pressKey}) : ${basePrice.toFixed(2)} €\n`;
+
+            // --- VÉRIFICATION SOUDURE SUR PLACE (20% si welding-nb > 0) ---
+            const weldingNb = parseInt(jQuery('#welding-nb').val()) || 0;
+            if (weldingNb > 0) {
+                const weldingSurcharge = basePrice * 0.20;
+                basePrice += weldingSurcharge;
+                lastPricingTrace += `- Majorations soudure sur place (20% de ${(basePrice - weldingSurcharge).toFixed(2)}€) : +${weldingSurcharge.toFixed(2)}€\n`;
+            }
         }
 
         let optionsPrice = 0;
@@ -116,7 +120,7 @@ async function updateTankPrice() {
             const surfaceM2 = Math.ceil(((diameter/1000)**2 * 2) + ((diameter/1000) * 4 * (mantleHeight/1000)));
             const valZinc = surfaceM2 * data.accessoires.traitement_surface.options.exterieur_zinc_1K.prix_m2;
             optionsPrice += valZinc;
-            lastPricingTrace += `- Option Zinc : +${valZinc.toFixed(2)} €\n`;
+            lastPricingTrace += `- Option Zinc : (+${surfaceM2.toFixed(2)} m²) +${valZinc.toFixed(2)} €\n`;
         }
 
         // Calcul Ground Clearance (Pieds)
@@ -135,7 +139,7 @@ async function updateTankPrice() {
         // Calcul du prix des PIEDS
         const supportType = jQuery('select[name="tank[support]"], input[name="tank[support]"]').val();
         const volumeLiters = parseInt(jQuery('input[name="tank[volume]"]').val()) || 0;
-        const nbPieds = parseInt(jQuery('select[name="tank[legs_nb]"]').val()) || 3; 
+        const nbPieds = parseInt(jQuery('select[name="tank[legs_nb]"]').val()) || 3;
 
         // On n'applique la plus-value QUE si le type de support est "Pieds" (valeur 10)
         if (supportType == "10" && data.accessoires?.pieds) {
@@ -161,26 +165,22 @@ async function updateTankPrice() {
 
             optionsPrice += prixFinalPieds;
             lastPricingTrace += `- Pieds (${nbPieds}x ${typePiedsUtilise}) : +${prixFinalPieds.toFixed(2)} €\n`;
-            console.log(`[6c] Support Pieds détecté (${nbPieds}x ${typePiedsUtilise}). Prix: ${prixFinalPieds}€`);
         }
 
         // Calcul final
         const totalPurchaseBrut = basePrice + optionsPrice;
         const discountDefaut = parseFloat(data.discount_defaut) || 0;
         if (priceBarDisplay.length) {
-            priceBarDisplay.attr('data-discount', discountDefaut); 
+            priceBarDisplay.attr('data-discount', discountDefaut);
         }
         const sales = calculateSalesPriceFromPurchase(totalPurchaseBrut, (parseInt(jQuery('input[name="tank[volume]"]').val()) || 0), (parseFloat(data.discount_defaut) || 0));
         lastPricingTrace += sales.trace;
-        
+
         // --- ARRONDI ---
         const finalRoundedPrice = Math.ceil(sales.finalPrice);
         const priceFormatted = finalRoundedPrice.toFixed(2);
 
-        console.log(`[7] Prix final : ${finalRoundedPrice}€`);
-
         // --- ÉCRITURE ---
-        
         // 1. On écrit dans la modal (champ visuel)
         if (priceDisplay.length) {
             priceDisplay.val(finalRoundedPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2 }));
@@ -188,15 +188,8 @@ async function updateTankPrice() {
 
         // 2. On écrit dans l'article (champ caché)
         if (priceBarDisplay.length) {
-            // Utiliser .prop('value', ...) est parfois plus fiable que .val() sur certains navigateurs pour les inputs cachés
             priceBarDisplay.val(priceFormatted);
-            
-            console.log("%c[8] SUCCÈS : Écrit dans #tank-bare-price-" + articleId, "color: green;");
-            
-            // On déclenche le calcul global
             calculateTotalCombinedPrice(articleId);
-            
-            // On ne trigger le change qu'à la toute fin
             priceBarDisplay.trigger('change');
         } else {
             console.error("[8] Élément #tank-bare-price-" + articleId + " introuvable");
@@ -205,7 +198,6 @@ async function updateTankPrice() {
     } catch (error) {
         console.error("Erreur:", error);
     }
-    console.groupEnd();
 }
 
 function calculateTotalCombinedPrice(articleId) {
@@ -246,7 +238,7 @@ function saveTotalToDatabase(articleId) {
             article_id: articleId,
             price: totalPrice,
             discount: discountValue,
-            log_details: fullLog 
+            log_details: fullLog
         },
         success: function(response) {
             if (response.success) {

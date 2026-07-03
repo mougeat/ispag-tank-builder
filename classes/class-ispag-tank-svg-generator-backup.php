@@ -82,7 +82,7 @@ class ISPAG_Tank_SVG_Generator_backup {
         }
 
         // Écrire le fichier
-        file_put_contents($svg_path, $svg_content);
+        // file_put_contents($svg_path, $svg_content);
 
         // Retourner l'URL pour affichage
         return plugin_dir_url(__FILE__) . "../assets/svg/cuves/cuves_$article_id.svg";

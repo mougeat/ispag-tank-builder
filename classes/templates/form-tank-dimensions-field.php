@@ -3,6 +3,11 @@
  * ISPAG Tank Dimensions Sub-template
  * @version 2.1.8 - Modernized Grid
  */
+$user_can = current_user_can('manage_order'); 
+$can_view_prices = current_user_can('display_sales_prices');
+$allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE['ispag_allow_prices'] === 'true';
+
+error_log('Formulaire Tank Dimensions : ' . print_r($data, true));
 ?>
 <div id="tank-dimensions-form" class="detail-block" <?php echo $display; ?> style="margin-top: 25px;">
     
@@ -43,7 +48,7 @@
         <div class="ispag-field" style="flex: 1; min-width: 200px;">
             <div class="field-group" style="margin-bottom: 15px;">
                 <label><strong><?php echo __('Ground clearance', 'creation-reservoir'); ?> (mm)</strong></label>
-                <input type="number" name="tank[clearance]" value="<?= esc_attr($data['dimensions']->GroundClearance ?? '50') ?>" min="0" max="500" style="width: 100%;">
+                <input type="number" name="tank[clearance]" value="<?= esc_attr($data['dimensions']->GroundClearance ?? '100') ?>" min="0" max="500" style="width: 100%;">
             </div>
 
             <div class="field-group">
@@ -72,6 +77,7 @@
         
             
         <div class="ispag-field" style="flex: 1; min-width: 200px;">
+            <?php if ($can_view_prices && $allow_display_sensible_info): ?>
             <div class="field-group" style="margin-bottom: 15px;">
                 <label><strong><?php echo __('Indicative purchase price (excluding VAT)', 'creation-reservoir'); ?></strong></label>
                 <div style="display: flex; align-items: center; gap: 5px;">
@@ -87,6 +93,9 @@
                     <?php echo __('Raw tank price based on dimensions', 'creation-reservoir'); ?>
                 </small>
             </div>
+            <?php else: ?>
+                <label><strong><?php echo __('You are not allowed to view this field', 'creation-reservoir'); ?></strong></label>
+            <?php endif; ?>
         </div>
         
 

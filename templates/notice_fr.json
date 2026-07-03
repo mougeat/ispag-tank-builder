@@ -1,0 +1,114 @@
+{
+  "title": "Notice Technique - Réservoir ISPAG",
+  "header": {
+    "company": "ISPAG",
+    "slogan": "{{project.ObjetCommande}}",
+    "date_label": "Généré le"
+  },
+  "sections": {
+    "generalites": {
+      "title": "1. Généralités",
+      "content": "Cher client,\nNous vous remercions d'avoir choisi un réservoir ISPAG et nous vous remercions de votre confiance.\nCes instructions d'installation et d'exploitation font partie intégrante du ballon et doivent être transmises à l'opérateur. Les consignes doivent être suivies impérativement. Nous déclinons toute responsabilité pour les dommandes découlant d'une utilisation non conforme ou du non-respoect des consignes d'installations et du manuel d'utilisation."
+    },
+    "titre_appareil": {
+      "title": "2. Appareil"
+    },
+    "description_appareil": {
+      "title": "2.1. Description de l'appareil",
+      "content": "Le réservoir {{article.Article}} est une unité spécialement conçue en tant que {{tank_datas.conception.TankType}}. Toute autre utilisation est considérée comme non conforme. Le fabricant décline toute responsabilité en cas de dommage en découlant.",
+      "image": {
+        "url": "{{tank_svg_url}}",
+        "width": 40,              
+        "height": 40,             
+        "position": "right"       
+      }
+    },
+    "model": {
+      "title": "2.2. Modèle",
+      "content": {
+        "table_title": "Caractéristiques techniques",
+        "table_headers": ["Caractéristique", "Valeur"],
+        "table_rows": [
+          
+          ["Type", "{{tank_datas.conception.TankType}}"],
+          ["Matériau", "{{tank_datas.conception.material_text}}"],
+          ["Finition", "{{tank_datas.conception.Finition}}"],
+          ["Volume", "{{tank_datas.dimensions.Volume}} L"],
+          ["Diamètre", "{{tank_datas.dimensions.Diameter}} mm"],
+          ["Hauteur", "{{tank_datas.dimensions.Height}} mm"],
+          ["Pression de service", "{{tank_datas.dimensions.MaxPressure}} bar"],
+          ["Pression d'essai", "{{tank_datas.dimensions.TestPressure}} bar"],
+          ["Température d'utilisation", "{{tank_datas.dimensions.usingTemperature}}°C"]
+          
+        ],
+        "column_widths": [60, 70]
+      },
+      "page_break": true
+    },
+    "bride": {
+      "title": "2.3. Bride",
+      "content": {
+        "text": "Après échauffement du réservoir, il est nécessaire de contrôler l'étanchéité de tous les raccords à bride et à vis. Resserrer toutes les vis lorsque le réservoir est chaud.\nCouples de serrage :",
+        "table_headers": ["Type de vis", "Joint (Nm)", "Klingerit (Nm)"],
+        "table_rows": [
+          ["Vis M12", "30", "93"],
+          ["Vis M14", "55", "148"]
+        ],
+        "column_widths": [40, 40, 40]
+      },
+      "page_break": false
+    },
+    "piquages": {
+      "title": "2.4. Liste des Piquages",
+      "content": {
+        "table_headers": ["Type", "Accessoires", "Ø", "H (mm)"],
+        "table_rows": "{{piquages}}",
+        "column_widths": [25, 65, 15, 15]
+      },
+      "page_break": false
+    },
+    
+    "secu": {
+      "title": "3. Consignes de sécurité",
+      "content": "L'assemblage, le montage et la mise en service du ballon doivent être effectués par un professionnel qualifié et rompu aux lois, normes et règlements en vigueur (y compris localement). Le réservoir doit uniquement être installé sur une surface de montage plane et dans un lieu protégé du gel. Si cela n'est pas le cas ou si le réservoir reste hos servce pendant une période prolongée, le réservoir et l'échangeur dechaleur (le cas échéant) doivent être entièrement vidés !\nAprès réception, contrôler l'intégralité de la livraison et l'absence de dommages.\nLes matériaux d'emballage (attaches, sacs en plastique, mouss en polystyrène, etc.) doivent être tenus hors de portée des enfants.",
+      "page_break": true
+    },
+    "conception_installation": {
+      "title": "4. Conception et installation"
+      
+    },
+    "exigences_site": {
+      "title": "4.1. Exigences sur le site d'installation",
+      "content": "Lors du choix du site d'installation, il est impératif de tenir compte du poids bu réservoir une fois rempli.\nPour éviter toute pertes de chaleur / froid, installer le réservoir à proximité immédiate du générateur de chaleur / froid. Respectez la distance minimal entre la les parois, le ballon et les murs ainsi que l'éspace nécessaire pour l'installation sur les côté et à l'arrière.\nLe résevoir doit impérativement être raccordé par un professionnel qualifié et conformément au niveau actuel de la technique. en outre, il convient de veiller à ce que toutes les normes et lois nationales soient respectées. Si les informations contenues dans ces instructions de montages sont en contradiction avec les réglementations spécifiques du pays, il convient de les préférer.\nLe réservoir doit être mis à la masse. en cas d'installations avec des matériaux mélangé, s'assurer que les éléments de séparation correspondant sont montés et qu'une liaison équipotentielle est établie."
+    },
+    "equipement_secu": {
+      "title": "4.2. Equipements de sécurité",
+      "content": "Les installations de chauffage fermées doivent satidfaire les exigences de la norme DIN EN 12828, DIN EN 12977-1 Système de chauffage - Equipement de sécurité.\nNos produits sont certifiés EN 60335 ",
+      "page_break": true
+    },
+    "mise_en_service": {
+      "title": "5. Mise en service",
+      "content": "Suivre les consignes de mise en service du fabricant du producteur de chaleur ! La mise en service doit être réalisée par une entreprise spécialisées concessionnaire."
+    },
+    "formation": {
+      "title": "5.1 Formation de l'opérateur",
+      "content": "* Transmette la notice de montage et d'utilisation à l'exploitant de l'installetion pour qu'il la conserve.\n* Indiquer à l'exploitant de l'installation comment régler les températures de manière conforme et rentable."
+    },
+    "mise_hors_service": {
+      "title": "6. Mise hors service",
+      "content": "Si le réservoir est définitivement mis hors service, celui-ci doit être complétement vidé et démontl dans les règles de l'art.Lors de la vidange, purgez le réservoir afin d'éviter la formation de vide.Pour éviter les erreurs de manipulations, nous recommendons l'installation d'un casse vide. Le réservoir et son isolation doivent être éliminés conformément aux règlementations locales."
+    },
+    "maintenance": {
+      "title": "5. Maintenance et inspection",
+      "content": "XXX"
+    },
+    "garantie": {
+      "title": "8. Garantie",
+      "content": "Notre entreprise prévoit une garantie pour chaque pièce livrée en vertu des termes et conditions générales d'achat. Le respect des conditions suivantes constitue un pré-requis pour toute demande de garantie :\n* Contrôle des pièces livrées et prise de contact immédiate en cas de doute\n* Contrôle du bon état des marchandises et de l'absence de dégâts (par ex. transport) et mention correspondante sur les documents d'expédition\n* Montage dans un endroit à l'abri du gel\n* Contrôle et nettoyage annuels du corps de chauffe électrique (le cas échéant)\n* Contrôle général tous les deux ans\n* Contrôle régulier et remplacement éventuel des pièces détachées\n* Respect des températures et pressions maximales\n\nPour l'identification précise des marchandises, il est nécessaire d'installer les plaques signalétiques fournies sur le réservoir et son isolation.\n\nNous déclinons toute responsabilité pour les dommages découlant d'une utilisation non conforme ou du non-respect des consignes d'installation et du manuel d'utilisation."
+    }
+  },
+  "footer": {
+    "text": "© {{year}} ISPAG - Tous droits réservés",
+    "disclaimer": "Document non contractuel - Version 1.0"
+  }
+}
