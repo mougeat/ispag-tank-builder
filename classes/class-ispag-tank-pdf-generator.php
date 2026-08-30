@@ -20,11 +20,11 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
     {
         parent::__construct();
         // Charge le domaine de traduction pour éviter les erreurs "too early"
-        load_plugin_textdomain(
-            'creation-reservoir',
-            false,
-            dirname(plugin_basename(__FILE__)) . '/languages/'
-        );
+        // load_plugin_textdomain(
+        //     'creation-reservoir',
+        //     false,
+        //     dirname(plugin_basename(__FILE__)) . '/languages/'
+        // );
     }
 
     /**
@@ -144,7 +144,7 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
             __('Tipping height', 'creation-reservoir') => isset($tank_datas['dimensions']->TippingHeight) ? $tank_datas['dimensions']->TippingHeight . ' mm' : '-',
             __('Materials', 'creation-reservoir') => isset($tank_datas['conception']->material_text) ? __($tank_datas['conception']->material_text, 'creation-reservoir') : '-',
             __('Temperature', 'creation-reservoir') => isset($tank_datas['dimensions']->usingTemperature) ? $tank_datas['dimensions']->usingTemperature . ' °C' : '-',
-            __('Operating pressure', 'creation-reservoir') => isset($tank_datas['dimensions']->MaxPressure) ? $tank_datas['dimensions']->MaxPressure . ' bar' : '-',
+            __('Design pressure', 'creation-reservoir') => isset($tank_datas['dimensions']->MaxPressure) ? $tank_datas['dimensions']->MaxPressure . ' bar' : '-',
             __('Test pressure', 'creation-reservoir') => isset($tank_datas['dimensions']->TestPressure) ? $tank_datas['dimensions']->TestPressure . ' bar' : '-'
         ];
 
@@ -257,12 +257,16 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
             $cold = !empty($coil['coldWaterInputTemperature']) && $coil['coldWaterInputTemperature'] > 0 ? $coil['coldWaterInputTemperature'] : null;
             $hot = !empty($coil['hotWaterOutputTemperature']) && $coil['hotWaterOutputTemperature'] > 0 ? $coil['hotWaterOutputTemperature'] : null;
             $power = !empty($coil['exchangerPower']) && $coil['exchangerPower'] > 0 ? $coil['exchangerPower'] : null;
+            $exchangerPression = !empty($coil['exchangerPression']) ? $coil['exchangerPression'] : null;
+            $comment = !empty($coil['comment']) ? $coil['comment'] : null;
 
             $parts = [];
             if ($surface !== null) $parts[] = sprintf(__('%sm²', 'creation-reservoir'), $surface);
             if ($power !== null) $parts[] = sprintf(__('%s kW', 'creation-reservoir'), $power);
             if ($input !== null || $output !== null) $parts[] = sprintf(__('In %s°C / Out %s°C', 'creation-reservoir'), $input ?? '-', $output ?? '-');
             if ($cold !== null || $hot !== null) $parts[] = sprintf(__('Water %s°C / %s°C', 'creation-reservoir'), $cold ?? '-', $hot ?? '-');
+            if ($exchangerPression !== null) $parts[] = sprintf(__('Pression : %s bar', 'creation-reservoir'), $exchangerPression ?? null);
+            if ($comment !== null) $parts[] = sprintf(__('%s', 'creation-reservoir'), $comment ?? null);
 
             if (!empty($parts)) {
                 $coil_nb = str_ireplace('coil', '', $key);

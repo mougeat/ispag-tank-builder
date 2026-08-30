@@ -6,6 +6,14 @@ $data = $args['data'] ?? [];
 <div class="ispag-modal-left exchanger-form vertical-form" data-coilnb="<?= esc_attr($coil_nb) ?>" data-tank-id="<?= esc_attr($tank_id) ?>">
     <h3><?php printf(__('Heat exchanger #%d', 'creation-reservoir'), $coil_nb); ?></h3>
 
+    <!-- Coil type -->
+    <div style="width: 25%; text-align: left; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+        <input type="checkbox" name="spiraflex_<?= $coil_nb ?>" value="<?= esc_attr($data['spiraflex'] ?? '') ?>" <?php checked($data['spiraflex'] ?? 0, 1); ?> class="form-field" style="margin: 0;">
+        <label style="margin: 0; white-space: nowrap;"><?php _e('Spiraflex DN32', 'creation-reservoir'); ?></label>
+    </div>
+    <span class="error-message" style="color: red; font-size: 12px;"></span>
+
+
     <!-- Load input temperature -->
     <label><?php _e('Load input temperature', 'creation-reservoir'); ?></label>
     <input type="number" name="loadInputTemperature_<?= $coil_nb ?>" value="<?= esc_attr($data['loadInputTemperature'] ?? '') ?>" class="form-field">

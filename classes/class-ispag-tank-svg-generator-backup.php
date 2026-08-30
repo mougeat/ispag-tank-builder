@@ -1,6 +1,6 @@
 <?php
 
-class ISPAG_Tank_SVG_Generator_backup {
+class ISPAG_Tank_SVG_Generator {
     protected $wpdb;
     protected static $instance = null;
     protected $table_dimension;
@@ -82,7 +82,7 @@ class ISPAG_Tank_SVG_Generator_backup {
         }
 
         // Écrire le fichier
-        // file_put_contents($svg_path, $svg_content);
+        file_put_contents($svg_path, $svg_content);
 
         // Retourner l'URL pour affichage
         return plugin_dir_url(__FILE__) . "../assets/svg/cuves/cuves_$article_id.svg";
@@ -97,7 +97,7 @@ class ISPAG_Tank_SVG_Generator_backup {
 
     protected function designTankBodyPath() {
         $d = $this->tank_data['dimensions'];
-        $jsonString = file_get_contents(__DIR__ . '/../assets/js/tank_data.json');
+        $jsonString = file_get_contents(__DIR__ . '/../assets/json/tank_data.json');
         $data = json_decode($jsonString, true);
 
         if (!$d || !$data) return '';
@@ -182,9 +182,17 @@ class ISPAG_Tank_SVG_Generator_backup {
     }
 
     protected function designVirole($diam, $tank_height, $ground_clearance, $bottom_height, $body_height) {
-        $css = 'stroke: #000; fill-opacity: 0.8;';
+        // Sécurité : Si le diamètre est nul ou négatif, on ne dessine rien
+        if ($diam <= 0) {
+            return '';
+        }
 
+        $css = 'stroke: #000; fill-opacity: 0.8;';
         $virole_width = $diam - 200;
+        
+        // Si la virole est plus large que le diamètre (cas diam < 200), on ajuste
+        if ($virole_width <= 0) $virole_width = $diam * 0.8;
+
         $rx = ($diam / 2);
         $x_offset = ($virole_width / 2);
         $x_position = $rx - $x_offset;
@@ -205,161 +213,81 @@ class ISPAG_Tank_SVG_Generator_backup {
     }
     /****************************** Debut de cration des piquages *************************************************************************/
 
-    
-    // protected function render_threaded_fitting_svg($fitting, $diameter = 1000, $insulation = 160, $tank_height = 2000) {
-    //     $css = 'stroke: black; stroke-width: 1px;';
-    //     $tube_length = $insulation;
-    //     $dn = $fitting->InternalDiamter ?? 50;
-    //     $r = $dn / 2;
-
-    //     $angle_deg = intval($fitting->Angle);
-    //     $angle_rad = deg2rad($angle_deg);
-
-    //     $base_cx = $diameter / 2;
-    //     $cx = $base_cx * (1 + cos($angle_rad - M_PI_2));
-
-    //     // Inverser hauteur pour SVG (origine en haut)
-    //     $fitting_height = $fitting->Height ?? 1000;
-    //     $cy = $tank_height - $fitting_height;
-
-    //     // ajustements
-    //     $tiltAdjustedDiameter = abs(($r) * cos((($angle_deg / 90) * M_PI) / 2));
-    //     $tiltAdjustedLength = $insulation * cos(((($fitting->Angle - 90) / -90) * M_PI) / 2);
-
-    //     $cx2 = $cx + (($angle_deg > 90 && $angle_deg <= 270) ? -abs($tiltAdjustedLength) : abs($tiltAdjustedLength));
-
-    //     $y1 = $cy - $r;
-    //     $height = 2 * $r;
-    //     $width = abs($cx2 - $cx);
-    //     $x = min($cx, $cx2);
-
-    //     // fittings classiques
-    //     $svg = $this->render_fitting_with_accessories($fitting, $diameter, $tank_height);
-
-    //     if ($angle_deg > 180 && $angle_deg < 360) {
-    //         // tube orienté gauche
-    //         $svg .= "<ellipse cx='{$cx2}' cy='{$cy}' rx='{$tiltAdjustedDiameter}' ry='{$r}' style='{$css}' fill='url(#fittingsBody)' />";
-    //         $svg .= "<rect x='{$x}' y='{$y1}' width='{$width}' height='{$height}' style='{$css}' fill='url(#fittingsBody)' />";
-    //         $svg .= "<ellipse cx='{$cx}' cy='{$cy}' rx='{$tiltAdjustedDiameter}' ry='{$r}' style='{$css}' fill='url(#fittingsBody)' />";
-    //     } else {
-    //         // tube orienté droite
-    //         $svg .= "<ellipse cx='{$cx}' cy='{$cy}' rx='{$tiltAdjustedDiameter}' ry='{$r}' style='{$css}' fill='url(#fittingsBody)' />";
-    //         $svg .= "<rect x='{$x}' y='{$y1}' width='{$width}' height='{$height}' style='{$css}' fill='url(#fittingsBody)' />";
-    //         $svg .= "<ellipse cx='{$cx2}' cy='{$cy}' rx='{$tiltAdjustedDiameter}' ry='{$r}' style='{$css}' fill='url(#fittingsBody)' />";
-    //     }
-
-    //     // Flange
-    //     $svg .= $this->render_flange_svg($fitting, $cx, $cy, $angle_deg, $insulation);
-
-    //     // --- Ajout de la tôle (rectangle rouge horizontal, longueur fixe 200) ---
-    //     $plate_x = $cx2;       // début au bord extérieur du raccord
-    //     $plate_y = $cy - $r;   // aligné verticalement sur le raccord
-    //     $plate_width = 200;    // longueur fixe
-    //     $plate_height = 2 * $r;
-
-    //     // $svg .= "<rect x='{$plate_x}' y='{$plate_y}' width='{$plate_width}' height='{$plate_height}' fill='red' opacity='0.6' stroke='black' stroke-width='0.5' />";
-
-    //     return $svg;
-    // }
-    protected function render_threaded_fitting_svg($fitting, $diameter = 1000, $insulation = 160, $tank_height = 2000) {
+    protected function render_threaded_fitting_svg($fitting, $diameter = 1000, $insulation = 160, $tank_height = 2000, $bottom_height = 0) {
         $css = 'stroke: black; stroke-width: 1px;';
-        $tube_length = $insulation;
         $dn = $fitting->InternalDiamter ?? 50;
         $r = $dn / 2;
-
-        $angle_deg = intval($fitting->Angle);
-        // Inverser hauteur pour SVG (origine en haut)
-        $fitting_height = $fitting->Height ?? 1000;
-        $cy = $tank_height - $fitting_height; // Position Y dans le repère SVG (0 en haut)
-        $base_cx = $diameter / 2;
         $svg = '';
 
-        // =====================================================================
-        // 👉 GESTION DU RACCORD PLUS HAUT QUE LA CUVE
-        // On suppose que la hauteur de la cuve inclut le fond et le jeu au sol.
-        // Si la hauteur du raccord (mesurée depuis le bas) est > à la hauteur
-        // totale du corps de la cuve (hors fonds bombés), ou simplement > $tank_height
-        // si c'est la dimension utilisée comme référence max en 2D.
-        // L'idée est : si le raccord est *au-dessus* de la surface latérale.
-        // Dans votre cas, $tank_height semble être la hauteur du corps (mantel + fonds),
-        // donc si $fitting_height > $tank_height, c'est au-dessus.
+        $angle_deg = intval($fitting->Angle);
+        $fitting_height = $fitting->Height ?? 1000;
+        $base_cx = $diameter / 2;
         
-        // Pour un dessin vertical vers le haut, on force l'angle à 90 degrés.
+        // Position Y de départ pour les raccords latéraux (référence si incliné)
+        $cy_lateral = $tank_height - $fitting_height; 
+
+        // =====================================================================
+        // 👉 DÉTECTION DU RACCORD VERTICAL (Plus haut que la cuve)
+        // =====================================================================
         $is_vertical_top = false;
-        if ($fitting_height > $tank_height) {
-            $angle_deg = 90; // Angle pour pointer vers le haut dans votre système
+        if ($fitting_height > $tank_height) { 
+            $angle_deg = 90; // Force l'angle pour un dessin vertical
             $is_vertical_top = true;
         }
-        // =====================================================================
-
+        
         $angle_rad = deg2rad($angle_deg);
-        
-        // Calcul de la position X du raccord sur la cuve (projection latérale)
-        $cx = $base_cx * (1 + cos($angle_rad - M_PI_2));
-
-        // ajustements pour la perspective (l'ellipse de l'ouverture du raccord)
-        $tiltAdjustedDiameter = abs(($r) * cos((($angle_deg / 90) * M_PI) / 2));
-        
-        // Longueur projetée du tube à cause de l'angle
-        $tiltAdjustedLength = $insulation * cos(((($angle_deg - 90) / -90) * M_PI) / 2);
-
-        // Position X du bord extérieur du raccord (fin du tube)
-        $cx2 = $cx + (($angle_deg > 90 && $angle_deg <= 270) ? -abs($tiltAdjustedLength) : abs($tiltAdjustedLength));
 
         // =====================================================================
-        // 👉 AJUSTEMENT SPÉCIFIQUE POUR LE RACCORD VERTICAL VERS LE HAUT
+        // 👉 TRAITEMENT DU CAS VERTICAL (Sur le dôme supérieur)
+        // =====================================================================
         if ($is_vertical_top) {
-            // Pour un raccord vertical (90°) :
-            // 1. Il est centré horizontalement sur la cuve (pour un raccord sur le dessus).
-            //    Sa projection latérale est au centre de la vue (x = $base_cx)
-            // 2. Le tube est vertical, donc $cx2 doit être égal à $cx.
-            // 3. La position Y ($cy) est sa position de départ (au-dessus du dôme).
             
-            // $cx (point de départ sur la cuve) doit être centré
-            // On suppose que $cx doit être $base_cx pour le dessin de la cuve vue de côté.
-            $cx = $base_cx; 
-            
-            // Le tube est vertical, donc la projection ne change pas la coordonnée X.
-            $cx2 = $cx; 
-            
-            // La position Y de l'extrémité (cy2)
-            // La position Y ($cy) est le point de départ du raccord.
-            // L'extrémité sera $cy - $insulation (vers le haut)
-            $cy_end = $cy - $insulation; 
-            
-            // Le dessin du raccord vertical est un simple rectangle.
+
+            // 🔑 CORRECTION CLÉ : Le raccord démarre au sommet du corps de la cuve (y = $bottom_height)
+            $cy = 0; 
+            $cx = $base_cx; // Centré horizontalement
+
+            $cy_end = $cy - $insulation; // Extrémité vers le haut (Y SVG diminue)
+            $cx2 = $cx; // Raccord vertical
+
             $width = 2 * $r;
             $height = $insulation;
             $x = $cx - $r;
-            $y = $cy_end; // Le haut du rectangle
-            
-            // Dessin du tube (rectangle vertical)
-            $svg .= "<rect x='{$x}' y='{$y}' width='{$width}' height='{$height}' style='{$css}' fill='url(#fittingsBody)' />";
+            $y = $cy_end; // Le haut du rectangle (début du dessin)
 
-            // Dessin des ellipses (ouverture en haut et en bas)
-            // Ici, les ellipses sont horizontales, donc rx=r et ry=r
-            $rx_vert = $r;
-            $ry_vert = $r;
-
-            // Ellipse du bas (sur le toit de la cuve)
-            $svg .= "<ellipse cx='{$cx}' cy='{$cy}' rx='{$rx_vert}' ry='{$ry_vert}' style='{$css}' fill='url(#fittingsBody)' />";
-            
-            // Ellipse du haut (extrémité du raccord)
-            $svg .= "<ellipse cx='{$cx}' cy='{$cy_end}' rx='{$rx_vert}' ry='{$ry_vert}' style='{$css}' fill='url(#fittingsBody)' />";
-            
-            // Flange (sera dessiné sur l'ellipse supérieure)
-            $svg .= $this->render_flange_svg($fitting, $cx, $cy_end, $angle_deg, $insulation);
-
-            // Accessoires (plaque)
+            // 1. Dessin des accessoires (plaque, etc.)
             $svg .= $this->render_fitting_with_accessories($fitting, $diameter, $tank_height);
             
+            // 2. Dessin du tube (rectangle vertical)
+            $svg .= "<rect x='{$x}' y='{$y}' width='{$width}' height='{$height}' style='{$css}' fill='url(#fittingsBody)' />";
+
+            // 3. Dessin des ellipses (ouverture en haut et en bas)
+            $rx_vert = $r;
+            $ry_vert = $r;
+            
+            // Ellipse du bas (sur le toit de la cuve, position $cy)
+            // $svg .= "<ellipse cx='{$cx}' cy='{$cy}' rx='{$rx_vert}' ry='{$ry_vert}' style='{$css}' fill='url(#fittingsBody)' />";
+            
+            // Ellipse du haut (extrémité du raccord, position $cy_end)
+            $svg .= "<ellipse cx='{$cx}' cy='{$cy_end}' rx='{$rx_vert}' ry='{$ry_vert}' style='{$css}' fill='url(#fittingsBody)' />";
+            
+            // 4. Flange (sur l'ellipse supérieure)
+            $svg .= $this->render_flange_svg($fitting, $cx, $cy_end, $angle_deg, $insulation);
+
             return $svg;
         }
         // =====================================================================
 
-
-        // Reste du code pour les raccords latéraux (angle != 90°) :
+        // CAS STANDARD (Raccord latéral/incliné)
         
+        $cy = $cy_lateral; // On reprend la position Y calculée pour les raccords latéraux
+        
+        // Récupération de la logique de projection pour l'angle réel
+        $tiltAdjustedDiameter = abs(($r) * cos((($angle_deg / 90) * M_PI) / 2));
+        $tiltAdjustedLength = $insulation * cos(((($angle_deg - 90) / -90) * M_PI) / 2);
+        $cx = $base_cx * (1 + cos($angle_rad - M_PI_2));
+        $cx2 = $cx + (($angle_deg > 90 && $angle_deg <= 270) ? -abs($tiltAdjustedLength) : abs($tiltAdjustedLength));
+
         $y1 = $cy - $r;
         $height = 2 * $r;
         $width = abs($cx2 - $cx);
@@ -367,8 +295,6 @@ class ISPAG_Tank_SVG_Generator_backup {
 
         // fittings classiques
         $svg .= $this->render_fitting_with_accessories($fitting, $diameter, $tank_height);
-
-        // ... (votre logique existante pour les raccords inclinés)
 
         if ($angle_deg > 180 && $angle_deg < 360) {
             // tube orienté gauche
@@ -385,20 +311,9 @@ class ISPAG_Tank_SVG_Generator_backup {
         // Flange
         $svg .= $this->render_flange_svg($fitting, $cx, $cy, $angle_deg, $insulation);
 
-        // --- Ajout de la tôle (rectangle rouge horizontal, longueur fixe 200) ---
-        // Cette partie est incorrecte pour un raccord incliné, mais je la laisse
-        // telle quelle par rapport à votre code original.
-        $plate_x = $cx2;       // début au bord extérieur du raccord
-        $plate_y = $cy - $r;   // aligné verticalement sur le raccord
-        $plate_width = 200;    // longueur fixe
-        $plate_height = 2 * $r;
-
-        // $svg .= "<rect x='{$plate_x}' y='{$plate_y}' width='{$plate_width}' height='{$plate_height}' fill='red' opacity='0.6' stroke='black' stroke-width='0.5' />";
-
         return $svg;
     }
-
-
+    
     protected function render_flange_svg($fitting, $cx, $cy, $angle_deg, $insulation) {
         if (empty($fitting->NbDrilling) || $fitting->NbDrilling <= 0) {
             return '';
@@ -423,7 +338,15 @@ class ISPAG_Tank_SVG_Generator_backup {
 
         $tiltAdjustedLength = $insulation * cos((($angle_deg - 90) / -90) * M_PI / 2);
         $is_left_side = ($angle_deg > 180 && $angle_deg < 360);
-        $cx2 = $cx + ($is_left_side ? -abs($tiltAdjustedLength) : abs($tiltAdjustedLength));
+        
+        // $cx2 est la position de la bride (le bord extérieur du raccord)
+        // Note: pour le raccord vertical (90°), $cx2 = $cx dans la logique précédente.
+        // On doit le recalculer ici pour être sûr.
+        if ($angle_deg != 90) {
+             $cx2 = $cx + ($is_left_side ? -abs($tiltAdjustedLength) : abs($tiltAdjustedLength));
+        } else {
+            $cx2 = $cx;
+        }
 
         $flange_ellipses = "<ellipse cx='{$cx2}' cy='{$cy}' rx='{$rx_ext}' ry='{$ry_ext}' style='{$css_flange}' fill='url(#cylinderBody)'/>";
         $flange_ellipses .= "<ellipse cx='{$cx2}' cy='{$cy}' rx='{$rx_int}' ry='{$ry_int}' fill='#ccc' stroke='none' />";
@@ -438,10 +361,20 @@ class ISPAG_Tank_SVG_Generator_backup {
 
         $flange_rect = '';
         if ($angle_deg == 90 || $angle_deg == 270) {
-            $flange_rect = "<rect x='{$rect_x}' y='{$rect_y}' width='{$rect_width}' height='{$rect_height}' style='{$css_thickness}' />";
+            // Le rectangle d'épaisseur n'est visible que pour un angle de 90 (vertical) ou 270 (horizontal vu de côté)
+            // L'épaisseur n'est pas projetée ici si $angle_deg = 90
+            $thickness_vert = ($angle_deg == 90) ? $thickness : $thickness_proj;
+            $rect_x_vert = $cx2;
+            $rect_y_vert = $cy - $ry_ext;
+            
+            // Pour le cas vertical (90°), l'épaisseur est vue de côté et n'est pas projetée.
+            if ($angle_deg == 90) {
+                 $flange_rect = "<rect x='" . ($rect_x_vert + $thickness) . "' y='{$rect_y_vert}' width='{$thickness}' height='{$rect_height}' style='{$css_thickness}' />";
+            }
         }
 
         $flange_holes = '';
+        // Les trous sont visibles si le raccord n'est pas de côté (90° ou 270°)
         if (!($angle_deg > 90 && $angle_deg < 270)) {
             $hole_rx = ($hole_diam / 2) * $tilt_factor;
             $hole_ry = $hole_diam / 2;
@@ -452,7 +385,13 @@ class ISPAG_Tank_SVG_Generator_backup {
                 $angle = 2 * M_PI * $i / $nb_holes - M_PI / 2;
                 $hx = $cx2 + $hole_circle_rx * cos($angle);
                 $hy = $cy + $hole_circle_ry * sin($angle);
-                $flange_holes .= "<ellipse cx='{$hx}' cy='{$hy}' rx='{$hole_rx}' ry='{$hole_ry}' style='{$css_hole}' />";
+                
+                // Pour le raccord vertical (90°), l'ellipse est un cercle.
+                if ($angle_deg == 90) {
+                    $flange_holes .= "<circle cx='{$hx}' cy='{$hy}' r='" . ($hole_diam / 2) . "' style='{$css_hole}' />";
+                } else {
+                    $flange_holes .= "<ellipse cx='{$hx}' cy='{$hy}' rx='{$hole_rx}' ry='{$hole_ry}' style='{$css_hole}' />";
+                }
             }
         }
 
@@ -474,6 +413,9 @@ class ISPAG_Tank_SVG_Generator_backup {
         // Vérifie s’il y a des accessoires
         if (!empty($fitting->id_accessories)) {
             if ($fitting->id_accessories == 16) {
+                // IMPORTANT : Il faudrait passer $bottom_height à cette fonction 
+                // si elle doit être utilisée pour le cas vertical !
+                // Pour l'instant, je la laisse telle quelle.
                 $svg .= $this->render_plate_svg($fitting, $diameter, $tank_height);
             }
         }
@@ -520,8 +462,7 @@ class ISPAG_Tank_SVG_Generator_backup {
         $dim_table = $this->table_dimension;
 
         $sql = $this->wpdb->prepare(
-            "SELECT c.* 
-            FROM $conn_table c
+            "SELECT c.* FROM $conn_table c
             LEFT JOIN $dim_table d ON c.TankId = d.Id
             WHERE d.customerTankId = %d AND c.Type = 23",
             $article_id
@@ -553,8 +494,7 @@ class ISPAG_Tank_SVG_Generator_backup {
         $dim_table = $this->table_dimension;
 
         $sql = $this->wpdb->prepare(
-            "SELECT c.* 
-            FROM $conn_table c
+            "SELECT c.* FROM $conn_table c
             LEFT JOIN $dim_table d ON c.TankId = d.Id
             WHERE d.customerTankId = %d AND c.Type = 22",
             $article_id
@@ -585,32 +525,27 @@ class ISPAG_Tank_SVG_Generator_backup {
         if(!$is_sketch){
             return '
             <defs>
-                <!-- Dégradé pour le corps du cylindre -->
                 <linearGradient id="cylinderBody" x1="0" x2="1" y1="0" y2="0">
                     <stop offset="0%" stop-color="#bbb" />
                     <stop offset="50%" stop-color="#eee" />
                     <stop offset="100%" stop-color="#999" />
                 </linearGradient>
 
-                <!-- Dégradé pour les raccords -->
                 <linearGradient id="fittingsBody" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stop-color="#bbb" />
                     <stop offset="50%" stop-color="#eee" />
                     <stop offset="100%" stop-color="#999" />
                 </linearGradient>
                 
-                <!-- Dégradé pour l\'ellipse du haut -->
                 <radialGradient id="topEllipse" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color="#fff" />
                     <stop offset="100%" stop-color="#ccc" />
                 </radialGradient>
 
-                <!-- Dégradé pour l\'ellipse du bas (ombre) -->
                 <radialGradient id="bottomEllipse" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color="#444" stop-opacity="0.3" />
                     <stop offset="100%" stop-color="#000" stop-opacity="0" />
                 </radialGradient>
-                <!-- Reflet -->
                 <linearGradient id="highlight" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
                     <stop offset="100%" stop-color="white" stop-opacity="0"/>
@@ -621,33 +556,28 @@ class ISPAG_Tank_SVG_Generator_backup {
 
             return '
             <defs>
-                <!-- Dégradé pour le corps du cylindre -->
                 <linearGradient id="cylinderBody" x1="0" x2="1" y1="0" y2="0">
                     <stop offset="0%" stop-color="#fff" />
                     <stop offset="50%" stop-color="#fff" />
                     <stop offset="100%" stop-color="#fff" />
                 </linearGradient>
 
-                <!-- Dégradé pour les raccords -->
                 <linearGradient id="fittingsBody" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stop-color="#fff" />
                     <stop offset="50%" stop-color="#fff" />
                     <stop offset="100%" stop-color="#fff" />
                 </linearGradient>
                 
-                <!-- Dégradé pour l\'ellipse du haut -->
                 <radialGradient id="topEllipse" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color="#fff" />
                     <stop offset="100%" stop-color="#fff" />
                 </radialGradient>
 
-                <!-- Dégradé pour l\'ellipse du bas (ombre) -->
                 <radialGradient id="bottomEllipse" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stop-color="#fff" stop-opacity="0.3" />
                     <stop offset="100%" stop-color="#fff" stop-opacity="0" />
                 </radialGradient>
 
-                <!-- Reflet -->
                 <linearGradient id="highlight" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
                     <stop offset="100%" stop-color="white" stop-opacity="0"/>
@@ -665,7 +595,7 @@ class ISPAG_Tank_SVG_Generator_backup {
         if (!$this->tank_data || !isset($this->tank_data['dimensions'])) return '';
 
         $d = $this->tank_data['dimensions'];
-        $jsonString = file_get_contents(__DIR__ . '/../assets/js/tank_data.json');
+        $jsonString = file_get_contents(__DIR__ . '/../assets/json/tank_data.json');
         $data = json_decode($jsonString, true);
 
         if (!$d || !$data) return '';
@@ -673,6 +603,10 @@ class ISPAG_Tank_SVG_Generator_backup {
 
         $diam = empty($diam) ? $d->Diameter : $diam;
         $height = empty($height) ? $d->Height : $height;
+        
+        // 🔑 NOUVEAU : Récupération de la hauteur du dôme (bottom_height)
+        $bottom_height = intval($d->arrayBottomHeight[$d->Diameter] ?? 0); 
+        
         $dome = round($diam * 0.2);
         $clearance = empty($ground_clearance) ? $d->GroundClearance : $ground_clearance;
 
@@ -691,7 +625,8 @@ class ISPAG_Tank_SVG_Generator_backup {
 
                 <?= $this->designTankBodyPath(); ?>
                 <?php foreach ($this->fittings as $fitting) {
-                   echo $this->render_threaded_fitting_svg($fitting, $diam, $insulation, $height);
+                   // 🔑 NOUVEAU : On passe $bottom_height à la fonction de rendu
+                   echo $this->render_threaded_fitting_svg($fitting, $diam, $insulation, $height, $bottom_height);
                 }
                 echo $this->render_weldings_svg($diam, $height);
                 echo $this->render_drilled_plate_svg($diam, $height);

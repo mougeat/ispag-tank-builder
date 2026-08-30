@@ -29,11 +29,11 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_PDF_Generator
         $this->table_connections = $wpdb->prefix . 'achats_tank_connection';
 
         // Charge le domaine de traduction
-        load_plugin_textdomain(
-            'creation-reservoir',
-            false,
-            dirname(plugin_basename(__FILE__)) . '/languages/'
-        );
+        // load_plugin_textdomain(
+        //     'creation-reservoir',
+        //     false,
+        //     dirname(plugin_basename(__FILE__)) . '/languages/'
+        // );
     }
 
     /**
@@ -55,15 +55,15 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_PDF_Generator
     public function ispag_ajax_generate_welding_certificat()
     {
         // Charge le domaine de traduction (au cas où)
-        load_plugin_textdomain(
-            'creation-reservoir',
-            false,
-            dirname(plugin_basename(__FILE__)) . '/languages/'
-        );
+        // load_plugin_textdomain(
+        //     'creation-reservoir',
+        //     false,
+        //     dirname(plugin_basename(__FILE__)) . '/languages/'
+        // );
 
         // Récupère les paramètres
         $article_id = isset($_GET['article_id']) ? intval($_GET['article_id']) : 0;
-        $deal_id = isset($_GET['deal_id']) ? intval($_GET['deal_id']) : 0;
+        $deal_id = get_query_var('deal_id') ?: ($_GET['deal_id'] ?? null);
 
         if (!$article_id || !$deal_id) {
             wp_send_json_error(['message' => __('Missing article ID or deal ID.', 'creation-reservoir')]);

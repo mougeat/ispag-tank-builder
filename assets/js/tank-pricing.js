@@ -1,269 +1,274 @@
-/**
- * Fichier : tank-pricing.js
- * Version : 4.5.0 - Gestion silencieuse et complète + Soudure sur place
- */
+jQuery(document).ready(function($) {
+    // console.log('[Tank Pricing] Script initialisé.');
 
-let lastPricingTrace = "";
+    // URL de base pour les fichiers JSON (déjà définie dans wp_localize_script)
+    const jsonBaseUrl = ispag_tank_pricing_vars.plugin_url;
 
-/**
- * Logique de vente centralisée
- */
-function calculateSalesPriceFromPurchase(purchasePrice, volumeLiters, supplierDiscount = 0) {
-    const isProjectOrPurchase = jQuery('input[name="isProjectOrPurchase"]').val();
-    const salesCoefType = jQuery('#ispag-coef-select').val();
+    // Sélecteurs pour les champs de la cuve
+    const tankFields = [
+        'select[name="tank[type]"]',
+        'select[name="tank[materiau]"]',
+        'select[name="tank[support]"]',
+        'select[name="tank[diameter]"]',
+        'input[name="tank[height]"]',
+        'input[name="tank[clearance]"]',
+        'input[name="tank[max_pressure]"]',
+        'input[name="tank[volume]"]',
+        'input[name="tank[nbWelding]"]'
+    ].join(', ');
 
-    let price = parseFloat(purchasePrice) || 0;
-    let details = "";
+    // Sélecteur pour le conteneur des piquages
+    const fittingsContainer = '#fittings-container';
 
-    if (isProjectOrPurchase !== 'project') {
-        return {
-            finalPrice: price,
-            trace: `MODE PURCHASE : Prix brut conservé.\n`
-        };
-    }
+    // Sélecteur pour le champ caché de l'article ID
+    const articleIdField = '#current-editing-article-id';
 
-    details += `--- APPLICATION LOGIQUE PROJET (CLIENT) ---\n`;
+    // Fonction pour masquer/afficher le bouton de rapport
+    function toggleReportButtonVisibility() {
+        const tankParams = getTankParams();
+        const $reportButton = $('#generate-report-button');
 
-    if (supplierDiscount > 0) {
-        const discountAmount = price * (supplierDiscount / 100);
-        price = price - discountAmount;
-        details += `- Application Remise Fournisseur (${supplierDiscount}%) : ${price.toFixed(2)} € (Net)\n`;
-    }
-
-    const customsFee = parseFloat(ispag_vars.custom_fee) || 0;
-    if (customsFee > 0) {
-        const feeRate = customsFee / 100;
-        if (1 - feeRate > 0) {
-            price = price / (1 - feeRate);
-            details += `- Dédouanement (${customsFee}%) : ${price.toFixed(2)} €\n`;
-        }
-    }
-
-    let coef = parseFloat(ispag_vars.default_coef) || 1;
-    let labelCoef = "Standard";
-    if (salesCoefType === 'wpcb_sales_coef_offre_revendeur') {
-        coef = parseFloat(ispag_vars.coef_revendeur);
-        labelCoef = "Revendeur";
-    } else if (salesCoefType === 'wpcb_sales_coef_low') {
-        coef = parseFloat(ispag_vars.coef_low);
-        labelCoef = "Bas (Low)";
-    }
-
-    price = price * coef;
-    details += `- Coefficient ${labelCoef} (${coef}) : ${price.toFixed(2)} €\n`;
-
-    if (price < 6000) {
-        const volumeM3 = (parseFloat(volumeLiters) || 0) / 1000;
-        const transportFee = volumeM3 * 400;
-        price += transportFee;
-        details += `- Frais prix < 6000 (${volumeM3.toFixed(3)} m³ * 400) : +${transportFee.toFixed(2)} €\n`;
-    }
-
-    return { finalPrice: price, trace: details };
-}
-
-async function updateTankPrice() {
-    lastPricingTrace = '';
-
-    const articleId = jQuery('#current-editing-article-id').val();
-
-    // Sélecteurs
-    const priceBarDisplay = jQuery(document).find('#tank-bare-price-' + articleId);
-    const priceDisplay = jQuery('#tank-price-display');
-    const supplierEl = jQuery('#tank-supplier-display');
-
-    const supplier = supplierEl.attr('data-value') || supplierEl.data('value');
-    const diameter = parseInt(jQuery('select[name="tank[diameter]"], input[name="tank[diameter]"]').val());
-    const heightTotal = parseInt(jQuery('input[name="tank[height]"]').val());
-    const material = jQuery('#tank-material').val();
-
-    if (!supplier || isNaN(diameter) || isNaN(heightTotal)) {
-        return;
-    }
-
-    try {
-        const fileName = supplier.replace(/\s+/g, '_') + '.json';
-        const jsonUrl = `${ispag_vars.plugin_url}/price/${fileName}`;
-        const response = await fetch(jsonUrl);
-        const data = await response.json();
-
-        let basePrice = 0;
-        const grille = data.grille_tarifaire;
-        const targetDia = Object.keys(grille).map(Number).sort((a, b) => a - b).find(d => d >= diameter);
-        const targetHeight = targetDia ? Object.keys(grille[targetDia]).map(Number).sort((a, b) => a - b).find(h => h >= heightTotal) : null;
-
-        if (targetHeight) {
-            const pressKey = (parseFloat(jQuery('input[name="tank[max_pressure]"]').val()) || 3) <= 3 ? '3bar' : '6bar';
-            basePrice = grille[targetDia][targetHeight][pressKey];
-
-            // --- AJOUT DU PRIX DE BASE DANS LA TRACE ---
-            lastPricingTrace += `Prix de base cuve (${targetDia}x${targetHeight} - ${pressKey}) : ${basePrice.toFixed(2)} €\n`;
-
-            // --- VÉRIFICATION SOUDURE SUR PLACE (20% si welding-nb > 0) ---
-            const weldingNb = parseInt(jQuery('#welding-nb').val()) || 0;
-            if (weldingNb > 0) {
-                const weldingSurcharge = basePrice * 0.20;
-                basePrice += weldingSurcharge;
-                lastPricingTrace += `- Majorations soudure sur place (20% de ${(basePrice - weldingSurcharge).toFixed(2)}€) : +${weldingSurcharge.toFixed(2)}€\n`;
-            }
-        }
-
-        let optionsPrice = 0;
-        // Calcul Zinc
-        const techResponse = await fetch(`${ispag_vars.plugin_url}/assets/js/tank_data.json`);
-        const techData = await techResponse.json();
-        const bottomHeight = techData.arrayBottomHeight[material]?.[diameter] || 0;
-        const mantleHeight = heightTotal - (2 * bottomHeight);
-        const tankType = jQuery('select[name="tank[type]"]').val();
-
-        if ((tankType === "6" || tankType === "7") && data.accessoires?.traitement_surface) {
-            const surfaceM2 = Math.ceil(((diameter/1000)**2 * 2) + ((diameter/1000) * 4 * (mantleHeight/1000)));
-            const valZinc = surfaceM2 * data.accessoires.traitement_surface.options.exterieur_zinc_1K.prix_m2;
-            optionsPrice += valZinc;
-            lastPricingTrace += `- Option Zinc : (+${surfaceM2.toFixed(2)} m²) +${valZinc.toFixed(2)} €\n`;
-        }
-
-        // Calcul Ground Clearance (Pieds)
-        const clearance = parseInt(jQuery('input[name="tank[clearance]"]').val()) || 0;
-        const baseClearance = data.accessoires?.ground_clearance?.base_mm || 50;
-
-        if (clearance > baseClearance && data.accessoires?.ground_clearance?.plus_values) {
-            const rule = data.accessoires.ground_clearance.plus_values.find(r => diameter <= r.diametre_max_mm);
-            if (rule) {
-                const clearancePrice = parseFloat(rule.prix) || 0;
-                optionsPrice += clearancePrice;
-                lastPricingTrace += `- Plus-value Garde au sol (${clearance}mm) : +${clearancePrice.toFixed(2)} €\n`;
-            }
-        }
-
-        // Calcul du prix des PIEDS
-        const supportType = jQuery('select[name="tank[support]"], input[name="tank[support]"]').val();
-        const volumeLiters = parseInt(jQuery('input[name="tank[volume]"]').val()) || 0;
-        const nbPieds = parseInt(jQuery('select[name="tank[legs_nb]"]').val()) || 3;
-
-        // On n'applique la plus-value QUE si le type de support est "Pieds" (valeur 10)
-        if (supportType == "10" && data.accessoires?.pieds) {
-            let prixBasePieds = 0;
-            let typePiedsUtilise = "";
-
-            // Sélection du type de profilé (Rohr vs UNP) selon les limites du JSON
-            if (volumeLiters >= data.accessoires.pieds.regles.volume_max_rohr || mantleHeight >= data.accessoires.pieds.regles.hauteur_manteau_max_rohr) {
-                const rule = data.accessoires.pieds.unp_füße.find(r => volumeLiters <= r.volume_max_litres);
-                prixBasePieds = rule ? rule.prix : data.accessoires.pieds.unp_füße[data.accessoires.pieds.unp_füße.length - 1].prix;
-                typePiedsUtilise = "UNP";
-            } else {
-                const rule = data.accessoires.pieds.rohrfüße.find(r => volumeLiters <= r.volume_max_litres);
-                prixBasePieds = rule ? rule.prix : data.accessoires.pieds.rohrfüße[data.accessoires.pieds.rohrfüße.length - 1].prix;
-                typePiedsUtilise = "Rohr";
-            }
-
-            // Calcul du prix final (Forfait pour 3 pieds de base, prorata si 4)
-            let prixFinalPieds = prixBasePieds;
-            if (nbPieds === 4) {
-                prixFinalPieds = (prixBasePieds / 3) * 4;
-            }
-
-            optionsPrice += prixFinalPieds;
-            lastPricingTrace += `- Pieds (${nbPieds}x ${typePiedsUtilise}) : +${prixFinalPieds.toFixed(2)} €\n`;
-        }
-
-        // Calcul final
-        const totalPurchaseBrut = basePrice + optionsPrice;
-        const discountDefaut = parseFloat(data.discount_defaut) || 0;
-        if (priceBarDisplay.length) {
-            priceBarDisplay.attr('data-discount', discountDefaut);
-        }
-        const sales = calculateSalesPriceFromPurchase(totalPurchaseBrut, (parseInt(jQuery('input[name="tank[volume]"]').val()) || 0), (parseFloat(data.discount_defaut) || 0));
-        lastPricingTrace += sales.trace;
-
-        // --- ARRONDI ---
-        const finalRoundedPrice = Math.ceil(sales.finalPrice);
-        const priceFormatted = finalRoundedPrice.toFixed(2);
-
-        // --- ÉCRITURE ---
-        // 1. On écrit dans la modal (champ visuel)
-        if (priceDisplay.length) {
-            priceDisplay.val(finalRoundedPrice.toLocaleString('fr-FR', { minimumFractionDigits: 2 }));
-        }
-
-        // 2. On écrit dans l'article (champ caché)
-        if (priceBarDisplay.length) {
-            priceBarDisplay.val(priceFormatted);
-            calculateTotalCombinedPrice(articleId);
-            priceBarDisplay.trigger('change');
+        if (tankParams.is_project_or_purchase !== 'purchase') {
+            $reportButton.hide(); // Masquer le bouton
+            // console.log('[Tank Pricing] Bouton de rapport masqué (mode project).');
         } else {
-            console.error("[8] Élément #tank-bare-price-" + articleId + " introuvable");
+            $reportButton.show(); // Afficher le bouton
+            // console.log('[Tank Pricing] Bouton de rapport affiché (mode purchase).');
+        }
+    }
+
+    // Fonction pour masquer/afficher le conteneur de calcul de prix
+    function togglePricingCalculationVisibility(jsonFilesExist) {
+        const $pricingCalculation = $('#tank-pricing-calculation');
+
+        if (!jsonFilesExist) {
+            $pricingCalculation.hide(); // Masquer le conteneur
+            // console.log('[Tank Pricing] Conteneur de calcul masqué (fichiers JSON manquants).');
+        } else {
+            $pricingCalculation.show(); // Afficher le conteneur
+            // console.log('[Tank Pricing] Conteneur de calcul affiché (fichiers JSON présents).');
+        }
+    }
+
+    // Fonction pour collecter les données de la cuve
+    function getTankParams() {
+        const params = {
+            type: parseInt($(tankFields).filter('select[name="tank[type]"]').val()),
+            material: parseInt($(tankFields).filter('select[name="tank[materiau]"]').val()),
+            support: parseInt($(tankFields).filter('select[name="tank[support]"]').val()),
+            diameter: parseInt($(tankFields).filter('select[name="tank[diameter]"]').val()),
+            volume: parseInt($(tankFields).filter('input[name="tank[volume]"]').val()),
+            height: parseInt($(tankFields).filter('input[name="tank[height]"]').val()),
+            ground_clearance: parseInt($(tankFields).filter('input[name="tank[clearance]"]').val()),
+            pressure: parseFloat($(tankFields).filter('input[name="tank[max_pressure]"]').val()),
+            welding: parseInt($(tankFields).filter('input[name="tank[nbWelding]"]').val()),
+            supplier: $('#tank-supplier-display').data('value') || 'Diem-Werke GmbH',
+            article_id: $(articleIdField).val(),
+            is_project_or_purchase: $('input[name="isProjectOrPurchase"]').val()
+        };
+        // console.log('[Tank Pricing] Paramètres de la cuve collectés :', params);
+        return params;
+    }
+
+    // Fonction pour collecter les données des piquages
+    function getFittingsParams() {
+        const fittings = [];
+        $(fittingsContainer).find('.fitting-row').each(function() {
+            const $row = $(this);
+            fittings.push({
+                Pouces: $row.find('select[name="fitting_type"]').val(),
+                Accessories: $row.find('select[name="fitting_accessories"]').val(),
+                MaxPressure: parseFloat($row.find('input[name="fitting_pressure"]').val()) || 6
+            });
+        });
+        // console.log('[Tank Pricing] Paramètres des piquages collectés :', fittings);
+        return fittings;
+    }
+
+    // Fonction pour calculer le prix via AJAX
+    function calculatePrice() {
+        // console.log('[Tank Pricing] Début du calcul du prix...');
+
+        const tankParams = getTankParams();
+        const fittingsParams = getFittingsParams();
+
+        // Vérifier que les données nécessaires sont présentes
+        if (!tankParams.diameter || !tankParams.height || !tankParams.article_id) {
+            console.warn('[Tank Pricing] Données manquantes (diamètre, hauteur ou ID article). Calcul annulé.');
+            $('#tank-price-display').val('---');
+            $('#tank-price-errors').empty();
+            return;
         }
 
-    } catch (error) {
-        console.error("Erreur:", error);
-    }
-}
+        // Afficher un indicateur de chargement
+        $('#tank-price-display').val(ispag_texts.calculation_progress + '...');
+        $('#tank-price-errors').empty();
+        // console.log('[Tank Pricing] Envoi de la requête AJAX au serveur...', {
+        //     url: ispag_tank_pricing_vars.ajax_url,
+        //     tank_params: tankParams,
+        //     fittings: fittingsParams
+        // });
 
-function calculateTotalCombinedPrice(articleId) {
-    const bareInput = jQuery('#tank-bare-price-' + articleId);
-    const accInput = jQuery('#tank-acc-price-' + articleId);
-    const bareValue = parseFloat(bareInput.val()) || 0;
-    const accValue = parseFloat(accInput.val()) || 0;
-    const total = bareValue + accValue;
+        // Envoyer une requête AJAX au backend
+        $.ajax({
+            url: ispag_tank_pricing_vars.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'calculate_tank_price',
+                nonce: ispag_tank_pricing_vars.nonce,
+                tank_params: tankParams,
+                fittings: fittingsParams
+            },
+            success: function(response) {
+                // console.log('[Tank Pricing] Réponse AJAX complète reçue :', response);
 
-    const btnId = `btn-save-total-${articleId}`;
-    const container = bareInput.closest('.ispag-article-prices');
+                // Vérifier que la réponse contient bien `data`
+                if (!response || !response.success || !response.data) {
+                    console.error('[Tank Pricing] Réponse AJAX invalide ou manquante :', response);
+                    $('#tank-price-display').val('---');
+                    $('#tank-price-errors').html('<div class="ispag-errors" style="color: red; margin-top: 10px;"><strong>⚠️ ' + ispag_texts.error + ' :</strong> ' + ispag_texts.invalid_server_response + '</div>');
+                    return;
+                }
 
-    if (bareValue > 0) {
-        if (!jQuery(`#${btnId}`).length) {
-            container.append(`<div class="ispag-row btn-container-db" style="margin-top:5px;">
-                <button type="button" id="${btnId}" data-id="${articleId}" class="ispag-btn btn-insert-tank-price" style="background-color:#2c3e50; color:white; width:100%; border:none; padding:4px 8px; cursor:pointer; font-size:11px; font-weight:bold; border-radius:4px;">
-                <i class="fas fa-save"></i> Reporter</button></div>`);
-        }
-    } else {
-        jQuery(`#${btnId}`).closest('.btn-container-db').remove();
-    }
-    return total;
-}
+                const data = response.data;
+                // console.log('[Tank Pricing] Données de prix reçues :', data);
 
-function saveTotalToDatabase(articleId) {
-    const totalPrice = calculateTotalCombinedPrice(articleId);
-    const discountValue = parseFloat(jQuery('#tank-bare-price-' + articleId).attr('data-discount')) || 0;
-    const fullLog = lastPricingTrace + (window.lastFittingTrace || "");
-    const btn = jQuery(`#btn-save-total-${articleId}`);
+                // Vérifier si les fichiers JSON existent
+                if (typeof data.json_files_exist !== 'undefined' && !data.json_files_exist) {
+                    togglePricingCalculationVisibility(false);
+                    $('#tank-price-display').val('---');
+                    $('#tank-price-errors').html('<div class="ispag-errors" style="color: orange; margin-top: 10px;"><strong>ℹ️ ' + ispag_texts.request_quote + '</strong></div>');
+                    return;
+                } else {
+                    togglePricingCalculationVisibility(true);
+                }
 
-    btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+                // Vérifier que `net_price` ou `sales_price` existe dans les données
+                if (typeof data.net_price === 'undefined' && typeof data.sales_price === 'undefined') {
+                    console.error('[Tank Pricing] net_price et sales_price sont undefined dans la réponse :', data);
+                    $('#tank-price-display').val('---');
+                    $('#tank-price-errors').html('<div class="ispag-errors" style="color: red; margin-top: 10px;"><strong>⚠️ ' + ispag_texts.error + ' :</strong> ' + ispag_texts.net_price_missing + '</div>');
+                    return;
+                }
 
-    jQuery.ajax({
-        url: ISPAG_TANK.ajax_url,
-        type: 'POST',
-        data: {
-            action: 'ispag_save_tank_unit_price',
-            article_id: articleId,
-            price: totalPrice,
-            discount: discountValue,
-            log_details: fullLog
-        },
-        success: function(response) {
-            if (response.success) {
-                btn.html('✅ Mis à jour').css('background-color', '#27ae60');
-                const netPrice = Math.ceil(totalPrice * (1 - (discountValue / 100)));
-                btn.closest('.ispag-article').find('.ispag-article-prix-net').text(netPrice.toLocaleString('fr-FR') + ' €');
-                setTimeout(() => { btn.html('<i class="fas fa-save"></i> Reporter').css('background-color', '#2c3e50').prop('disabled', false); }, 2000);
-            } else {
-                btn.prop('disabled', false).html('Réessayer');
+                // Afficher le prix approprié dans le champ
+                if (tankParams.is_project_or_purchase !== 'purchase' && typeof data.sales_price !== 'undefined') {
+                    $('#tank-price-display').val(data.sales_price.toFixed(2));
+                } else {
+                    $('#tank-price-display').val(data.gross_price.toFixed(2));
+                }
+
+                // Afficher les erreurs si elles existent
+                if (data.errors && data.errors.length > 0) {
+                    let errorsHtml = '<div class="ispag-errors" style="color: red; margin-top: 10px;"><strong>⚠️ ' + ispag_texts.calculation_error + ' :</strong><ul>';
+                    data.errors.forEach(error => {
+                        errorsHtml += `<li>${error}</li>`;
+                    });
+                    errorsHtml += '</ul></div>';
+                    $('#tank-price-errors').html(errorsHtml);
+                } else {
+                    $('#tank-price-errors').empty();
+                }
+
+                // Mettre à jour le champ caché si nécessaire
+                $('#tank-price-value').val(data.net_price);
+            },
+            error: function(xhr, status, error) {
+                console.error('[Tank Pricing] Erreur AJAX critique :', error, { xhr, status });
+                $('#tank-price-display').val('Erreur');
+                $('#tank-price-errors').html('<div class="ispag-errors" style="color: red; margin-top: 10px;"><strong>⚠️ ' + ispag_texts.critical_error + ' :</strong> ' + error + '</div>');
             }
-        },
-        error: function() { btn.prop('disabled', false).html('Erreur'); }
+        });
+    }
+
+    // Générer le rapport sur demande
+    async function generateReport() {
+        // console.log('[Tank Pricing] Génération du rapport demandée...');
+
+        const $salesPriceInput = $('input[name="sales_price"]');
+        const currentSalesPrice = $salesPriceInput.val();
+
+        // Vérifier si le champ sales_price contient une valeur
+        if (currentSalesPrice && currentSalesPrice.trim() !== '' && currentSalesPrice !== '0.00' && currentSalesPrice !== '0' && currentSalesPrice !== '---') {
+            const confirmed = await ispagConfirm(
+                ispag_texts?.confirm_overwrite_price || "Un prix existe déjà. Voulez-vous le recalculer et l'écraser ?",
+                { danger: true }
+            );
+            if (!confirmed) {
+                // console.log('[Tank Pricing] Génération du rapport annulée par l\'utilisateur.');
+                return;
+            }
+        }
+
+        const tankParams = getTankParams();
+        const fittingsParams = getFittingsParams();
+
+        if (!tankParams.diameter || !tankParams.height || !tankParams.article_id) {
+            $('#report-status').html('<div class="ispag-errors" style="color: red; margin-top: 10px;">⚠️ ' + ispag_texts.unable_generate_report + '</div>');
+            return;
+        }
+
+        // Afficher le spinner et désactiver le bouton
+        const $button = $('#generate-report-button');
+        const originalButtonHtml = $button.html();
+        $button.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> ' + (ispag_texts.loading || 'Chargement...'));
+        $('#report-status').html('<span style="color: orange;">' + ispag_texts.report_generation_progress + '...</span>');
+
+        $.ajax({
+            url: ispag_tank_pricing_vars.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'generate_tank_report',
+                nonce: ispag_tank_pricing_vars.nonce,
+                tank_params: tankParams,
+                fittings: fittingsParams
+            },
+            success: function(response) {
+                $button.prop('disabled', false).html(originalButtonHtml);
+
+                if (!response || !response.success || !response.data) {
+                    const errorMsg = response && response.data && response.data.message ? response.data.message : ispag_texts.invalid_server_response;
+                    $('#report-status').html('<div class="ispag-errors" style="color: red; margin-top: 10px;">⚠️ ' + ispag_texts.error + ' : ' + errorMsg + '</div>');
+                    console.error('[Tank Pricing] Erreur lors de la génération du rapport :', errorMsg);
+                    return;
+                }
+
+                const data = response.data;
+                // console.log('[Tank Pricing] Rapport généré avec succès :', data.report_path);
+
+                // Mise à jour des champs
+                document.querySelector('input[name="sales_price"]').value = data.gross_price.toFixed(2);
+                document.querySelector('input[name="discount"]').value = data.discount.toFixed(2);
+                $('#ispag_article_net_price_' + tankParams.article_id).val(data.net_price.toFixed(2));
+                $('#ispag_article_discount_' + tankParams.article_id).val(data.discount.toFixed(2));
+
+                if (tankParams.is_project_or_purchase !== 'purchase' && data.sales_price) {
+                    document.querySelector('input[name="sales_price"]').value = data.sales_price.toFixed(2);
+                }
+
+                $('#report-status').html('');
+            },
+            error: function(xhr, status, error) {
+                $button.prop('disabled', false).html(originalButtonHtml);
+                $('#report-status').html('<div class="ispag-errors" style="color: red; margin-top: 10px;">⚠️ ' + ispag_texts.critical_error + ' : ' + error + '</div>');
+                console.error('[Tank Pricing] Erreur AJAX :', error);
+            }
+        });
+    }
+
+    // Écouteurs d'événements
+    $(document).on('change', tankFields, calculatePrice);
+    $(document).on('change', `${fittingsContainer} .fitting-row select, ${fittingsContainer} .fitting-row input`, calculatePrice);
+    $(document).on('change', '#tank-supplier-display', calculatePrice);
+    $(document).on('change', articleIdField, calculatePrice);
+    $(document).on('click', '#generate-report-button', generateReport);
+    $(document).on('change', 'input[name="isProjectOrPurchase"]', function() {
+        toggleReportButtonVisibility();
+        calculatePrice();
     });
-}
 
-// --- ÉCOUTEURS ---
-jQuery(document).on('change input', 'select[name^="tank["], input[name^="tank["], #welding-nb, input[name="isProjectOrPurchase"], #ispag-coef-select', function() {
-    updateTankPrice();
-});
-
-jQuery(document).on('change input', '[id^="tank-bare-price-"], [id^="tank-acc-price-"]', function() {
-    const id = jQuery(this).attr('id').split('-').pop();
-    calculateTotalCombinedPrice(id);
-});
-
-jQuery(document).on('click', '.btn-insert-tank-price', function() {
-    saveTotalToDatabase(jQuery(this).data('id'));
+    // Initialisation
+    toggleReportButtonVisibility();
+    togglePricingCalculationVisibility(true);
+    // console.log('[Tank Pricing] Initialisation terminée.');
 });

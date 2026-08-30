@@ -24,9 +24,13 @@ require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-nameplate-generator.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-nameplate-svg-generator.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-pdf-exporter.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-notice-pdf-generator.php';
+require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-valves-manager.php';
+require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-pricing.php';
 
+add_action('init', 'ispag_load_textdomain');
 // Initialisation du plugin
 add_action('plugins_loaded', function() {
+    
     ISPAG_Tank_Manager::init();
     ISPAG_Tank_Designer::init();
     ISPAG_Tank_Description::init();
@@ -47,6 +51,9 @@ add_action('plugins_loaded', function() {
 
     new ISPAG_Nameplate_Generator();
     new ISPAG_Nameplate_SVG_Generator();
+    new ISPAG_Valves_Manager();
+
+    
 
 //     // Initialiser la classe pour les scripts et actions AJAX
 //     ISPAG_Notice_PDF_Generator::init();

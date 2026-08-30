@@ -52,8 +52,7 @@ class ISPAG_Tank_DXF_Exporter {
     public function ispag_export_dxf() {
         $article_id = isset($_GET['article_id']) ? intval($_GET['article_id']) : 0;
         if(!$article_id) return;
-    //     $jsonString = file_get_contents(__DIR__ . '/../assets/js/tank_data.json');
-    //     $data = json_decode($jsonString, true);
+    
 
     //     $tank_datas = apply_filters('ispag_get_tank_datas', null, $article_id);
         $article = apply_filters('ispag_get_article_by_id', null, $article_id);
@@ -702,7 +701,7 @@ protected function render_cartouche_a4($content = array(), $page_width = 297, $p
      */
     private function genererDxfDepuisJson(): string|false
     {
-        $jsonFilePath = plugin_dir_path(__FILE__) . '../assets/js/cuve.json';
+        $jsonFilePath = plugin_dir_path(__FILE__) . '../assets/json/cuve.json';
         // ... (Vérifications du fichier et du JSON) ...
         if (!file_exists($jsonFilePath)) return false;
         $jsonContent = file_get_contents($jsonFilePath);

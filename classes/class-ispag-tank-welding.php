@@ -7,6 +7,7 @@ class ISPAG_Tank_Welding {
     private $table_article;
     private $table_project_article;
     private $table_connections;
+    private $table_dimensions;
     protected static $instance = null;
 
     public function __construct() {
@@ -17,6 +18,7 @@ class ISPAG_Tank_Welding {
         $this->table_flange_dimension = $wpdb->prefix . 'achats_flange_dimensions';
         $this->table_conception = $wpdb->prefix . 'achats_tank_conception';
         $this->table_connections = $wpdb->prefix . 'achats_tank_connection';
+        $this->table_dimensions = $wpdb->prefix . 'achats_tank_dimensions';
         
     }
 
@@ -54,7 +56,7 @@ class ISPAG_Tank_Welding {
         $tank_id = $tank_designer->get_tank_id_by_article_id($article_id);
 
         $weldings = $this->wpdb->get_results($this->wpdb->prepare(
-            "SELECT c.Id AS fitting_id, c.Type AS type_id, tc.Value AS Type, c.Pouces AS Pouces, c.Height $count
+            "SELECT c.Id AS fitting_id, c.Type AS type_id, tc.Value AS Type, tc.Value AS Pouces, c.Height $count
             FROM $this->table_connections c
             
             LEFT JOIN $this->table_conception tc ON tc.Id = c.Type
@@ -192,6 +194,8 @@ class ISPAG_Tank_Welding {
     public function render_welding_selector($html, $article_id) {
         // Récupération du nombre de tronçons depuis la base
         $nb_welding = $this->count_nb_welding_in_tank($article_id) > 0 ? intval($this->count_nb_welding_in_tank($article_id)) : '';
+        // Récupération de la valeur stockée (par exemple 1 ou 0) pour la soudure par le client
+        $welding_by_client = $this->get_welding_by_client_status($article_id);
 
         ob_start(); ?>
         <div class="ispag-welding-selector" data-article-id="<?= esc_attr($article_id); ?>">
@@ -203,8 +207,20 @@ class ISPAG_Tank_Welding {
                 min="0" 
                 step="1"
                 class="ispag-welding-nb" /> 
+
+            <?php
+            if (current_user_can('manage_order')) {
+                ?>
+                <div style="width: 25%; text-align: left; display: flex; align-items: center; gap: 8px; margin-top: 15px; margin-bottom: 15px;">
+                    <input type="checkbox" name="tank[weldingByClient]" <?php checked($welding_by_client ?? 0, 1); ?> class="form-field" style="margin: 0;">
+                    <label style="margin: 0; white-space: nowrap;"><?php _e('Welding by client', 'creation-reservoir'); ?></label>
+                </div>
+                <?php
+            }
+            ?>
         </div>
         <?php
+
         return ob_get_clean();
     }
 
@@ -218,6 +234,19 @@ class ISPAG_Tank_Welding {
             FROM {$this->table_connections}
             WHERE Type = %d AND TankId = %d",
             23,
+            $tank_id
+        ) );
+    }
+
+    public function get_welding_by_client_status($article_id){
+        $tank_designer = new ISPAG_Tank_Designer();
+        $tank_id = intval($tank_designer->get_tank_id_by_article_id(intval($article_id)));
+        
+        return $this->wpdb->get_var( $this->wpdb->prepare(
+            "SELECT COUNT(Id) 
+            FROM {$this->table_dimensions}
+            WHERE weldingByClient = %d AND Id = %d",
+            1,
             $tank_id
         ) );
     }

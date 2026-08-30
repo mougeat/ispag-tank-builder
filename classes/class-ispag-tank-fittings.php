@@ -105,7 +105,7 @@ class ISPAG_Tank_Fittings {
                     </template>
                 </div>
             </div>
-            <button class="ispag-modal-close" onclick="closeFittingsModal()">×</button>
+            <button class="ispag-modal-close ispag-btn ispag-btn-red-outlined ispag-close-croix" onclick="closeFittingsModal()">&times;</button>
         </div>
         ';
     }
@@ -138,10 +138,7 @@ class ISPAG_Tank_Fittings {
         );
 
         $connections = $this->wpdb->get_results($query);
-// \1('get_all_fittings : ' . print_r($query, true));
-// echo '<pre>';
-// var_dump($connections);
-// echo '</pre>';
+
         return $connections;
 
     }
@@ -282,24 +279,39 @@ class ISPAG_Tank_Fittings {
                 ];
             }
         }
-        $deal_id = isset($_GET['deal_id']) ? intval($_GET['deal_id']) : 0;
+        $deal_id = get_query_var('deal_id') ?: ($_GET['deal_id'] ?? null);
 
         do_action('ispag_add_note', null, $data, $deal_id, null, false, true);
 
         return $inserted_ids;
     }
 
-    private function get_fitting_type($diamter = null){
-        if($diamter == null) return '';
+    public static function get_fitting_type($fitting_typ_id = null) {
+        if ($fitting_typ_id == null) return '';
 
-        return $this->wpdb->get_results($this->wpdb->prepare(
-            "SELECT Typ
-            FROM $this->table_flange_dimension
-            WHERE Id = %d
-            ",
-            $diamter
+        global $wpdb;
+        $table_flange_dimension = $wpdb->prefix . 'achats_flange_dimensions'; // Adaptez le nom de la table si nécessaire
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT DN
+            FROM {$table_flange_dimension}
+            WHERE Id = %d",
+            $fitting_typ_id
         ));
+    }
 
+    public static function get_accessories_type($accessories_typ_id = null) {
+        if ($accessories_typ_id == null || !is_numeric($accessories_typ_id)) return '';
+
+        global $wpdb;
+        $table_accessories = $wpdb->prefix . 'achats_tank_conception'; // Adaptez le nom de la table si nécessaire
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT Value
+            FROM {$table_accessories}
+            WHERE Id = %d",
+            $accessories_typ_id
+        ));
     }
 
 

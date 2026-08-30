@@ -26,7 +26,7 @@
   padding: 6px 10px;
   font-size: 1rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
+  border-radius: var(--ispag-btn-border-radius);
 }
 
 #tank-dimensions-form .ispag-grid {
@@ -37,8 +37,9 @@
 }
 
 #tank-dimensions-form .ispag-field {
-  background-color: var(--ispag-grey);
-  border-radius: 6px;
+  background-color: var(--ispag-light-grey);
+  /* border: var(--ispag-color-border-light); */
+  border-radius: var(--ispag-badge-border-radius);
   padding: 15px 20px;
   box-sizing: border-box;
 }
@@ -57,12 +58,12 @@
 .ispag-field input {
     padding: 6px 10px;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: var(--ispag-btn-border-radius);
 }
 .ispag-field select {
     padding: 6px 10px;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: var(--ispag-btn-border-radius);
     background-color: #fff;
 }
 
@@ -79,10 +80,12 @@
   
   background-color: var(--ispag-grey);
   padding: 15px;
-  border-radius: 6px;
+  border-radius: var(--ispag-badge-border-radius);
 }
 .ispag-modal-fitting-left {
     width: 25%;
+    min-height: 100vh;
+    max-height: 100vh;
 }
 .ispag-modal-fitting-right {
     width: 75%;
@@ -125,7 +128,7 @@
 .ispag-fittings-section, .ispag-welding-section {
     background: #f9f9f9;
     padding: 15px;
-    border-radius: 4px;
+    border-radius: var(--ispag-btn-border-radius);
     margin-bottom: 20px;
 }
 
@@ -135,7 +138,7 @@
   display: none;
   background: #fff3cd;
   border: 1px solid #ffc107;
-  border-radius: 4px;
+  border-radius: var(--ispag-btn-border-radius);
   padding: 12px;
   margin-top: 15px;
   font-size: 14px;

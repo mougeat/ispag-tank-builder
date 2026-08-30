@@ -18,6 +18,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
     protected static $font_size_small;     // Mentions légales / footer (-4)
 
     public $footer_template; // Template du pied de page (pour Footer())
+    private $current_lang;   // Langue actuelle pour le pied de page
 
     public static function init()
     {
@@ -90,13 +91,13 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             check_ajax_referer('ispag_nonce', 'nonce');
 
             $article_id = isset($_POST['article_id']) ? intval($_POST['article_id']) : 0;
-            $lang = isset($_POST['lang']) ? sanitize_text_field($_POST['lang']) : 'fr';
 
             if (!$article_id) {
                 wp_send_json_error('ID de l\'article manquant.', 400);
             }
 
-            $result = self::generate_notice_pdf($article_id, $lang);
+            // Générer un PDF avec les 3 langues (FR, DE, EN)
+            $result = self::generate_multilingual_notice_pdf($article_id);
             wp_send_json_success($result);
 
         } catch (Exception $e) {
@@ -105,28 +106,43 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         }
     }
 
-    public static function generate_notice_pdf($article_id, $lang = 'fr')
+    /**
+     * Génère un PDF multilingue (FR, DE, EN) dans l'ordre.
+     */
+    public static function generate_multilingual_notice_pdf($article_id)
     {
         while (ob_get_level()) {
             ob_end_clean();
         }
 
-        $data = self::load_tank_datas($article_id);
-        $template = self::load_template($lang);
-
-        // Créer le PDF en format A5
+        // Langues dans l'ordre : FR, DE, EN
+        $languages = ['fr', 'de', 'en'];
         $pdf = new self('P', 'mm', 'A5');
-        $pdf->AliasNbPages(); // Nécessaire pour {nb} dans Footer()
-        $pdf->SetAutoPageBreak(true, 20); // Marge inférieure de 20 mm pour le pied de page
-        $pdf->footer_template = $template['footer']; // Stocker le template du footer
+        $pdf->AliasNbPages();
+        $pdf->SetAutoPageBreak(true, 20);
 
-        $pdf->AddPage();
+        // Générer chaque section de langue
+        foreach ($languages as $lang) {
+            $data = self::load_tank_datas($article_id);
+            $template = self::load_template($lang);
 
-        self::add_ispag_header($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
-        self::add_content_from_template($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
+            // Stocker la langue actuelle pour le pied de page
+            $pdf->current_lang = $lang;
+            $pdf->footer_template = $template['footer'];
 
+            // Ajouter une page pour chaque langue (sauf la première)
+            if ($lang !== 'fr') {
+                $pdf->AddPage();
+            }
+
+            // Ajouter l'en-tête et le contenu
+            self::add_ispag_header($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
+            self::add_content_from_template($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
+        }
+
+        // Sauvegarder le PDF
         $upload_dir = wp_upload_dir();
-        $filename = "Notice_Reservoir_" . self::sanitize_filename($data['article']->Article) . "_{$lang}_" . time() . ".pdf";
+        $filename = "Notice_Reservoir_" . self::sanitize_filename($data['article']->Article) . "_Multilingue_" . time() . ".pdf";
         $pdf_path = $upload_dir['path'] . '/' . $filename;
         $pdf_url = $upload_dir['url'] . '/' . $filename;
 
@@ -140,7 +156,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
 
     /**
      * Méthode Footer() appelée automatiquement par FPDF pour chaque page.
-     * Ajoute le pied de page avec le numéro de page (X/X).
+     * Ajoute le pied de page avec le numéro de page (X/X) et la langue.
      */
     public function Footer()
     {
@@ -153,27 +169,25 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         $this->Line(10, $this->GetY(), $this->GetPageWidth() - 10, $this->GetY());
 
         $this->Ln(5);
-        $this->Cell(0, 10, utf8_decode(self::replace_placeholders_static($this->footer_template['text'], null, null, null)), 0, 0, 'C');
-        $this->Ln(5);
-        $this->Cell(0, 10, utf8_decode('Page ' . $this->PageNo() . ' / {nb}'), 0, 0, 'C');
-    }
 
-    /**
-     * Méthode pour remplacer les placeholders (version statique pour Footer).
-     */
-    protected static function replace_placeholders_static($content, $article, $project, $tank_datas)
-    {
-        if (is_array($content)) {
-            return array_map(function($item) use ($article, $project, $tank_datas) {
-                return self::replace_placeholders_static($item, $article, $project, $tank_datas);
-            }, $content);
+        // Texte du pied de page (avec langue)
+        $lang_text = '';
+        switch ($this->current_lang) {
+            case 'fr':
+                $lang_text = 'Français';
+                break;
+            case 'de':
+                $lang_text = 'Deutsch';
+                break;
+            case 'en':
+                $lang_text = 'English';
+                break;
         }
 
-        $placeholders = [
-            '{{year}}' => date('Y')
-        ];
-
-        return str_replace(array_keys($placeholders), array_values($placeholders), $content);
+        $footer_text = str_replace('{{year}}', date('Y'), $this->footer_template['text']);
+        $this->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $footer_text . ' - ' . $lang_text), 0, 0, 'C');
+        $this->Ln(5);
+        $this->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', 'Page ' . $this->PageNo() . ' / {nb}'), 0, 0, 'C');
     }
 
     protected static function sanitize_filename($filename) {
@@ -237,16 +251,16 @@ class ISPAG_Notice_PDF_Generator extends FPDF
 
         $pdf->SetFont('Arial', 'B', self::$font_size_title);
         $pdf->SetTextColor(180, 0, 0);
-        $pdf->Cell(0, 10, utf8_decode($template['header']['company']), 0, 1, 'R');
+        $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $template['header']['company']), 0, 1, 'R');
 
         $pdf->SetFont('Arial', '', self::$font_size_body);
         $pdf->SetTextColor(0, 0, 0);
         $slogan = self::replace_placeholders($template['header']['slogan'], $article, $project, $tank_datas);
-        $pdf->Cell(0, 10, utf8_decode($slogan), 0, 1, 'R');
+        $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $slogan), 0, 1, 'R');
         $pdf->Ln(5);
 
         $pdf->SetFont('Arial', 'I', self::$font_size_small);
-        $pdf->Cell(0, 10, utf8_decode($template['header']['date_label'] . ' : ' . date('d.m.Y')), 0, 1, 'R');
+        $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $template['header']['date_label'] . ' : ' . date('d.m.Y')), 0, 1, 'R');
         $pdf->Ln(10);
     }
 
@@ -265,7 +279,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             // Titre de la section
             $pdf->SetFont('Arial', 'B', self::$font_size_header);
             $pdf->SetTextColor(180, 0, 0);
-            $pdf->Cell(0, 10, utf8_decode($section['title']), 0, 1);
+            $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $section['title']), 0, 1);
 
             $pdf->SetFont('Arial', '', self::$font_size_body);
             $pdf->SetTextColor(0, 0, 0);
@@ -273,16 +287,15 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             // Sauvegarder la position Y actuelle
             $start_y = $pdf->GetY();
 
-            // 1. Afficher le texte SI il existe (que ce soit en string ou dans un champ 'text')
+            // 1. Afficher le texte SI il existe
             if (isset($section['content']['text'])) {
                 $text = self::replace_placeholders($section['content']['text'], $article, $project, $tank_datas);
-                $pdf->MultiCell(0, 7, utf8_decode($text));
+                $pdf->MultiCell(0, 7, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text));
                 $pdf->Ln(5);
             }
             elseif (is_string($section['content'])) {
-                // Cas où content est directement une string (ex: "Généralités")
                 $content = self::replace_placeholders($section['content'], $article, $project, $tank_datas);
-                $pdf->MultiCell(0, 7, utf8_decode($content));
+                $pdf->MultiCell(0, 7, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $content));
                 $pdf->Ln(5);
             }
 
@@ -306,11 +319,11 @@ class ISPAG_Notice_PDF_Generator extends FPDF
                             break;
                         case 'right':
                         default:
-                            $x = 110; // Position à droite du texte (90 mm + 20 mm de marge)
+                            $x = 110; // Position à droite du texte
                             break;
                     }
                 } else {
-                    $x = 110; // Position par défaut à droite
+                    $x = 110;
                 }
 
                 // Afficher l'image
@@ -323,7 +336,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
                     $image_data['height'] ?? 40
                 );
 
-                // Repositionner Y après l'image (si l'image est plus haute que le texte)
+                // Repositionner Y après l'image
                 $current_y = $pdf->GetY();
                 if ($start_y + $image_height > $current_y) {
                     $pdf->SetY($start_y + $image_height);
@@ -331,7 +344,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
                 $pdf->Ln(5);
             }
 
-            // 2. Afficher le tableau SI il existe (que ce soit un tableau statique ou dynamique)
+            // 2. Afficher le tableau SI il existe
             if (isset($section['content']['table_headers']) && isset($section['content']['table_rows'])) {
                 $table_rows = $section['content']['table_rows'];
                 $widths = $section['content']['column_widths'] ?? array_fill(0, count($section['content']['table_headers']), (self::get_page_width($pdf) - 20) / count($section['content']['table_headers']));
@@ -350,45 +363,32 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         }
     }
 
-    /**
-     * Ajoute une image (SVG converti en PNG) dans le PDF.
-     *
-     * @param FPDF $pdf Instance de FPDF.
-     * @param string $svg_url URL ou chemin du fichier SVG.
-     * @param float|null $x Position X (null = position actuelle).
-     * @param float|null $y Position Y (null = position actuelle).
-     * @param float $w Largeur (0 pour largeur automatique).
-     * @param float $h Hauteur (par défaut 40 mm).
-     * @return float Hauteur de l'image affichée.
-     */
     protected static function add_tank_image($pdf, $svg_url, $x = null, $y = null, $w = 0, $h = 40)
     {
         if (empty($svg_url)) {
             return 0;
         }
 
-        // Convertir l'URL en chemin local (si c'est une URL WordPress)
+        // Convertir l'URL en chemin local
         $svg_path = str_replace(
             [site_url(), WP_CONTENT_URL],
             [ABSPATH, WP_CONTENT_DIR],
             $svg_url
         );
 
-        // Vérifier que le fichier SVG existe
         if (!file_exists($svg_path)) {
             error_log("Fichier SVG introuvable : " . $svg_path);
             return 0;
         }
 
-        // Chemin pour le PNG généré (remplace .svg par .png)
+        // Chemin pour le PNG généré
         $png_path = str_replace('.svg', '.png', $svg_path);
 
-        // Convertir SVG en PNG si nécessaire (si le PNG n'existe pas ou est obsolète)
+        // Convertir SVG en PNG si nécessaire
         if (!file_exists($png_path) || filemtime($png_path) < filemtime($svg_path)) {
             self::convert_svg_to_png($svg_path, $png_path);
         }
 
-        // Vérifier que le PNG a bien été généré
         if (!file_exists($png_path)) {
             error_log("Échec de la conversion SVG → PNG : " . $png_path);
             return 0;
@@ -404,24 +404,15 @@ class ISPAG_Notice_PDF_Generator extends FPDF
 
         // Ajouter l'image au PDF
         $pdf->Image($png_path, $x, $y, $w, $h);
-
-        return $h; // Retourne la hauteur pour ajuster le positionnement
+        return $h;
     }
 
-    /**
-     * Convertit un fichier SVG en PNG.
-     *
-     * @param string $svg_path Chemin vers le fichier SVG.
-     * @param string $png_path Chemin vers le fichier PNG de sortie.
-     * @return bool Succès ou échec.
-     */
     protected static function convert_svg_to_png($svg_path, $png_path)
     {
-        // Méthode 1 : Utiliser Imagick (recommandé)
         if (class_exists('Imagick')) {
             try {
                 $imagick = new Imagick();
-                $imagick->setBackgroundColor(new ImagickPixel('white')); // Fond blanc
+                $imagick->setBackgroundColor(new ImagickPixel('white'));
                 $imagick->readImage($svg_path);
                 $imagick->setImageFormat('png');
                 $imagick->writeImage($png_path);
@@ -433,27 +424,8 @@ class ISPAG_Notice_PDF_Generator extends FPDF
                 return false;
             }
         }
-        // Méthode 2 : Alternative avec GD Library (moins fiable pour SVG)
-        elseif (function_exists('imagecreatefromstring')) {
-            try {
-                $svg_content = file_get_contents($svg_path);
-                if ($svg_content === false) {
-                    error_log("Impossible de lire le fichier SVG : " . $svg_path);
-                    return false;
-                }
-
-                // GD ne gère pas directement le SVG, donc on utilise une alternative
-                // (Cette méthode est moins fiable, préférez Imagick)
-                error_log("GD Library ne peut pas convertir directement le SVG. Utilisez Imagick.");
-                return false;
-            } catch (Exception $e) {
-                error_log("Erreur GD Library : " . $e->getMessage());
-                return false;
-            }
-        }
-        // Méthode 3 : Utiliser un service externe (ex: API de conversion)
         else {
-            error_log("Aucune méthode de conversion SVG → PNG disponible. Installez Imagick.");
+            error_log("Imagick n'est pas installé. Impossible de convertir le SVG en PNG.");
             return false;
         }
     }
@@ -482,20 +454,16 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         $pdf->SetFont('Arial', '', self::$font_size_body);
         foreach ($rows as $row) {
             foreach ($row as $i => $cell) {
-                // Les cellules sont déjà converties en ISO-8859-1 dans format_piquages_table()
                 $cell = self::replace_placeholders($cell, $article, $project, $tank_datas);
-                $pdf->Cell($widths[$i], 10, $cell, 1);
+                $pdf->Cell($widths[$i], 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $cell), 1);
             }
             $pdf->Ln();
         }
         $pdf->Ln(5);
     }
 
-    /**
-     * Récupère la largeur de la page (A5 = 148 mm)
-     */
     protected static function get_page_width($pdf) {
-        return $pdf->w; // Largeur de la page en mm
+        return $pdf->w;
     }
 
     protected static function replace_placeholders($content, $article, $project, $tank_datas)
@@ -508,24 +476,22 @@ class ISPAG_Notice_PDF_Generator extends FPDF
 
         $tank_designer = new ISPAG_Tank_Designer();
         $insulation = new ISPAG_Tank_Insulation();
-
-        // Ajoutez le placeholder pour l'URL du SVG
         $svg_url = apply_filters('ispag_get_tank_svg_url', null, $article->Id ?? 0);
 
         $placeholders = [
             '{{article.Article}}' => $article->Article ?? ($article->ID ?? 'N/A'),
             '{{project.ObjetCommande}}' => $project->ObjetCommande ?? 'N/A',
             '{{tank_datas.conception.TankType}}' => $tank_designer->get_tank_text_data($tank_datas['conception']->TankType ?? '') ?? 'N/A',
-            '{{tank_datas.conception.material_text}}' => $tank_datas['conception']->material_text ?? 'N/A',
-            '{{tank_datas.conception.Finition}}' => $tank_datas['conception']->Finition ?? 'N/A',
-            '{{tank_datas.dimensions.Volume}}' => $tank_datas['dimensions']->Volume ?? 'N/A',
-            '{{tank_datas.dimensions.Diameter}}' => $tank_datas['dimensions']->Diameter ?? 'N/A',
-            '{{tank_datas.dimensions.Height}}' => $tank_datas['dimensions']->Height ?? 'N/A',
-            '{{tank_datas.dimensions.MaxPressure}}' => $tank_datas['dimensions']->MaxPressure ?? 'N/A',
-            '{{tank_datas.dimensions.TestPressure}}' => $tank_datas['dimensions']->TestPressure ?? 'N/A',
-            '{{tank_datas.dimensions.usingTemperature}}' => $tank_datas['dimensions']->usingTemperature ?? 'N/A',
-            '{{tank_datas.insulation.insulationCover}}' => $insulation->get_conception_value($tank_datas['insulation']->insulationCover ?? '') ?? 'N/A',
-            '{{tank_svg_url}}' => $svg_url ?? '', // Ajoutez cette ligne pour le placeholder SVG
+            '{{tank_datas.conception.material_text}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['conception']->material_text ?? 'N/A'),
+            '{{tank_datas.conception.Finition}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['conception']->Finition ?? 'N/A'),
+            '{{tank_datas.dimensions.Volume}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->Volume ?? 'N/A'),
+            '{{tank_datas.dimensions.Diameter}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->Diameter ?? 'N/A'),
+            '{{tank_datas.dimensions.Height}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->Height ?? 'N/A'),
+            '{{tank_datas.dimensions.MaxPressure}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->MaxPressure ?? 'N/A'),
+            '{{tank_datas.dimensions.TestPressure}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->TestPressure ?? 'N/A'),
+            '{{tank_datas.dimensions.usingTemperature}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->usingTemperature ?? 'N/A'),
+            '{{tank_datas.insulation.insulationCover}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $insulation->get_conception_value($tank_datas['insulation']->insulationCover ?? '') ?? 'N/A'),
+            '{{tank_svg_url}}' => $svg_url ?? '',
             '{{year}}' => date('Y')
         ];
 
@@ -539,15 +505,11 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             if (!is_object($piquage)) {
                 continue;
             }
-
-            // Convertir TOUTES les valeurs en ISO-8859-1 avec TRANSLIT
             $rows[] = [
-                
                 iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', __($piquage->Type ?? '', 'creation-reservoir')),
                 iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', __($piquage->Accessories ?? '', 'creation-reservoir')),
                 iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($piquage->Pouces ?? '')),
                 iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($piquage->Height ?? ''))
-                
             ];
         }
         return $rows;
@@ -561,9 +523,9 @@ class ISPAG_Notice_PDF_Generator extends FPDF
                 continue;
             }
             $rows[] = [
-                (string) ($welding->Type ?? ''),
-                (string) ($welding->Pouces ?? ''),
-                (string) ($welding->Height ?? '')
+                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($welding->Type ?? '')),
+                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($welding->Pouces ?? '')),
+                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($welding->Height ?? ''))
             ];
         }
         return $rows;

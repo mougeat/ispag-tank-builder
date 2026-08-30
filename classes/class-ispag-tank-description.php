@@ -101,7 +101,7 @@ class ISPAG_Tank_Description {
             $lines[] = $conception->Finition;
         }
         
-        $lines[] = __('Operating pressure', 'creation-reservoir') . ' : ' . number_format($dimensions->MaxPressure ?? 0, 2, ',', ' ') . ' bar';
+        $lines[] = __('Design pressure', 'creation-reservoir') . ' : ' . number_format($dimensions->MaxPressure ?? 0, 2, ',', ' ') . ' bar';
         $lines[] = __('Test pressure', 'creation-reservoir') . ' : ' . number_format($dimensions->TestPressure ?? 0, 2, ',', ' ') . ' bar';
         $lines[] = __('Temperature', 'creation-reservoir') . ' : ' . number_format($dimensions->usingTemperature ?? 0, 0, ',', ' ') . ' °C';
         
@@ -116,6 +116,8 @@ class ISPAG_Tank_Description {
         $lines[] = $fittings_designer->get_tank_connections_description(null, $article_id);
         $lines[] = __('Connection layout freely configurable', 'creation-reservoir');
         $lines[] = apply_filters('ispag_get_insulation_for_tank_description', null, $article_id, $is_purchase);
+        $lines[] = !empty($conception->openComment) ? ' ' :  null;
+        $lines[] = !empty($conception->openComment) ? $conception->openComment :  null;
 
         if(!empty($target_locale)){
             restore_previous_locale();

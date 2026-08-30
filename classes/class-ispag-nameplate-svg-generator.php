@@ -100,10 +100,10 @@ class ISPAG_Nameplate_SVG_Generator {
         $specs = [
             __('Material', 'creation-reservoir') . ' (MAT)'         => $mat_text,
             __('Volume', 'creation-reservoir') . ' (V)'             => ($dims['Volume_L'] ?? '0') . ' L',
-            __('Exch. Surface', 'creation-reservoir')               => $surface_text,
-            __('Design Pressure', 'creation-reservoir') . ' (PS)'   => $ps . ' bar',
-            __('Test Pressure', 'creation-reservoir') . ' (PT)'     => $pt . ' bar',
-            __('Max. Temp.', 'creation-reservoir') . ' (TS)'        => ($dims['Temperature_Max'] ?? '0') . ' C'
+            __('Exch. surface', 'creation-reservoir')               => $surface_text,
+            __('Design pressure', 'creation-reservoir') . ' (PS)'   => $ps . ' bar',
+            __('Test pressure', 'creation-reservoir') . ' (PT)'     => $pt . ' bar',
+            __('Max. temp.', 'creation-reservoir') . ' (TS)'        => ($dims['Temperature_Max'] ?? '0') . ' C'
         ];
 
         // Rendu des specs - Valeurs décalées à x=48 pour un alignement plus serré

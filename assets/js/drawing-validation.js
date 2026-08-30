@@ -1,18 +1,26 @@
-const btn = document.getElementById('btn-validate-plan');
+const btn_validation = document.getElementById('btn-validate-plan');
 
-if (btn) {
-  btn.addEventListener('click', () => {
-    if (!confirm(ispag_validation.confirmMessage + ' ?')) return;
+if (btn_validation) {
+  btn_validation.addEventListener('click', async () => {
 
-    btn.disabled = true;
-    btn.textContent = ispag_validation.validatingMessage + '...';
+    const confirmed = await ispagConfirm(ispag_validation.confirmMessage + ' ?', {
+        labelOk: ispag_texts.continue || "Continuer",
+        labelCancel: ispag_texts.cancel || "Annuler",
+        danger: true,
+    });
+    
+    if (!confirmed) return; 
+    // if (!confirm(ispag_validation.confirmMessage + ' ?')) return;
+
+    btn_validation.disabled = true;
+    btn_validation.textContent = ispag_validation.validatingMessage + '...';
 
     const data = {
       action: 'ispag_validate_pdf_plan',
-      drawing_id: btn.dataset.id,
-      article_id: btn.dataset.article,
-      user: btn.dataset.user,
-      date: btn.dataset.date
+      drawing_id: btn_validation.dataset.id,
+      article_id: btn_validation.dataset.article,
+      user: btn_validation.dataset.user,
+      date: btn_validation.dataset.date
     };
 
     fetch(ispag_validation.ajax_url, {
@@ -33,9 +41,9 @@ if (btn) {
           }
         } else {
           alert('Erreur : ' + res.data);
-          btn.disabled = false;
-          btn.textContent = '✅ ' + ispag_validation.validateDrawingButton;
+          btn_validation.disabled = false;
+          btn_validation.textContent = '✅ ' + ispag_validation.validateDrawingButton;
         }
       });
   });
-}
+} 

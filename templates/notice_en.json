@@ -1,0 +1,109 @@
+{
+  "title": "Technical Notice – ISPAG Tank",
+  "header": {
+    "company": "ISPAG",
+    "slogan": "{{project.ObjetCommande}}",
+    "date_label": "Generated on"
+  },
+  "sections": {
+    "generalites": {
+      "title": "1. General Information",
+      "content": "Dear Customer,\nThank you for choosing an ISPAG tank and for your trust. These installation and operation instructions are an integral part of the tank and must be passed on to the operator. The instructions must be followed imperatively. We decline all responsibility for damage resulting from non-compliant use or failure to comply with the installation instructions and user manual."
+    },
+    "titre_appareil": {
+      "title": "2. Tank"
+    },
+    "description_appareil": {
+      "title": "2.1. Tank Description",
+      "content": "The tank {{article.Article}} is a specially designed unit as a {{tank_datas.conception.TankType}}. Any other use is considered non-compliant. The manufacturer declines all responsibility for any resulting damage.",
+      "image": {
+        "url": "{{tank_svg_url}}",
+        "width": 40,
+        "height": 40,
+        "position": "right"
+      }
+    },
+    "model": {
+      "title": "2.2. Model",
+      "content": {
+        "table_headers": ["Feature", "Value"],
+        "table_rows": [
+          ["Type", "{{tank_datas.conception.TankType}}"],
+          ["Material", "{{tank_datas.conception.material_text}}"],
+          ["Finish", "{{tank_datas.conception.Finition}}"],
+          ["Volume", "{{tank_datas.dimensions.Volume}} L"],
+          ["Diameter", "{{tank_datas.dimensions.Diameter}} mm"],
+          ["Height", "{{tank_datas.dimensions.Height}} mm"],
+          ["Operating Pressure", "{{tank_datas.dimensions.MaxPressure}} bar"],
+          ["Test Pressure", "{{tank_datas.dimensions.TestPressure}} bar"],
+          ["Operating Temperature", "{{tank_datas.dimensions.usingTemperature}}°C"]
+        ],
+        "column_widths": [60, 70]
+      },
+      "page_break": true
+    },
+    "bride": {
+      "title": "2.3. Flange",
+      "content": {
+        "text": "After heating the tank, it is necessary to check the tightness of all flange and screw connections. Tighten all screws when the tank is hot.\nTightening torques:",
+        "table_headers": ["Screw Type", "Gasket (Nm)", "Klingerit (Nm)"],
+        "table_rows": [
+          ["M12 Screw", "30", "93"],
+          ["M14 Screw", "55", "148"]
+        ],
+        "column_widths": [40, 40, 40]
+      },
+      "page_break": false
+    },
+    "piquages": {
+      "title": "2.4. List of Fittings",
+      "content": {
+        "table_headers": ["Type", "Accessories", "Ø (mm)", "Height (mm)"],
+        "table_rows": "{{piquages}}",
+        "column_widths": [25, 65, 15, 15]
+      },
+      "page_break": false
+    },
+    "secu": {
+      "title": "3. Safety Instructions",
+      "content": "The assembly, installation, and commissioning of the tank must be carried out by a qualified professional familiar with the applicable laws, standards, and regulations (including local ones). The tank must only be installed on a flat mounting surface and in a frost-protected location. If this is not the case or if the tank remains out of service for an extended period, the tank and heat exchanger (if applicable) must be completely emptied!\nUpon receipt, check the entire delivery and the absence of damage.\nPackaging materials (fasteners, plastic bags, polystyrene foam, etc.) must be kept out of reach of children.",
+      "page_break": true
+    },
+    "conception_installation": {
+      "title": "4. Design and Installation"
+    },
+    "exigences_site": {
+      "title": "4.1. Site Installation Requirements",
+      "content": "When choosing the installation site, it is imperative to take into account the weight of the tank when filled.\nTo avoid any heat/cold loss, install the tank in the immediate vicinity of the heat/cold generator. Respect the minimum distance between the walls, the tank, and the walls as well as the space required for installation on the sides and at the rear.\nThe tank must be connected by a qualified professional and in accordance with the current state of the art. In addition, it is necessary to ensure that all national standards and laws are complied with. If the information contained in these installation instructions contradicts the country-specific regulations, the latter should be preferred.\nThe tank must be grounded. In the case of installations with mixed materials, ensure that the corresponding separation elements are installed and that an equipotential bonding connection is established."
+    },
+    "equipement_secu": {
+      "title": "4.2. Safety Equipment",
+      "content": "Closed heating installations must meet the requirements of standard DIN EN 12828, DIN EN 12977-1 Heating System - Safety Equipment.\nOur products are certified EN 60335.",
+      "page_break": true
+    },
+    "mise_en_service": {
+      "title": "5. Commissioning",
+      "content": "Follow the manufacturer's instructions for the heat producer! Commissioning must be carried out by a specialized authorized company."
+    },
+    "formation": {
+      "title": "5.1. Operator Training",
+      "content": "* Pass the assembly and operation notice to the plant operator for safekeeping.\n* Instruct the plant operator on how to set temperatures in a compliant and cost-effective manner."
+    },
+    "mise_hors_service": {
+      "title": "6. Decommissioning",
+      "content": "If the tank is permanently decommissioned, it must be completely emptied and dismantled in accordance with the rules of the art. When emptying, vent the tank to avoid vacuum formation. To avoid handling errors, we recommend installing a vacuum breaker. The tank and its insulation must be disposed of in accordance with local regulations."
+    },
+    "maintenance": {
+      "title": "7. Maintenance and Inspection",
+      "content": "Perform regular checks on the tank and its fittings. Check the tightness of the connections and the general condition of the insulation. Clean heat exchangers if necessary."
+    },
+    "garantie": {
+      "title": "8. Warranty",
+      "content": "Our company provides a warranty for each part delivered under the general terms and conditions of purchase. Compliance with the following conditions is a prerequisite for any warranty claim:\n* Check delivered parts and contact immediately in case of doubt\n* Check the good condition of the goods and the absence of damage (e.g., transport) and corresponding note on the shipping documents\n* Installation in a frost-protected location\n* Annual inspection and cleaning of the electric heating element (if applicable)\n* General inspection every two years\n* Regular inspection and possible replacement of spare parts\n* Compliance with maximum temperatures and pressures\n\nFor precise identification of the goods, it is necessary to install the provided nameplates on the tank and its insulation.\n\nWe decline all responsibility for damage resulting from non-compliant use or failure to comply with the installation instructions and user manual."
+    }
+  },
+  "footer": {
+    "text": "© {{year}} ISPAG – All rights reserved",
+    "disclaimer": "Non-contractual document – Version 1.0"
+  }
+}

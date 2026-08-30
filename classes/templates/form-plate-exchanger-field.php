@@ -13,7 +13,7 @@
         </h3>
     </div>
 
-    <div class="ispag-modal-grid" style="margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 4px; display: flex; gap: 20px;">
+    <div class="ispag-modal-grid" style="margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: var(--ispag-btn-border-radius); display: flex; gap: 20px;">
         <div class="ispag-field" style="flex: 1;">
             <div class="field-group">
                 <label><strong><?php echo __('Exchanger Type', 'creation-reservoir'); ?></strong></label>
@@ -21,8 +21,11 @@
                     <option value="brazed" <?php selected($data['exchanger']->type ?? 'brazed', 'brazed'); ?>>
                         <?php echo __('Brazed', 'creation-reservoir'); ?>
                     </option>
-                    <option value="gasketed" <?php selected($data['exchanger']->type ?? 'brazed', 'gasketed'); ?>>
-                        <?php echo __('Gasketed / Screwed', 'creation-reservoir'); ?>
+                    <option value="gasketed_3104" <?php selected($data['exchanger']->type ?? 'brazed', 'gasketed'); ?>>
+                        <?php echo __('Gasketed / Screwed (Inox 304)', 'creation-reservoir'); ?>
+                    </option>
+                    <option value="gasketed_316" <?php selected($data['exchanger']->type ?? 'brazed', 'gasketed'); ?>>
+                        <?php echo __('Gasketed / Screwed (Inox 316 L)', 'creation-reservoir'); ?>
                     </option>
                 </select>
             </div>

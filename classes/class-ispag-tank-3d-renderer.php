@@ -59,7 +59,7 @@ class ISPAG_Tank3D_Renderer {
         }
         $tank_datas = apply_filters('ispag_get_tank_datas', null, $article_id );
 
-        $jsonString = file_get_contents(__DIR__ . '/../assets/js/tank_data.json');
+        $jsonString = file_get_contents(__DIR__ . '/../assets/json/tank_data.json');
         $data = json_decode($jsonString, true);
         $tank_datas['dimensions']->bottom_height = $data['arrayBottomHeight'][$tank_datas['conception']->Material][$tank_datas['dimensions']->Diameter] ?? [];
         $tank_datas['dimensions']->body_height = $tank_datas['dimensions']->Height - (2 * $tank_datas['dimensions']->bottom_height) - $tank_datas['dimensions']->GroundClearance;

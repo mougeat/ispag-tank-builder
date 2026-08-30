@@ -27,7 +27,14 @@ class ISPAG_Tank_Insulation {
         add_filter('ispag_get_insulation_for_tank_description', [self::$instance, 'get_insulation_for_tank_description'], 10, 3 );
         add_filter('ispag_render_insulation_selector', [self::$instance, 'render_insulation_selector'], 10, 2);
         add_filter('ispag_get_related_insulation_information', [self::$instance, 'get_related_insulation_information'], 10, 2);
+
         
+        add_action('wp_ajax_ispag_article_render_tank_insulation', [self::class, 'render_tank_insulation']);
+        
+    }
+
+    public function render_tank_insulation(){
+        return $this->render_insulation_selector(null, $_POST['articleId']);
     }
 
     public function render_insulation_selector($html, $article_id) {
@@ -276,7 +283,8 @@ class ISPAG_Tank_Insulation {
             ));
 
             // Construit la description
-            $desc = trim(__('Insulation', 'creation-reservoir') . ' ' . $thickness_label . 'mm ' . __($insulation_label, 'creation-reservoir'));
+            $installation_texte = 'to be assembled after insertion and before connections by the installer';
+            $desc = trim(__('Insulation', 'creation-reservoir') . ' ' . $thickness_label . 'mm ' . __($insulation_label, 'creation-reservoir'). ' (' . __('to be assembled after insertion and before connections by the installer', 'creation-reservoir') . ')');
             return $desc;
         }
         

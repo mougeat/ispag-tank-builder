@@ -11,10 +11,10 @@ let isTransportCheckerInitialized = false;
 // 1. CHARGEMENT DES RÈGLES DE TRANSPORT
 // =============================================
 async function loadTransportRules() {
-  console.log('📦 [TRANSPORT] Début du chargement des règles de transport...');
+  // console.log('📦 [TRANSPORT] Début du chargement des règles de transport...');
 
   try {
-    console.log('🔍 [TRANSPORT] URL des règles :', ISPAG_TRANSPORT.transportRulesUrl);
+    // console.log('🔍 [TRANSPORT] URL des règles :', ISPAG_TRANSPORT.transportRulesUrl);
     const response = await fetch(ISPAG_TRANSPORT.transportRulesUrl);
 
     if (!response.ok) {
@@ -22,7 +22,7 @@ async function loadTransportRules() {
     }
 
     transportRules = await response.json();
-    console.log('✅ [TRANSPORT] Règles de transport chargées avec succès:', transportRules);
+    // console.log('✅ [TRANSPORT] Règles de transport chargées avec succès:', transportRules);
     return true;
   } catch (error) {
     console.error('❌ [TRANSPORT] Erreur lors du chargement des règles:', error);
@@ -46,7 +46,7 @@ async function loadTransportRules() {
         exceptional_complex: "Transport exceptionnel nécessitant une autorisation spéciale (escorte possible)."
       }
     };
-    console.warn('⚠️ [TRANSPORT] Utilisation des règles par défaut:', transportRules);
+    // console.warn('⚠️ [TRANSPORT] Utilisation des règles par défaut:', transportRules);
     return false;
   }
 }
@@ -55,10 +55,10 @@ async function loadTransportRules() {
 // 2. CRÉATION DE LA BOÎTE D'ALERTE
 // =============================================
 function createTransportAlertBox() {
-  console.log('🎨 [TRANSPORT] Création de la boîte d\'alerte...');
+  // console.log('🎨 [TRANSPORT] Création de la boîte d\'alerte...');
 
   if (transportAlertBox) {
-    console.warn('⚠️ [TRANSPORT] La boîte d\'alerte existe déjà. Annulation.');
+    // console.warn('⚠️ [TRANSPORT] La boîte d\'alerte existe déjà. Annulation.');
     return;
   }
 
@@ -67,7 +67,7 @@ function createTransportAlertBox() {
   transportAlertBox.style.cssText = `
     background: #fff3cd;
     border: 1px solid #ffc107;
-    border-radius: 4px;
+    border-radius: var(--ispag-btn-border-radius);
     padding: 12px;
     margin-top: 15px;
     display: none;
@@ -89,7 +89,7 @@ function createTransportAlertBox() {
   const dimensionsForm = document.getElementById('tank-dimensions-form');
   if (dimensionsForm) {
     dimensionsForm.prepend(transportAlertBox);
-    console.log('✅ [TRANSPORT] Boîte d\'alerte ajoutée au formulaire.');
+    // console.log('✅ [TRANSPORT] Boîte d\'alerte ajoutée au formulaire.');
   } else {
     console.error('❌ [TRANSPORT] Formulaire tank-dimensions-form introuvable !');
   }
@@ -99,7 +99,7 @@ function createTransportAlertBox() {
 // 3. VÉRIFICATION DES RÈGLES DE TRANSPORT
 // =============================================
 function checkTransportRequirements(diameter, height, volume) {
-  console.log('🔍 [TRANSPORT] Vérification des règles pour:', { diameter, height, volume });
+  // console.log('🔍 [TRANSPORT] Vérification des règles pour:', { diameter, height, volume });
 
   if (!transportRules.standard_limits) {
     console.error('❌ [TRANSPORT] transportRules.standard_limits est indéfini !');
@@ -110,21 +110,21 @@ function checkTransportRequirements(diameter, height, volume) {
   const length = parseFloat(height) || 0;
   const estimatedWeight = estimateTankWeight(volume);
 
-  console.log('📏 [TRANSPORT] Dimensions calculées:', {
-    width,
-    length,
-    estimatedWeight
-  });
+  // console.log('📏 [TRANSPORT] Dimensions calculées:', {
+  //   width,
+  //   length,
+  //   estimatedWeight
+  // });
 
   const isWidthStandard = width <= transportRules.standard_limits.max_width;
   const isLengthStandard = length <= transportRules.standard_limits.max_length;
   const isWeightStandard = estimatedWeight <= transportRules.standard_limits.max_weight;
 
-  console.log('📊 [TRANSPORT] Résultats des vérifications:', {
-    isWidthStandard,
-    isLengthStandard,
-    isWeightStandard
-  });
+  // console.log('📊 [TRANSPORT] Résultats des vérifications:', {
+  //   isWidthStandard,
+  //   isLengthStandard,
+  //   isWeightStandard
+  // });
 
   if (isWidthStandard && isLengthStandard && isWeightStandard) {
     const result = {
@@ -132,7 +132,7 @@ function checkTransportRequirements(diameter, height, volume) {
       message: transportRules.messages.standard,
       type: "standard"
     };
-    console.log('✅ [TRANSPORT] Transport standard:', result);
+    // console.log('✅ [TRANSPORT] Transport standard:', result);
     return result;
   } else if (
     width <= transportRules.exceptional_limits.simple_permit.max_width &&
@@ -143,7 +143,7 @@ function checkTransportRequirements(diameter, height, volume) {
       message: transportRules.messages.exceptional_simple,
       type: "exceptional_simple"
     };
-    console.log('⚠️ [TRANSPORT] Transport exceptionnel simple:', result);
+    // console.log('⚠️ [TRANSPORT] Transport exceptionnel simple:', result);
     return result;
   } else {
     const result = {
@@ -151,7 +151,7 @@ function checkTransportRequirements(diameter, height, volume) {
       message: transportRules.messages.exceptional_complex,
       type: "exceptional_complex"
     };
-    console.log('🚨 [TRANSPORT] Transport exceptionnel complexe:', result);
+    // console.log('🚨 [TRANSPORT] Transport exceptionnel complexe:', result);
     return result;
   }
 }
@@ -162,7 +162,7 @@ function checkTransportRequirements(diameter, height, volume) {
 function estimateTankWeight(volume) {
   const volumeLiters = parseFloat(volume) || 0;
   const weight = volumeLiters * 1.5;
-  console.log('⚖️ [TRANSPORT] Poids estimé pour volume', volume, ':', weight, 'kg');
+  // console.log('⚖️ [TRANSPORT] Poids estimé pour volume', volume, ':', weight, 'kg');
   return weight;
 }
 
@@ -170,20 +170,13 @@ function estimateTankWeight(volume) {
 // 5. MISE À JOUR DE L'ALERTE
 // =============================================
 function updateTransportAlert() {
-  console.log('🔄 [TRANSPORT] Mise à jour de l\'alerte...');
+  // console.log('🔄 [TRANSPORT] Mise à jour de l\'alerte...');
 
   const diameterSelect = document.querySelector('select[name="tank[diameter]"]');
   const heightInput = document.querySelector('input[name="tank[height]"]');
   const volumeInput = document.querySelector('input[name="tank[volume]"]');
 
-  console.log('🔍 [TRANSPORT] Champs trouvés:', {
-    diameterSelect: !!diameterSelect,
-    heightInput: !!heightInput,
-    volumeInput: !!volumeInput
-  });
-
   if (!diameterSelect || !heightInput || !volumeInput) {
-    console.warn('⚠️ [TRANSPORT] Un ou plusieurs champs manquants !');
     if (transportAlertBox) transportAlertBox.style.display = 'none';
     return;
   }
@@ -192,23 +185,29 @@ function updateTransportAlert() {
   const height = heightInput.value;
   const volume = volumeInput.value;
 
-  console.log('📋 [TRANSPORT] Valeurs actuelles:', { diameter, height, volume });
-
   if (!diameter || !height || !volume) {
-    console.log('❌ [TRANSPORT] Un ou plusieurs champs vides. Masquage de l\'alerte.');
     if (transportAlertBox) transportAlertBox.style.display = 'none';
     return;
   }
 
   const result = checkTransportRequirements(diameter, height, volume);
 
+  // Vérifier que transportAlertBox existe, sinon le recréer
+  if (!transportAlertBox) {
+    createTransportAlertBox();
+  }
+
+  const alertMessage = document.getElementById('tank-transport-alert-message');
+  if (!alertMessage) {
+    console.error('❌ [TRANSPORT] Élément tank-transport-alert-message introuvable !');
+    return;
+  }
+
   if (result.isExceptional) {
-    console.log('⚠️ [TRANSPORT] Transport exceptionnel détecté. Affichage de l\'alerte.');
-    document.getElementById('tank-transport-alert-message').textContent = result.message;
+    alertMessage.textContent = result.message;
     transportAlertBox.style.display = 'block';
     transportAlertBox.className = `tank-transport-alert ${result.type}`;
   } else {
-    console.log('✅ [TRANSPORT] Transport standard. Masquage de l\'alerte.');
     if (transportAlertBox) transportAlertBox.style.display = 'none';
   }
 }
@@ -217,12 +216,12 @@ function updateTransportAlert() {
 // 6. CONFIGURATION DES ÉCOUTEURS
 // =============================================
 function setupTransportEventListeners() {
-  console.log('🎧 [TRANSPORT] Configuration des écouteurs d\'événements...');
+  // console.log('🎧 [TRANSPORT] Configuration des écouteurs d\'événements...');
 
   // 👇 Écouteur pour les changements (select, input)
   document.addEventListener('change', function(e) {
     if (e.target.matches('select[name="tank[diameter]"], input[name="tank[height]"], input[name="tank[volume]"]')) {
-      console.log('🔄 [TRANSPORT] Changement détecté sur:', e.target.name, '->', e.target.value);
+      // console.log('🔄 [TRANSPORT] Changement détecté sur:', e.target.name, '->', e.target.value);
       updateTransportAlert();
     }
   });
@@ -230,12 +229,12 @@ function setupTransportEventListeners() {
   // 👇 Écouteur pour les entrées (input)
   document.addEventListener('input', function(e) {
     if (e.target.matches('input[name="tank[height]"], input[name="tank[volume]"]')) {
-      console.log('✏️ [TRANSPORT] Entrée détectée sur:', e.target.name, '->', e.target.value);
+      // console.log('✏️ [TRANSPORT] Entrée détectée sur:', e.target.name, '->', e.target.value);
       updateTransportAlert();
     }
   });
 
-  console.log('✅ [TRANSPORT] Écouteurs configurés avec succès.');
+  // console.log('✅ [TRANSPORT] Écouteurs configurés avec succès.');
 }
 
 // =============================================
@@ -247,7 +246,7 @@ async function initTransportChecker() {
     return;
   }
 
-  console.log('🚀 [TRANSPORT] Initialisation du vérificateur...');
+  // console.log('🚀 [TRANSPORT] Initialisation du vérificateur...');
 
   await loadTransportRules();
   createTransportAlertBox();
@@ -255,34 +254,42 @@ async function initTransportChecker() {
   updateTransportAlert();
 
   isTransportCheckerInitialized = true;
-  console.log('✅ [TRANSPORT] Vérificateur initialisé avec succès.');
+  // console.log('✅ [TRANSPORT] Vérificateur initialisé avec succès.');
 }
 
 // =============================================
 // 8. RÉINITIALISATION (POUR LES MODALES RÉUTILISÉES)
 // =============================================
 function resetTransportChecker() {
-  console.log('🔄 [TRANSPORT] Réinitialisation du vérificateur...');
+  // console.log('🔄 [TRANSPORT] Réinitialisation du vérificateur...');
   isTransportCheckerInitialized = false;
   if (transportAlertBox) {
     transportAlertBox.remove();
     transportAlertBox = null;
   }
-  console.log('✅ [TRANSPORT] Vérificateur réinitialisé.');
+  // console.log('✅ [TRANSPORT] Vérificateur réinitialisé.');
 }
 
 // =============================================
 // 9. INITIALISATION POUR LES MODALES DYNAMIQUES
 // =============================================
 function initializeTransportCheckerForModal() {
-  console.log('🔍 [TRANSPORT] Recherche du formulaire tank-dimensions-form...');
+  // console.log('🔍 [TRANSPORT] Recherche du formulaire tank-dimensions-form...');
 
   const checkFormExists = setInterval(() => {
     const dimensionsForm = document.getElementById('tank-dimensions-form');
     if (dimensionsForm) {
       clearInterval(checkFormExists);
-      console.log('✅ [TRANSPORT] Formulaire trouvé ! Initialisation...');
+      // console.log('✅ [TRANSPORT] Formulaire trouvé ! Initialisation...');
       initTransportChecker();
+
+      // 👇 Ajout de l'écouteur pour modal_loaded
+      document.addEventListener('modal_loaded', () => {
+        // console.log('🌐 [TRANSPORT] Événement modal_loaded détecté. Mise à jour de l\'alerte...');
+        setTimeout(() => {
+          updateTransportAlert();
+        }, 500); // Délai pour laisser le temps au DOM de se stabiliser
+      });
     }
   }, 100);
 
@@ -300,10 +307,10 @@ function initializeTransportCheckerForModal() {
 // Si vous voulez aussi initialiser au chargement de la page (pour les formulaires statiques)
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    console.log('🌐 [TRANSPORT] DOM chargé. Initialisation automatique...');
+    // console.log('🌐 [TRANSPORT] DOM chargé. Initialisation automatique...');
     // initializeTransportCheckerForModal();
   });
 } else {
-  console.log('🌐 [TRANSPORT] DOM déjà chargé. Initialisation automatique...');
+  // console.log('🌐 [TRANSPORT] DOM déjà chargé. Initialisation automatique...');
   // initializeTransportCheckerForModal();
 }

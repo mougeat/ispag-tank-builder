@@ -67,7 +67,7 @@ class ISPAG_Existing_Tanks_Table {
                 background: #fff;
                 color: #2271b1;
                 text-decoration: none;
-                border-radius: 4px;
+                border-radius: var(--ispag-btn-border-radius);
                 font-weight: 500;
                 transition: all 0.2s ease;
             }
@@ -97,7 +97,7 @@ class ISPAG_Existing_Tanks_Table {
         </style>
 
         <div class="ispag-tanks-container">
-            <div class="ispag-toolbar" style="background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div class="ispag-toolbar" style="background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: var(--ispag-badge-border-radius); margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                 <form method="get" action="">
                     <?php if(!is_admin()): ?>
                         <input type="hidden" name="page_id" value="<?php echo get_the_ID(); ?>">
@@ -106,20 +106,20 @@ class ISPAG_Existing_Tanks_Table {
                     <?php endif; ?>
 
                     <div class="filter-group" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                        <input type="search" name="search" value="<?php echo esc_attr($search); ?>" placeholder="Rechercher un projet..." style="min-width: 200px; padding: 6px 10px; border-radius: 4px; border: 1px solid #8c8f94;" />
+                        <input type="search" name="search" value="<?php echo esc_attr($search); ?>" placeholder="Rechercher un projet..." style="min-width: 200px; padding: 6px 10px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;" />
                         
-                        <select name="tank_type" style="padding: 6px; border-radius: 4px;">
+                        <select name="tank_type" style="padding: 6px; border-radius: var(--ispag-btn-border-radius);">
                             <option value="0">Tous les types</option>
                             <?php $this->render_conception_options('typ', $filters['tank_type']); ?>
                         </select>
 
-                        <select name="material" style="padding: 6px; border-radius: 4px;">
+                        <select name="material" style="padding: 6px; border-radius: var(--ispag-btn-border-radius);">
                             <option value="0">Tous les matériaux</option>
                             <?php $this->render_conception_options('material', $filters['material']); ?>
                         </select>
 
-                        <input type="number" name="volume" value="<?php echo esc_attr($filters['volume']); ?>" placeholder="Volume L" style="width: 90px; padding: 6px; border-radius: 4px; border: 1px solid #8c8f94;"/>
-                        <input type="number" name="pressure" value="<?php echo esc_attr($filters['pressure']); ?>" placeholder="Pression" style="width: 80px; padding: 6px; border-radius: 4px; border: 1px solid #8c8f94;"/>
+                        <input type="number" name="volume" value="<?php echo esc_attr($filters['volume']); ?>" placeholder="Volume L" style="width: 90px; padding: 6px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;"/>
+                        <input type="number" name="pressure" value="<?php echo esc_attr($filters['pressure']); ?>" placeholder="Pression" style="width: 80px; padding: 6px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;"/>
 
                         <button type="submit" class="button button-primary" style="padding: 0 20px; height: 36px;"><?php _e('Filtrer'); ?></button>
                         <a href="<?php echo get_permalink(); ?>" class="button" style="height: 36px; line-height: 34px;">Reset</a>
@@ -146,7 +146,7 @@ class ISPAG_Existing_Tanks_Table {
                     <tbody>
                         <?php if ($results) : foreach ($results as $row) : 
                             $link = !empty($row->hubspot_deal_id) 
-                                ? "https://app.ispag-asp.ch/details-du-projet/?deal_id=" . esc_attr($row->hubspot_deal_id) 
+                                ? "https://app.ispag-asp.ch/project-detail/" . esc_attr($row->hubspot_deal_id) 
                                 : "#";
                             $price = floatval($row->sales_price);
                             if ($price <= 0 && has_filter('ispag_calculate_total_sales_price')) {
@@ -167,7 +167,7 @@ class ISPAG_Existing_Tanks_Table {
                                     <strong><?php echo $row->Volume; ?> L</strong><br>
                                     <small>Ø <?php echo $row->Diameter; ?> x H <?php echo $row->Height; ?> mm</small>
                                 </td>
-                                <td><span style="background: #fff8e5; padding: 3px 7px; border-radius: 4px; font-weight: bold;"><?php echo $row->MaxPressure; ?> bar</span></td>
+                                <td><span style="background: #fff8e5; padding: 3px 7px; border-radius: var(--ispag-btn-border-radius); font-weight: bold;"><?php echo $row->MaxPressure; ?> bar</span></td>
                                 <td style="text-align: right;">
                                     <strong style="color: #2c3338; font-size: 1.1em;"><?php echo $price > 0 ? number_format($price, 2, '.', "'") . ' CHF' : '—'; ?></strong>
                                 </td>

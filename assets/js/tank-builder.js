@@ -595,21 +595,23 @@ function saveTankData(articleId, is_purchase = false) {
     saveHeatExchangerData(articleId, is_purchase);
 
     const tank = {
-        type:           $('[name="tank[type]"]').val(),
-        materiau:       $('[name="tank[materiau]"]').val(),
-        support:        $('[name="tank[support]"]').val(),
-        diameter:       $('[name="tank[diameter]"]').val(), // ou $('#tank-diameter').val()
-        height:         $('[name="tank[height]"]').val(),
-        volume:         $('[name="tank[volume]"]').val(),
-        tipping:        $('[name="tank[tipping]"]').val(),
-        max_pressure:   $('[name="tank[max_pressure]"]').val(),
-        test_pressure:  $('[name="tank[test_pressure]"]').val(),
-        clearance:      $('[name="tank[clearance]"]').val(),
-        temperature:    $('[name="tank[temperature]"]').val(),
-        insulation:     $('[name="tank[insulation]"]').val(),
-        insulationCover: $('[name="tank[insulationCover]"]').val(),
-        InsulationThickness: $('[name="tank[InsulationThickness]"]').val(),
-        nbWelding:      $('[name="tank[nbWelding]"]').val()
+        type:                   $('[name="tank[type]"]').val(),
+        materiau:               $('[name="tank[materiau]"]').val(),
+        support:                $('[name="tank[support]"]').val(),
+        diameter:               $('[name="tank[diameter]"]').val(), // ou $('#tank-diameter').val()
+        height:                 $('[name="tank[height]"]').val(),
+        volume:                 $('[name="tank[volume]"]').val(),
+        tipping:                $('[name="tank[tipping]"]').val(),
+        max_pressure:           $('[name="tank[max_pressure]"]').val(),
+        test_pressure:          $('[name="tank[test_pressure]"]').val(),
+        clearance:              $('[name="tank[clearance]"]').val(),
+        temperature:            $('[name="tank[temperature]"]').val(),
+        insulation:             $('[name="tank[insulation]"]').val(),
+        insulationCover:        $('[name="tank[insulationCover]"]').val(),
+        InsulationThickness:    $('[name="tank[InsulationThickness]"]').val(),
+        nbWelding:              $('[name="tank[nbWelding]"]').val(),
+        weldingByClient:        $('[name="tank[weldingByClient]"]').is(':checked') ? 1 : 0,
+        openComment:            $('[name="tank[openComment]"]').val(),
     };
     
     const form = $('.ispag-edit-article-form');
@@ -687,6 +689,11 @@ jQuery(document).ready(function($) {
             if (response.success) {
                 $('#fittings-form').html(response.data['html']);
                 $('#ispag-modal-svg').html(response.data['svg']);
+
+                // 🔥 Déclenchement de l'événement pour initialiser le snapshot du change-tracker
+                document.dispatchEvent(new CustomEvent('modal_fitting_loaded', { 
+                    detail: { mode: mode, articleId: finalIdToEdit } 
+                }));
 
                 // 🔥 EXECUTION DU CALCUL INITIAL DU PRIX
                 setTimeout(function() {
@@ -782,8 +789,15 @@ document.addEventListener('click', function(e) {
     }
 });
 
-function closeFittingsModal(){
-    $('#tank-fittings-modal').fadeOut();
+function closeFittingsModal() {
+    $('#tank-fittings-modal').fadeOut(400, function() {
+        console.log('[FITTINGS MODAL] Modale fermée. Déclenchement de l\'événement modal_closed...');
+        
+        // 🔥 Déclenchement de l'événement personnalisé à la fermeture
+        document.dispatchEvent(new CustomEvent('modal_fitting_closed', {
+            detail: { formId: 'fittings-form' }
+        }));
+    });
 }
 
 const saveBtn = document.getElementById('ispag-btn-save-tank-fittings');

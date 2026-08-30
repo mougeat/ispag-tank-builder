@@ -19,23 +19,23 @@ jQuery(function($) {
     });
 
     // --- FERMER LA MODALE ---
-    $(document).on('click', '.closeExchangerModal', function() {
-        $(this).closest('.ispag-product-modal').fadeOut();
-    });
+    // $(document).on('click', '.closeExchangerModal', function() {
+    //     $(this).closest('.ispag-product-modal').fadeOut();
+    // });
 
-    // Fermeture en cliquant en dehors de la modale
-    $(document).on('click', '.ispag-product-modal', function(e) {
-        if ($(e.target).hasClass('ispag-product-modal')) {
-            $(this).fadeOut();
-        }
-    });
+    // // Fermeture en cliquant en dehors de la modale
+    // $(document).on('click', '.ispag-product-modal', function(e) {
+    //     if ($(e.target).hasClass('ispag-product-modal')) {
+    //         $(this).fadeOut();
+    //     }
+    // });
 
-    // Fermeture avec la touche Echap (Esc)
-    $(document).on('keydown', function(e) {
-        if (e.key === "Escape") {
-            $('.ispag-product-modal:visible').fadeOut();
-        }
-    });
+    // // Fermeture avec la touche Echap (Esc)
+    // $(document).on('keydown', function(e) {
+    //     if (e.key === "Escape") {
+    //         $('.ispag-product-modal:visible').fadeOut();
+    //     }
+    // });
 
     // --- AJOUTER UN ÉCHANGEUR ---
     $(document).on('click', '.addExchangerForm', function() {
@@ -112,7 +112,8 @@ jQuery(function($) {
                 coldWaterInputTemperature: $form.find(`[name="coldWaterInputTemperature_${coilNbForm}"]`).val(),
                 hotWaterOutputTemperature: $form.find(`[name="hotWaterOutputTemperature_${coilNbForm}"]`).val(),
                 exchangerPower: $form.find(`[name="exchangerPower_${coilNbForm}"]`).val(),
-                coilSurface: $form.find(`[name="coilSurface_${coilNbForm}"]`).val()
+                coilSurface: $form.find(`[name="coilSurface_${coilNbForm}"]`).val(),
+                spiraflex: $form.find(`[name="spiraflex_${coilNbForm}"]`).val()
             };
         });
 

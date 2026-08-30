@@ -30,7 +30,7 @@ class ISPAG_Tank_Drawing {
 
         wp_localize_script('ispag-drawing-validation', 'ispag_validation', [
             'ajax_url' => admin_url('admin-ajax.php'),
-            'jsonUrl' => plugins_url('../assets/js/tank_data.json', __FILE__),
+            'jsonUrl' => plugins_url('../assets/json/tank_data.json', __FILE__),
             'nonce'    => wp_create_nonce('ispag_tank_nonce'),
             'confirmMessage' => __('Would you really validate this drawing', 'creation-reservoir'),
             'validatingMessage' => __('Validating', 'creation-reservoir'),
@@ -275,9 +275,48 @@ class ISPAG_Tank_Drawing {
                 ['Id' => $article_achat->Id] // Utilisation de l'ID de la commande, pas de l'article projet !
             );
 
-            // Telegram : On notifie seulement si l'utilisateur actuel n'est PAS un gestionnaire
-            if ( ! current_user_can( 'manage_order' ) ) {
-                do_action('ispag_send_telegram_notification', null, 'drawing_validated', true, true, $deal_id, true);
+            // // Telegram : On notifie seulement si l'utilisateur actuel n'est PAS un gestionnaire
+            // if ( ! current_user_can( 'manage_order' ) ) {
+                // do_action('ispag_send_telegram_notification', null, 'drawing_validated', true, true, $deal_id, true);
+            // }
+
+            // --- NOTIFICATION À L'ADMIN QU'UN PLAN A ÉTÉ VALIDÉ ---
+            if (class_exists('ISPAG_Notifications_Manager')) {
+                $current_user = get_userdata($userId);
+                $deal_repo = new ISPAG_Project_Details_Repository();
+                $deal_creator = $deal_repo->get_deal_created_by($deal_id);
+                $user_display_name = $current_user ? $current_user->display_name : $user;
+
+                $title = sprintf(
+                    esc_html(__('✅ Plan Validated: %s', 'ispag-crm')),
+                    esc_html($article_id)
+                );
+
+                $message = sprintf(
+                    esc_html(__(
+                        'A plan has been validated by <strong>%1$s</strong> on %2$s.<br>
+                        - <strong>Article ID</strong>: %3$s<br>
+                        - <strong>Deal ID</strong>: %4$s<br>
+                        - <strong>Purchase Order</strong>: %5$s',
+                        'ispag-crm'
+                    )),
+                    esc_html($user_display_name),
+                    esc_html($date),
+                    esc_html($article_id),
+                    esc_html($deal_id),
+                    esc_html($achat_id)
+                );
+
+                $project_url = 'project-detail/' . $deal_id . '/';
+
+                ISPAG_Notifications_Manager::send(
+                    [$deal_creator, 1], // Destinataire : admin (ID = 1)
+                    'product_manager', // Type de notification (à adapter si besoin)
+                    $title,
+                    $message,
+                    $project_url, // URL vers le projet
+                    $deal_id // ID du deal
+                );
             }
 
             // Nettoyage final

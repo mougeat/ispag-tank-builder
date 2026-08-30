@@ -136,7 +136,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             'IdArticleStandard' => $article->Id,
             'Article'           => $title,
             'Description'       => $description,
-            'sales_price'       => $article->sales_price,
+            // 'sales_price'       => $article->sales_price,
             'Qty'               => $tank->Qty,
             
             'IdFournisseur'     => $default_supplier,

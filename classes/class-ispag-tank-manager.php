@@ -52,9 +52,10 @@ class ISPAG_Tank_Manager {
 
         // Scripts principaux
         wp_enqueue_script('ispag-tank-builder', plugin_dir_url(__FILE__) . '../assets/js/tank-builder.js', ['jquery'], false, true);
+        wp_enqueue_script('ispag-tank-dynamic-fields', plugin_dir_url(__FILE__) . '../assets/js/tank-dynamic-fields.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-exchanger-builder', plugin_dir_url(__FILE__) . '../assets/js/exchanger-builder.js', ['jquery', 'ispag-tank-builder'], false, true);
-        wp_enqueue_script('ispag-tank-pricing', plugin_dir_url(__FILE__) . '../assets/js/tank-pricing.js', ['jquery'], false, true);
-        wp_enqueue_script('ispag-tank-fitting', plugin_dir_url(__FILE__) . '../assets/js/fittings-pricing.js', ['jquery'], false, true);
+        // wp_enqueue_script('ispag-tank-pricing', plugin_dir_url(__FILE__) . '../assets/js/tank-pricing.js', ['jquery'], false, true);
+        // wp_enqueue_script('ispag-tank-fitting', plugin_dir_url(__FILE__) . '../assets/js/fittings-pricing.js', ['jquery'], false, true);
 
         // 👇 Ajouter le script de vérification de transport
         wp_enqueue_script(
@@ -83,9 +84,9 @@ class ISPAG_Tank_Manager {
         wp_localize_script('ispag-tank-transport-checker', 'ISPAG_TRANSPORT', [
             'transportRulesUrl' => plugins_url('../assets/json/transport-rules.json', __FILE__),
             'messages' => [
-                'standard' => __('Transport standard possible en Suisse.', 'creation-reservoir'),
-                'exceptional_simple' => __('Transport exceptionnel nécessitant une autorisation simple.', 'creation-reservoir'),
-                'exceptional_complex' => __('Transport exceptionnel nécessitant une autorisation spéciale (escorte possible).', 'creation-reservoir'),
+                'standard' => __('Standard shipping available in Switzerland.', 'creation-reservoir'),
+                'exceptional_simple' => __('Oversized transport requiring standard authorization.', 'creation-reservoir'),
+                'exceptional_complex' => __('Oversized load requiring special authorization (escort may be required).', 'creation-reservoir'),
             ],
         ]);
 
@@ -125,7 +126,7 @@ class ISPAG_Tank_Manager {
         $article = apply_filters('ispag_get_article_by_id', null, $article_id);
         $deal_id = $article->hubspot_deal_id;
         $project = apply_filters('ispag_get_project_by_deal_id', null, $deal_id);
-        $tank_datas = (new ISPAG_Tank_Repository())->get_tank_details($article_id);
+        $tank_datas = ISPAG_Tank_Repository::get_tank_details($article_id);
 
         // 2. Générer le PDF
         $generator = new ISPAG_Nameplate_Generator();
@@ -242,7 +243,7 @@ class ISPAG_Tank_Manager {
     public static function get_technical_sheet_btn($html, $article, $deal_id){
         
         if($article->Type == 1){
-            // $deal_id = isset($_GET['deal_id']) ? intval($_GET['deal_id']) : '';
+
             return '<button id="technical-sheet-pdf" 
                         class="ispag-btn ispag-btn-secondary-outlined" 
                         style="margin-top: 1rem;"
@@ -297,7 +298,7 @@ class ISPAG_Tank_Manager {
         
 
         $article_id = isset($_GET['article_id']) ? intval($_GET['article_id']) : 0;
-        $deal_id = isset($_GET['deal_id']) ? intval($_GET['deal_id']) : 0;
+        $deal_id = get_query_var('deal_id') ?: ($_GET['deal_id'] ?? null);
 
         if (!$deal_id) {
             wp_die('Missing article ID');
@@ -364,7 +365,7 @@ class ISPAG_Tank_Manager {
                         window.open(url.toString(), \'_blank\');
                     });
                     </script>';
-            return '<button id="sketch-pdf" class="ispag-btn ispag-btn-secondary-outlined" style="margin-top: 1rem;" data-tank-sketch="' . intval($article->Id) . '" data-deal-id="' . intval($deal_id) . '">
+            return '<button id="sketch-pdf" class="ispag-btn ispag-btn-secondary-outlined" style="margin-top: 1rem;" data-tank-sketch="' . intval($article->Id) . '" data-deal-id="' . intval($deal_id) . '" data-ajax-action="tank_data_extractor">
                         <span class="dashicons dashicons-hammer"></span>
                         ' .  __('Sketch', 'creation-reservoir') . '
                     </button>
@@ -376,7 +377,7 @@ class ISPAG_Tank_Manager {
         
 
         $article_id = isset($_GET['article_id']) ? intval($_GET['article_id']) : 0;
-        $deal_id = isset($_GET['deal_id']) ? intval($_GET['deal_id']) : 0;
+        $deal_id = get_query_var('deal_id') ?: ($_GET['deal_id'] ?? null);
 
         if (!$deal_id) {
             wp_die('Missing article ID');

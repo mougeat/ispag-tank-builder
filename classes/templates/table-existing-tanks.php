@@ -10,7 +10,7 @@ $results = $results; // inutile mais clarifie
             <th><?php echo __('Diameter', 'creation-reservoir'); ?></th>
             <th><?php echo __('Material', 'creation-reservoir'); ?></th>
             <th><?php echo __('Volume', 'creation-reservoir'); ?></th>
-            <th><?php echo __('Operating pressure', 'creation-reservoir'); ?></th>
+            <th><?php echo __('Design pressure', 'creation-reservoir'); ?></th>
             <th><?php echo __('Project', 'creation-reservoir'); ?></th>
         </tr>
     </thead>

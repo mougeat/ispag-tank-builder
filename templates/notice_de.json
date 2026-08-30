@@ -1,0 +1,109 @@
+{
+  "title": "Technische Mitteilung – ISPAG Behälter",
+  "header": {
+    "company": "ISPAG",
+    "slogan": "{{project.ObjetCommande}}",
+    "date_label": "Erstellt am"
+  },
+  "sections": {
+    "generalites": {
+      "title": "1. Allgemeines",
+      "content": "Sehr geehrter Kunde,\nwir danken Ihnen, dass Sie sich für einen ISPAG-Behälter entschieden haben und für Ihr Vertrauen. Diese Montage- und Betriebsanleitung ist ein fester Bestandteil des Behälters und muss dem Bediener übergeben werden. Die Anweisungen müssen unbedingt befolgt werden. Wir übernehmen keine Haftung für Schäden, die durch unsachgemäße Verwendung oder Nichteinhaltung der Montageanweisungen und der Bedienungsanleitung entstehen."
+    },
+    "titre_appareil": {
+      "title": "2. Gerät"
+    },
+    "description_appareil": {
+      "title": "2.1. Gerätebeschreibung",
+      "content": "Der Behälter {{article.Article}} ist eine speziell als {{tank_datas.conception.TankType}} konzipierte Einheit. Jede andere Verwendung gilt als nicht konform. Der Hersteller übernimmt keine Haftung für daraus resultierende Schäden.",
+      "image": {
+        "url": "{{tank_svg_url}}",
+        "width": 40,
+        "height": 40,
+        "position": "right"
+      }
+    },
+    "model": {
+      "title": "2.2. Modell",
+      "content": {
+        "table_headers": ["Eigenschaft", "Wert"],
+        "table_rows": [
+          ["Typ", "{{tank_datas.conception.TankType}}"],
+          ["Material", "{{tank_datas.conception.material_text}}"],
+          ["Oberfläche", "{{tank_datas.conception.Finition}}"],
+          ["Volumen", "{{tank_datas.dimensions.Volume}} L"],
+          ["Durchmesser", "{{tank_datas.dimensions.Diameter}} mm"],
+          ["Höhe", "{{tank_datas.dimensions.Height}} mm"],
+          ["Betriebsdruck", "{{tank_datas.dimensions.MaxPressure}} bar"],
+          ["Prüfdruck", "{{tank_datas.dimensions.TestPressure}} bar"],
+          ["Betriebstemperatur", "{{tank_datas.dimensions.usingTemperature}}°C"]
+        ],
+        "column_widths": [60, 70]
+      },
+      "page_break": true
+    },
+    "bride": {
+      "title": "2.3. Flansch",
+      "content": {
+        "text": "Nach dem Erwärmen des Behälters ist es erforderlich, die Dichtheit aller Flansch- und Schraubverbindungen zu überprüfen. Alle Schrauben müssen bei warmem Behälter nachgezogen werden.\nAnziehdrehmomente:",
+        "table_headers": ["Schraubentyp", "Dichtung (Nm)", "Klingerit (Nm)"],
+        "table_rows": [
+          ["M12-Schraube", "30", "93"],
+          ["M14-Schraube", "55", "148"]
+        ],
+        "column_widths": [40, 40, 40]
+      },
+      "page_break": false
+    },
+    "piquages": {
+      "title": "2.4. Liste der Anschlüsse",
+      "content": {
+        "table_headers": ["Typ", "Zubehör", "Ø (mm)", "Höhe (mm)"],
+        "table_rows": "{{piquages}}",
+        "column_widths": [25, 65, 15, 15]
+      },
+      "page_break": false
+    },
+    "secu": {
+      "title": "3. Sicherheitshinweise",
+      "content": "Die Montage, Inbetriebnahme und Wartung des Behälters müssen von einer qualifizierten Fachkraft durchgeführt werden, die mit den geltenden Gesetzen, Normen und Vorschriften vertraut ist (einschließlich lokaler Vorschriften). Der Behälter darf nur auf einer ebenen Montagefläche und an einem frostgeschützten Ort installiert werden. Falls dies nicht der Fall ist oder der Behälter über einen längeren Zeitraum nicht in Betrieb ist, müssen der Behälter und der Wärmetauscher (falls vorhanden) vollständig entleert werden!\nNach Erhalt die vollständige Lieferung und das Fehlen von Schäden überprüfen.\nVerpackungsmaterialien (Befestigungen, Plastiktüten, Polystyrolschaum usw.) müssen für Kinder unzugänglich aufbewahrt werden.",
+      "page_break": true
+    },
+    "conception_installation": {
+      "title": "4. Planung und Installation"
+    },
+    "exigences_site": {
+      "title": "4.1. Anforderungen an den Installationsort",
+      "content": "Bei der Wahl des Installationsorts ist es zwingend erforderlich, das Gewicht des gefüllten Behälters zu berücksichtigen.\nUm Wärme- oder Kälteverluste zu vermeiden, sollte der Behälter in unmittelbarer Nähe zum Wärme-/Kälteerzeuger installiert werden. Halten Sie den Mindestabstand zwischen den Wänden, dem Behälter und den Wänden sowie den für die Installation auf den Seiten und hinten erforderlichen Platz ein.\nDer Behälter muss von einer qualifizierten Fachkraft und gemäß dem aktuellen Stand der Technik angeschlossen werden. Außerdem ist darauf zu achten, dass alle nationalen Normen und Gesetze eingehalten werden. Falls die in dieser Montageanleitung enthaltenen Informationen im Widerspruch zu den länderspezifischen Vorschriften stehen, sind letztere zu bevorzugen.\nDer Behälter muss geerdet werden. Bei Installationen mit gemischten Materialien ist sicherzustellen, dass die entsprechenden Trenn-elemente montiert sind und eine Potentialausgleichsverbindung hergestellt wird."
+    },
+    "equipement_secu": {
+      "title": "4.2. Sicherheitsausrüstung",
+      "content": "Geschlossene Heizungsanlagen müssen die Anforderungen der Norm DIN EN 12828, DIN EN 12977-1 Heizungssystem - Sicherheitsausrüstung erfüllen.\nUnsere Produkte sind nach EN 60335 zertifiziert.",
+      "page_break": true
+    },
+    "mise_en_service": {
+      "title": "5. Inbetriebnahme",
+      "content": "Den Anweisungen des Herstellers des Wärmeerzeugers folgen! Die Inbetriebnahme muss von einem autorisierten Fachbetrieb durchgeführt werden."
+    },
+    "formation": {
+      "title": "5.1 Schulung des Bedienpersonals",
+      "content": "* Übergabe der Montage- und Betriebsanleitung an den Betreiber der Anlage zur Aufbewahrung.\n* Dem Betreiber der Anlage mitteilen, wie die Temperaturen konform und wirtschaftlich einzustellen sind."
+    },
+    "mise_hors_service": {
+      "title": "6. Außerbetriebnahme",
+      "content": "Wenn der Behälter endgültig außer Betrieb genommen wird, muss er vollständig entleert und fachgerecht demontiert werden. Beim Entleeren den Behälter entlüften, um die Bildung von Vakuum zu vermeiden. Um Bedienungsfehler zu vermeiden, empfehlen wir die Installation eines Vakuumbrechers. Der Behälter und seine Isolierung müssen gemäß den örtlichen Vorschriften entsorgt werden."
+    },
+    "maintenance": {
+      "title": "7. Wartung und Inspektion",
+      "content": "Regelmäßige Kontrolle des Behälters und seiner Anschlüsse durchführen. Dichtheit der Verbindungen und den allgemeinen Zustand der Isolierung überprüfen. Wärmetauscher bei Bedarf reinigen."
+    },
+    "garantie": {
+      "title": "8. Garantie",
+      "content": "Unser Unternehmen gewährt für jedes gelieferte Teil eine Garantie gemäß den allgemeinen Einkaufsbedingungen. Die Einhaltung der folgenden Bedingungen ist Voraussetzung für jeden Garantieanspruch:\n* Überprüfung der gelieferten Teile und sofortige Kontaktaufnahme im Zweifelsfall\n* Überprüfung des guten Zustands der Ware und Fehlen von Schäden (z. B. Transport) sowie entsprechende Angabe auf den Versanddokumenten\n* Montage an einem frostgeschützten Ort\n* Jährliche Kontrolle und Reinigung des elektrischen Heizkörpers (falls vorhanden)\n* Allgemeine Kontrolle alle zwei Jahre\n* Regelmäßige Kontrolle und ggf. Austausch von Ersatzteilen\n* Einhaltung der maximalen Temperaturen und Drücke\n\nZur genauen Identifizierung der Ware ist es erforderlich, die mitgelieferten Typenschilder am Behälter und an der Isolierung anzubringen.\n\nWir übernehmen keine Haftung für Schäden, die durch unsachgemäße Verwendung oder Nichteinhaltung der Montageanweisungen und der Bedienungsanleitung entstehen."
+    }
+  },
+  "footer": {
+    "text": "© {{year}} ISPAG – Alle Rechte vorbehalten",
+    "disclaimer": "Nicht vertragliches Dokument – Version 1.0"
+  }
+}

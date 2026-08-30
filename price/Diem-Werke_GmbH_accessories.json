@@ -5,7 +5,8 @@
   "logic": {
     "included_fittings_energy": 10,
     "included_fittings_combi": 14,
-    "max_standard_length_mm": 160
+    "max_standard_length_mm": 160,
+    "included_fittings": ["16", "12", "15", "14", "13", "18", "11"]
   },
 "tarifs_raccords_standards": {
     "16": { "dn": "Rp¼\"", "prix_pn6": 27.00, "prix_pn16": 27.00 },
@@ -30,6 +31,10 @@
     "20": { "dn": "DN250", "prix_pn6": 186.00, "prix_pn16": 207.00 },
     "19": { "dn": "DN300", "prix_pn6": 346.00, "prix_pn16": 363.00 },
     "17": { "dn": "DN350", "prix_pn6": 437.00, "prix_pn16": 506.00 },
+    "31": { "dn": "DN400", "prix_pn6": 533.00, "prix_pn16": 655.00 },
+    "25": { "dn": "DN450", "prix_pn6": 533.00, "prix_pn16": 731.00 },
+    "26": { "dn": "DN500", "prix_pn6": 720.00, "prix_pn16": 852.00 },
+    "34": { "dn": "DN600", "prix_pn6": 872.00, "prix_pn16": 2000.00 },
     "10": { "dn": "Ø120/180", "prix_pn6": 219.00, "prix_pn16": 655.00 },
     "23": { "dn": "Ø220/290", "prix_pn6": 284.00, "prix_pn16": 739.00 },
     "9":  { "dn": "Ø200/280 (NW200)", "prix_pn6": 196.00, "prix_pn16": 196.00 },
@@ -38,7 +43,36 @@
     "7":  { "dn": "Ø500/580 (NW500)", "prix_pn6": 925.00, "prix_pn16": 925.00 }
   },
   "tarifs_accessoires_complexes": {
-    "bogenrohr": {
+    "17" : {
+      "type": "pour thermomètre, 0-120° C, L=200, D=100",
+      "prix": "0"
+    },
+    "18" : {
+      "type": "pour sonde(s) sans ces dernière(s) avec doigt(s) de gant",
+      "prix": "0"
+    },
+    "37" : {
+      "type": "pour thermomètre, -20 +40° C, L=200, D=100",
+      "prix": "0"
+    },
+    "38" : {
+      "type": "bride d'adaptation Ø400/480 -> Ø120/180",
+      "prix": "0"
+    },
+    "40" : {
+      "type": "bride d'adaptation Ø400/480 -> Ø200/280",
+      "prix": "0"
+    },
+    "46" : {
+      "type": "pour thermomètre(s) sans ce(s) dernier(s)",
+      "prix": "0"
+    },
+    "47" : {
+      "type": "pour sonde(s) sans ces dernière(s)",
+      "prix": "0"
+    },
+    "14": {
+      "type": "Bogenrohr",
       "note": "Prix dépendant du diamètre du raccord (Id de flange_dimensions)",
       "16": 35.00,
       "12": 35.00,
@@ -58,7 +92,8 @@
       "19": 389.00,
       "17": 583.00
     },
-    "spruehrohr": {
+    "15": {
+      "type": "spruehrohr",
       "note": "Prix dépendant du diamètre du raccord (Id de flange_dimensions)",
       "16": 160.00,
       "12": 160.00,
@@ -78,14 +113,40 @@
       "19": 934.00,
       "17": 1065.00
     },
-    "prallteller": {
+    "16": {
+      "type": "prallteller",
       "note": "Prix unique pour tous les diamètres",
       "16": 35.00, "12": 35.00, "15": 35.00, "14": 35.00, "13": 35.00,
       "18": 35.00, "11": 35.00, "6": 35.00, "5": 35.00, "4": 35.00,
       "3": 35.00, "2": 35.00, "1": 35.00, "21": 35.00, "20": 35.00,
       "19": 35.00, "17": 35.00
     },
-    "lochblech_fix": {
+    "56": {
+      "type": "U-Type Stratified (L = 175mm)",
+      "note": "Prix unique pour tous les diamètres",
+      "16": 25.00, "12": 25.00, "15": 25.00, "14": 25.00, "13": 25.00,
+      "18": 25.00, "11": 25.00, "6": 25.00, "5": 25.00, "4": 25.00,
+      "3": 25.00, "2": 25.00, "1": 25.00, "21": 25.00, "20": 25.00,
+      "19": 25.00, "17": 25.00
+    },
+    "57": {
+      "type": "U-Type Stratified (L = 590mm)",
+      "note": "Prix unique pour tous les diamètres",
+      "16": 51.00, "12": 51.00, "15": 51.00, "14": 51.00, "13": 51.00,
+      "18": 51.00, "11": 51.00, "6": 51.00, "5": 51.00, "4": 51.00,
+      "3": 51.00, "2": 51.00, "1": 51.00, "21": 51.00, "20": 51.00,
+      "19": 51.00, "17": 51.00
+    },
+    "58": {
+      "type": "U-Type Stratified (L = 700mm)",
+      "note": "Prix unique pour tous les diamètres",
+      "16": 56.00, "12": 56.00, "15": 56.00, "14": 56.00, "13": 56.00,
+      "18": 56.00, "11": 56.00, "6": 56.00, "5": 56.00, "4": 56.00,
+      "3": 56.00, "2": 56.00, "1": 56.00, "21": 56.00, "20": 56.00,
+      "19": 56.00, "17": 56.00
+    },
+    "22": {
+      "type": "lochblech_fix",
       "note": "Prix dépendant du diamètre de la cuve (en mm)",
       "500": 87.00, "650": 91.00, "700": 99.00, "750": 108.00, "790": 118.00,
       "850": 127.00, "900": 134.00, "950": 146.00, "1000": 154.00, "1100": 184.00,
@@ -93,7 +154,8 @@
       "1600": 377.00, "1700": 421.00, "1800": 461.00, "1900": 502.00, "2000": 543.00,
       "2100": 609.00, "2200": 666.00, "2300": 726.00, "2400": 786.00, "2500": 848.00
     },
-      "bogenrohr_konish": {
+    "49": {
+      "type": "bogenrohr_konish",
       "note": "Erweiterung für Beruhigung konisch (Prix par pallier de NW)",
       "16": 103.00,
       "12": 103.00,

@@ -5,7 +5,7 @@ class ISPAG_Tank_Repository {
     /**
      * Récupère toutes les données du réservoir pour le moteur DXF
      */
-    public function get_tank_details($customer_tank_id) {
+    public static function get_tank_details($customer_tank_id) {
         global $wpdb;
 
         // 1. Récupérer les dimensions et les noms des types/matériaux
@@ -27,11 +27,12 @@ class ISPAG_Tank_Repository {
         if (!$tank) return null;
 
         // 2. Récupérer la hauteur du fond bombé depuis le JSON
-        $bottom_height = $this->get_bottom_height_from_json($tank['Material'], $tank['Diameter']);
+        $bottom_height = self::get_bottom_height_from_json($tank['Material'], $tank['Diameter']);
 
         // 3. Récupérer les piquages avec les labels des raccords et accessoires
         $piquages = $wpdb->get_results($wpdb->prepare("
             SELECT 
+                conn.*,
                 conn.Height as Elevation_mm,
                 conn.Angle as Angle_degres,
                 conn.madeFor as Usage_piquage,
@@ -56,7 +57,7 @@ class ISPAG_Tank_Repository {
 
         // 4. Générer la description formatée pour le tableau DXF
         foreach ($piquages as &$p) {
-            $p['Description_Complete'] = $this->generate_connection_label($p);
+            $p['Description_Complete'] = self::generate_connection_label($p);
         }
 
         $data = [
@@ -82,13 +83,13 @@ class ISPAG_Tank_Repository {
             'piquages_techniques' => $piquages
         ];
 
-        return $this->utf8_encode_deep($data);
+        return self::utf8_encode_deep($data);
     }
 
     /**
      * Formate la description d'un piquage pour le tableau
      */
-    private function generate_connection_label($p) {
+    private static function generate_connection_label($p) {
         $type = !empty($p['Type_raccord_label']) ? $p['Type_raccord_label'] : 'Raccord';
         $dn   = !empty($p['Diametre_Nominal']) ? $p['Diametre_Nominal'] : '';
         
@@ -106,8 +107,8 @@ class ISPAG_Tank_Repository {
     /**
      * Lit le fichier JSON et trouve la hauteur du fond
      */
-    private function get_bottom_height_from_json($material_id, $diameter) {
-        $json_path = WP_PLUGIN_DIR . '/ispag-tank-builder/assets/js/tank_data.json';
+    private static function get_bottom_height_from_json($material_id, $diameter) {
+        $json_path = WP_PLUGIN_DIR . '/ispag-tank-builder/assets/json/tank_data.json';
         if (!file_exists($json_path)) return 280; // Par défaut
 
         $config = json_decode(file_get_contents($json_path), true);
@@ -121,10 +122,10 @@ class ISPAG_Tank_Repository {
     /**
      * Nettoyage UTF-8 récursif
      */
-    private function utf8_encode_deep($data) {
+    private static function utf8_encode_deep($data) {
         if (is_array($data)) {
             foreach ($data as $key => $value) {
-                $data[$key] = $this->utf8_encode_deep($value);
+                $data[$key] = self::utf8_encode_deep($value);
             }
         } elseif (is_string($data)) {
             if (!mb_check_encoding($data, 'UTF-8')) {
