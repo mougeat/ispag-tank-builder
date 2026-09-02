@@ -97,7 +97,7 @@ class ISPAG_Existing_Tanks_Table {
         </style>
 
         <div class="ispag-tanks-container">
-            <div class="ispag-toolbar" style="background: #fff; padding: 20px; border: 1px solid #ccd0d4; border-radius: var(--ispag-badge-border-radius); margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div class="ispag-toolbar">
                 <form method="get" action="">
                     <?php if(!is_admin()): ?>
                         <input type="hidden" name="page_id" value="<?php echo get_the_ID(); ?>">
