@@ -147,7 +147,7 @@ class Ispag_Fitting_Autosaver {
         $this->logger->log_user_action('fitting_autosaver', 'save_start', ['article_id' => $datas['article_id'] ?? null], $user_id);
 
         // -- 1. Résolution du TankId
-        $article_id = $this->resolve_article_id($datas);
+        $article_id = $this->resolve_article_id($datas); 
         if (!$article_id) {
             $this->logger->log('fitting_autosaver', 'ERROR: Article ID manquant ou introuvable', $user_id);
             return $this->result(false, 0, 0, [], 'Article ID manquant ou introuvable dans achats_tank_dimensions');

@@ -42,8 +42,9 @@ class ISPAG_Plate_Heat_exchanger_Designer {
 
         // Liste des types d'échangeurs traduisibles
         $this->exchanger_types = [
-            'brazed'   => __('Brazed', 'creation-reservoir'),
-            'gasketed' => __('Gasketed / Screwed', 'creation-reservoir')
+            'brazed'       => __('Brazed', 'creation-reservoir'),
+            'gasketed_304' => __('Gasketed / Screwed (Inox 304)', 'creation-reservoir'),
+            'gasketed_316' => __('Gasketed / Screwed (Inox 316 L)', 'creation-reservoir')
         ];
     }
 
@@ -57,8 +58,40 @@ class ISPAG_Plate_Heat_exchanger_Designer {
         add_filter('ispag_get_plate_exchanger_title', [self::$instance, 'generate_title_exchanger'], 10, 2);
         add_filter('ispag_get_plate_exchanger_description', [self::$instance, 'generate_description_exchanger'], 10, 2);
         add_action('ispag_delete_exchanger_data', [self::$instance, 'delete_exchanger_data'], 10, 2);
+        add_action('ispag_duplicate_exchanger_data', [self::$instance, 'duplicate_exchanger_data'], 10, 2);
     }
 
+    public static function get_instance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function generate_doc_title_exchanger($title, $article_id) {
+        $exchanger = $this->get_exchanger_data($article_id);
+
+        if (!$exchanger || empty($exchanger->power)) {
+            return $title;
+        }
+
+        $type_label = $this->exchanger_types[$exchanger->type] ?? '';
+
+        // $regime = sprintf(
+        //     '(%s/%s°C → %s/%s°C)',
+        //     $exchanger->primary_temp_in ?? '?',
+        //     $exchanger->primary_temp_out ?? '?',
+        //     $exchanger->secondary_temp_in ?? '?',
+        //     $exchanger->secondary_temp_out ?? '?'
+        // );
+
+        return sprintf(
+            '%s %s %s kW',
+            __('Plate Heat Exchanger', 'creation-reservoir'),
+            $type_label,
+            $exchanger->power
+        );
+    }
     public function generate_title_exchanger($title, $article_id) {
         $exchanger = $this->get_exchanger_data($article_id);
 
@@ -97,35 +130,49 @@ class ISPAG_Plate_Heat_exchanger_Designer {
         $type_label      = $this->exchanger_types[$exchanger->type] ?? $exchanger->type;
 
         $desc = [];
+        $type_label = $this->exchanger_types[$exchanger->type] ?? '';
 
-        // Ligne Type d'échangeur
-        $desc[] = sprintf("<strong>%s :</strong> %s", __('Type', 'creation-reservoir'), $type_label);
+        $desc[] = sprintf(
+            '<strong>%s %s</strong>',
+            __('Plate Heat Exchanger', 'creation-reservoir'),
+            $type_label
+        );
 
         // Ligne Puissance
         $desc[] = sprintf("<strong>%s :</strong> %s kW", __('Thermal Power', 'creation-reservoir'), $exchanger->power);
 
         // Bloc Primaire
+        $primary_parts = [
+            sprintf("%s/%s °C", $exchanger->primary_temp_in, $exchanger->primary_temp_out),
+            sprintf("%s : %s", __('Fluid', 'creation-reservoir'), $primary_fluid),
+            sprintf("%s : %s kPa", __('ΔP', 'creation-reservoir'), $exchanger->primary_pressure_drop),
+        ];
+
+        if (!empty($exchanger->primary_pressure)) {
+            $primary_parts[] = sprintf("%s : %s bar", __('Design pressure', 'creation-reservoir'), $exchanger->primary_pressure);
+        }
+
         $desc[] = sprintf(
-            "<strong>%s :</strong> %s/%s °C | %s : %s | %s : %s kPa",
+            "<strong>%s :</strong> %s",
             __('Primary', 'creation-reservoir'),
-            $exchanger->primary_temp_in,
-            $exchanger->primary_temp_out,
-            __('Fluid', 'creation-reservoir'),
-            $primary_fluid,
-            __('ΔP', 'creation-reservoir'),
-            $exchanger->primary_pressure_drop
+            implode(' | ', $primary_parts)
         );
 
         // Bloc Secondaire
+        $secondary_parts = [
+            sprintf("%s/%s °C", $exchanger->secondary_temp_in, $exchanger->secondary_temp_out),
+            sprintf("%s : %s", __('Fluid', 'creation-reservoir'), $secondary_fluid),
+            sprintf("%s : %s kPa", __('ΔP', 'creation-reservoir'), $exchanger->secondary_pressure_drop),
+        ];
+
+        if (!empty($exchanger->secondary_pressure)) {
+            $secondary_parts[] = sprintf("%s : %s bar", __('Design pressure', 'creation-reservoir'), $exchanger->secondary_pressure);
+        }
+
         $desc[] = sprintf(
-            "<strong>%s :</strong> %s/%s °C | %s : %s | %s : %s kPa",
+            "<strong>%s :</strong> %s",
             __('Secondary', 'creation-reservoir'),
-            $exchanger->secondary_temp_in,
-            $exchanger->secondary_temp_out,
-            __('Fluid', 'creation-reservoir'),
-            $secondary_fluid,
-            __('ΔP', 'creation-reservoir'),
-            $exchanger->secondary_pressure_drop
+            implode(' | ', $secondary_parts)
         );
 
         $desc[] = ""; 
@@ -136,15 +183,18 @@ class ISPAG_Plate_Heat_exchanger_Designer {
 
     public function render_dimensions_form($article_id, $source = 'project') {
         $data['exchanger'] = $this->get_exchanger_data($article_id);
+
+        error_log(print_r($data['exchanger'], true));
+
         $fluids = $this->fluids;
 
         ob_start();
-        include plugin_dir_path(__FILE__) . 'templates/form-plate-exchanger-field.php';
+        include plugin_dir_path(__FILE__) . 'templates/form-plate-exchanger-field.php'; 
         return ob_get_clean();
     }
 
     public function ispag_save_exchanger_data() {
-       wp_send_json_success(['debug' => $this->save_exchanger_data(null, $_POST)]);
+        wp_send_json_success(['debug' => $this->save_exchanger_data(null, $_POST)]);
     }
 
     public function save_exchanger_data($html, $datas) {
@@ -176,7 +226,9 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             'secondary_temp_in'       => 'secondary_temp_in',
             'secondary_temp_out'      => 'secondary_temp_out',
             'secondary_pressure_drop' => 'secondary_pressure_drop',
-            'secondary_fluid'         => 'secondary_fluid'
+            'secondary_fluid'         => 'secondary_fluid',
+            'primary_pressure'        => 'primary_pressure',
+            'secondary_pressure'      => 'secondary_pressure',
         ];
 
         foreach ($mapping as $sqlKey => $inputKey) {
@@ -223,5 +275,74 @@ class ISPAG_Plate_Heat_exchanger_Designer {
     public function delete_exchanger_data($html, $article_id) {
         if (empty($article_id)) return false;
         return $this->wpdb->delete($this->exchanger_table, ['article_id' => $article_id], ['%d']) !== false;
+    }
+
+    /**
+     * Duplique les données d'un échangeur vers un nouvel article.
+     *
+     * @param int $source_article_id ID de l'article d'origine
+     * @param int $target_article_id ID du nouvel article (dupliqué)
+     * @return bool True en cas de succès, False en cas d'échec
+     */
+    public function duplicate_exchanger_data($source_article_id, $target_article_id) {
+        $user_id = get_current_user_id();
+        $source_article_id = intval($source_article_id);
+        $target_article_id = intval($target_article_id);
+
+        $logger = class_exists('ISPAG_Logger') ? ISPAG_Logger::get_instance() : null;
+
+        if ($logger) {
+            $logger->log_user_action('exchanger_designer', 'duplicate_exchanger_start', [
+                'source_article_id' => $source_article_id,
+                'target_article_id' => $target_article_id
+            ], $user_id);
+        }
+
+        if (empty($source_article_id) || empty($target_article_id)) {
+            if ($logger) {
+                $logger->log_error('exchanger_designer', 'Invalid article IDs for duplication', [
+                    'source_article_id' => $source_article_id,
+                    'target_article_id' => $target_article_id
+                ], $user_id);
+            }
+            return false;
+        }
+
+        // Récupération des données d'origine
+        $data = $this->wpdb->get_row(
+            $this->wpdb->prepare("SELECT * FROM {$this->exchanger_table} WHERE article_id = %d", $source_article_id),
+            ARRAY_A
+        );
+
+        if ($logger) {
+            $logger->log_db_change('exchanger_designer', $this->exchanger_table, 'FETCH_EXCHANGER', [
+                'source_article_id' => $source_article_id,
+                'result'            => !empty($data)
+            ], $user_id);
+        }
+
+        if (!$data) {
+            if ($logger) {
+                $logger->log('exchanger_designer', 'INFO: No exchanger found to duplicate for article ' . $source_article_id, $user_id);
+            }
+            return false;
+        }
+
+        // Retrait des clés primaires uniques et assignation du nouvel article_id
+        unset($data['id']);
+        unset($data['Id']);
+        $data['article_id'] = $target_article_id;
+
+        // Insertion de la copie
+        $inserted = $this->wpdb->insert($this->exchanger_table, $data);
+
+        if ($logger) {
+            $logger->log_db_change('exchanger_designer', $this->exchanger_table, 'INSERT_DUPLICATE', [
+                'data'   => $data,
+                'result' => $inserted !== false
+            ], $user_id);
+        }
+
+        return $inserted !== false;
     }
 }

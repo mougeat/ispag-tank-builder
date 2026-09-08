@@ -12,6 +12,8 @@ function saveHeatExchangerData(articleId, is_purchase = false) {
         secondary_temp_out:         $('[name="exchanger[secondary_temp_out]"]').val(),
         secondary_pressure_drop:    $('[name="exchanger[secondary_pressure_drop]"]').val(),
         secondary_fluid:            $('[name="exchanger[secondary_fluid]"]').val(),
+        primary_fluid:              $('[name="exchanger[primary_fluid]"]').val(),
+        secondary_pressure:         $('[name="exchanger[secondary_pressure]"]').val(),
     };
     
     const deal_id = getUrlParam('deal_id');

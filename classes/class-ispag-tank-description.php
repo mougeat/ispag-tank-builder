@@ -23,34 +23,36 @@ class ISPAG_Tank_Description {
     }
 
     public function generate_tank_title($title, $article_id, $target_locale = null) {
-
-        // 1. Forcer la locale AVANT toute opération
+        $switched = false;
         if (!empty($target_locale)) {
-            $previous_locale = switch_to_locale($target_locale);
+            switch_to_locale($target_locale);
+            $switched = true;
         }
 
-        // error_log('[DEBUG] Locale dans tank title: ' . (function_exists('pll_current_language') ? pll_current_language() : get_locale()));
+        try {
+            $tank_designer = new ISPAG_Tank_Designer();
+            $datas = $tank_designer->get_tank_data(null, $article_id);
+            $conception = $datas['conception'] ?? null;
+            $dimensions = $datas['dimensions'] ?? null;
 
-        $tank_designer = new ISPAG_Tank_Designer();
-        $datas = $tank_designer->get_tank_data(null, $article_id);
-        
-        $conception = isset($datas['conception']) ? $datas['conception'] : null;
-        $dimensions = isset($datas['dimensions']) ? $datas['dimensions'] : null;
+            if (!$conception || !$dimensions) {
+                return $title;
+            }
 
-        // Si les données sont absentes, on retourne le titre original par défaut
-        if (!$conception || !$dimensions) {
-            return $title; 
+            return sprintf(
+                '%s %s %s %s, %s %s',
+                __($tank_designer->get_tank_text_data($conception->TankType ?? ''), 'creation-reservoir'),
+                ($dimensions->Volume ?? '0') . ' ' . __('liters', 'creation-reservoir'),
+                __('on', 'creation-reservoir'),
+                __($tank_designer->get_tank_text_data($conception->Support ?? ''), 'creation-reservoir'),
+                __('in', 'creation-reservoir'),
+                __($tank_designer->get_tank_text_data($conception->Material ?? ''), 'creation-reservoir')
+            );
+        } finally {
+            if ($switched) {
+                restore_previous_locale();
+            }
         }
-
-        return sprintf(
-            '%s %s %s %s, %s %s',
-            __($tank_designer->get_tank_text_data($conception->TankType ?? ''), 'creation-reservoir'),
-            ($dimensions->Volume ?? '0') . ' ' . __('liters', 'creation-reservoir'),
-            __('on', 'creation-reservoir'),
-            __($tank_designer->get_tank_text_data($conception->Support ?? ''), 'creation-reservoir'),
-            __('in', 'creation-reservoir'),
-            __($tank_designer->get_tank_text_data($conception->Material ?? ''), 'creation-reservoir')
-        );
     }
 
     public function generate_tank_description($title, $article_id, $is_purchase, $target_locale = null) {
@@ -89,7 +91,7 @@ class ISPAG_Tank_Description {
         $lines = [];
 
         // On passe le titre déjà généré ou on le génère ici
-        $lines[] = $this->generate_tank_title($title, $article_id, $target_locale);
+        $lines[] = $this->generate_tank_title($title, $article_id, null);
 
         // Utilisation de l'opérateur de coalescence ?? pour éviter les Warnings
         $lines[] = __('Uninsulated diameter', 'creation-reservoir') . ' : ' . number_format($dimensions->Diameter ?? 0, 0, ',', ' ') . ' mm';
