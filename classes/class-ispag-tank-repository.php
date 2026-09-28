@@ -134,4 +134,17 @@ class ISPAG_Tank_Repository {
         }
         return $data;
     }
+
+    public static function update_tank_dimensions($article_id = null, $update_fields = []) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'achats_tank_dimensions';
+        
+        if (!$article_id || empty($update_fields)) {
+            return false;
+        }
+
+        $updated = $wpdb->update($table_name, $update_fields, array('customerTankId' => $article_id));
+        
+        return $updated; // Indispensable pour que le handler sache si la mise à jour a réussi
+    }
 }

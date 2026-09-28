@@ -29,10 +29,16 @@ $(document).on('change', 'input[name="tank[nbWelding]"]', async function() {
     // 1. Correction de la faute de frappe : nbWelding (et pas ndWelding)
     // 2. Conversion en entier pour la comparaison
     const nbWelding = parseInt($(this).val(), 10); 
+    const computedSections = 4;
 
     // Si on a plus de 2 soudures (donc 3 tronçons ou plus)
-    if (nbWelding > 2) {
-        const confirmed = await ispagConfirm(ispag_texts.warning_nb_welding, {
+    if (nbWelding > computedSections) {
+
+        let weldingMsg = ispag_texts.warning_nb_welding 
+            ? ispag_texts.warning_nb_welding.replace('%d', computedSections).replace('%d', computedSections)
+            : `Attention, la plateforme ne peut pas ajouter automatiquement les soudure pour plue de ${computedSections} soudures`;
+
+        const confirmed = await ispagConfirm(weldingMsg, {
             labelOk:     ispag_texts.continue,
             labelCancel: ispag_texts.cancel || 'Annuler',
             danger:      false,

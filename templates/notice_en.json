@@ -53,7 +53,7 @@
         ],
         "column_widths": [40, 40, 40]
       },
-      "page_break": false
+      "page_break": true
     },
     "piquages": {
       "title": "2.4. List of Fittings",
@@ -62,7 +62,7 @@
         "table_rows": "{{piquages}}",
         "column_widths": [25, 65, 15, 15]
       },
-      "page_break": false
+      "page_break": true
     },
     "secu": {
       "title": "3. Safety Instructions",
@@ -99,7 +99,8 @@
     },
     "garantie": {
       "title": "8. Warranty",
-      "content": "Our company provides a warranty for each part delivered under the general terms and conditions of purchase. Compliance with the following conditions is a prerequisite for any warranty claim:\n* Check delivered parts and contact immediately in case of doubt\n* Check the good condition of the goods and the absence of damage (e.g., transport) and corresponding note on the shipping documents\n* Installation in a frost-protected location\n* Annual inspection and cleaning of the electric heating element (if applicable)\n* General inspection every two years\n* Regular inspection and possible replacement of spare parts\n* Compliance with maximum temperatures and pressures\n\nFor precise identification of the goods, it is necessary to install the provided nameplates on the tank and its insulation.\n\nWe decline all responsibility for damage resulting from non-compliant use or failure to comply with the installation instructions and user manual."
+      "content": "Our company provides a warranty for each part delivered under the general terms and conditions of purchase. Compliance with the following conditions is a prerequisite for any warranty claim:\n* Check delivered parts and contact immediately in case of doubt\n* Check the good condition of the goods and the absence of damage (e.g., transport) and corresponding note on the shipping documents\n* Installation in a frost-protected location\n* Annual inspection and cleaning of the electric heating element (if applicable)\n* General inspection every two years\n* Regular inspection and possible replacement of spare parts\n* Compliance with maximum temperatures and pressures\n\nFor precise identification of the goods, it is necessary to install the provided nameplates on the tank and its insulation.\n\nWe decline all responsibility for damage resulting from non-compliant use or failure to comply with the installation instructions and user manual.",
+      "page_break": true
     }
   },
   "footer": {

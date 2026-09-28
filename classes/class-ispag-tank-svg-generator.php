@@ -75,11 +75,26 @@ class ISPAG_Tank_SVG_Generator
         $logger->log_user_action('tank_svg_generator', 'filters_registered', [], $user_id);
     }
 
-    public function design_tank_svg($html, $article_id, $with_cotation = false)
+    public function design_tank_svg($html, $article_id, $with_cotation = false, $need_to_redesign = true)
     {
         $user_id = get_current_user_id();
-        $this->logger->log_user_action('tank_svg_generator', 'design_tank_svg_start', ['article_id' => $article_id, 'with_cotation' => $with_cotation], $user_id);
+        $this->logger->log_user_action('tank_svg_generator', 'design_tank_svg_start', ['article_id' => $article_id, 'with_cotation' => $with_cotation, 'need_to_redesign' => $need_to_redesign], $user_id);
 
+        // Définition du chemin du fichier SVG existant
+        $upload_dir = wp_upload_dir();
+        $svg_dir    = trailingslashit($upload_dir['basedir']) . 'ispag-svg/';
+        $svg_path   = $svg_dir . "cuves_{$article_id}.svg";
+
+        // Si on ne force pas le redessin et que le fichier existe déjà, on le lit directement
+        if (!$need_to_redesign && file_exists($svg_path)) {
+            $existing_svg = file_get_contents($svg_path);
+            if ($existing_svg !== false) {
+                $this->logger->log_user_action('tank_svg_generator', 'design_tank_svg_cached', ['article_id' => $article_id, 'svg_path' => $svg_path], $user_id);
+                return $existing_svg;
+            }
+        }
+
+        // Sinon, on exécute tout le processus lourd de chargement et de rendu
         $this->load_data($article_id);
         $this->logger->log_user_action('tank_svg_generator', 'tank_data_loaded', ['article_id' => $article_id], $user_id);
 

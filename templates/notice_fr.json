@@ -53,7 +53,7 @@
         ],
         "column_widths": [40, 40, 40]
       },
-      "page_break": false
+      "page_break": true
     },
     "piquages": {
       "title": "2.4. Liste des Piquages",
@@ -62,7 +62,7 @@
         "table_rows": "{{piquages}}",
         "column_widths": [25, 65, 15, 15]
       },
-      "page_break": false
+      "page_break": true
     },
     "secu": {
       "title": "3. Consignes de sécurité",

@@ -47,7 +47,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         $js_path = ISPAG_PLUGIN_PATH . 'assets/js/ispag-notice-pdf.js';
 
         if (!file_exists($js_path)) {
-            error_log("Fichier JS manquant : " . $js_path);
+            // error_log("Fichier JS manquant : " . $js_path);
             return;
         }
 
@@ -81,7 +81,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         if (!is_wp_error($response) && $response['response']['code'] === 200) {
             file_put_contents(self::$logo_path, $response['body']);
         } else {
-            error_log("Impossible de télécharger le logo ISPAG : " . ($response->get_error_message() ?? 'Unknown error'));
+            // error_log("Impossible de télécharger le logo ISPAG : " . ($response->get_error_message() ?? 'Unknown error'));
         }
     }
 
@@ -101,7 +101,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             wp_send_json_success($result);
 
         } catch (Exception $e) {
-            error_log("Erreur AJAX : " . $e->getMessage());
+            // error_log("Erreur AJAX : " . $e->getMessage());
             wp_send_json_error('Erreur : ' . $e->getMessage(), 500);
         }
     }
@@ -130,10 +130,8 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             $pdf->current_lang = $lang;
             $pdf->footer_template = $template['footer'];
 
-            // Ajouter une page pour chaque langue (sauf la première)
-            if ($lang !== 'fr') {
-                $pdf->AddPage();
-            }
+            // CORRECTION : Ajouter une nouvelle page au début de CHAQUE langue
+            $pdf->AddPage();
 
             // Ajouter l'en-tête et le contenu
             self::add_ispag_header($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
@@ -226,7 +224,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         $file = self::$templates_path . "notice_{$lang}.json";
 
         if (!file_exists($file)) {
-            error_log("Template manquant : " . $file);
+            // error_log("Template manquant : " . $file);
             $file = self::$templates_path . "notice_fr.json";
             if (!file_exists($file)) {
                 throw new Exception("Template par défaut non trouvé.");
@@ -377,7 +375,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         );
 
         if (!file_exists($svg_path)) {
-            error_log("Fichier SVG introuvable : " . $svg_path);
+            // error_log("Fichier SVG introuvable : " . $svg_path);
             return 0;
         }
 
@@ -390,7 +388,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         }
 
         if (!file_exists($png_path)) {
-            error_log("Échec de la conversion SVG → PNG : " . $png_path);
+            // error_log("Échec de la conversion SVG → PNG : " . $png_path);
             return 0;
         }
 
@@ -420,12 +418,12 @@ class ISPAG_Notice_PDF_Generator extends FPDF
                 $imagick->destroy();
                 return true;
             } catch (Exception $e) {
-                error_log("Erreur Imagick : " . $e->getMessage());
+                // error_log("Erreur Imagick : " . $e->getMessage());
                 return false;
             }
         }
         else {
-            error_log("Imagick n'est pas installé. Impossible de convertir le SVG en PNG.");
+            // error_log("Imagick n'est pas installé. Impossible de convertir le SVG en PNG.");
             return false;
         }
     }

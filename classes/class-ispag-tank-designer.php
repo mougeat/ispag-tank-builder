@@ -174,6 +174,17 @@ class ISPAG_Tank_Designer
         $display = $article_id != 0 ? "" : 'style="display:none;"';
         $this->logger->log_user_action(self::LOG_NAME, 'dimensions_form_display_set', ['display' => $display], $user_id);
 
+        //Datas du bâtiment
+        if(class_exists('ISPAG_Tank_Welding_Site_Sheet')){
+            $article_repo = new ISPAG_Article_Repository();
+            $deal_id = $article_repo->get_article_deal_id(null, $article_id);
+            $tank_welding_sheet = new ISPAG_Tank_Welding_Site_Sheet();
+            $welding_datas = $tank_welding_sheet->check_welding_sheet_data($deal_id);
+
+            // error_log(print_r($welding_datas, true));
+
+        }
+
         include plugin_dir_path(__FILE__) . 'templates/form-tank-dimensions-field.php';
         $this->logger->log_user_action(self::LOG_NAME, 'dimensions_form_rendered', ['article_id' => $article_id], $user_id);
     }
@@ -250,6 +261,8 @@ class ISPAG_Tank_Designer
             {
                 $this->logger->log(self::LOG_NAME, 'ERROR: Missing diameter or height for tipping calculation', $user_id);
             }
+
+
         }
         else
         {
@@ -458,6 +471,11 @@ class ISPAG_Tank_Designer
                 $newData['TankType'] = 4;
                 $this->logger->log_user_action(self::LOG_NAME, 'default_tank_type_applied', ['type' => 4], $user_id);
             }
+        }
+
+        if(isset($datas['room_height']) AND class_exists('ISPAG_Tank_Welding_Site_Sheet')){
+            $welding_sheet = new ISPAG_Tank_Welding_Site_Sheet();
+            $welding_sheet->save_welding_sheet_data($deal_id, $datas['room_height'] );
         }
 
         if (empty($newData))

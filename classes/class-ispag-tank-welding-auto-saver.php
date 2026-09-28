@@ -65,7 +65,7 @@ class ISPAG_Tank_Welding_Auto_Saver
             floatval($tank['dimensions']->Diameter),
             $tank['conception']->Material,
             intval($nb_welding)
-        );
+        ); 
 
         $this->logger->log_user_action(self::LOG_NAME, 'matching_article_searched', ['diameter' => $tank['dimensions']->Diameter, 'material' => $tank['conception']->Material, 'nb_welding' => $nb_welding], $user_id);
 
@@ -97,52 +97,65 @@ class ISPAG_Tank_Welding_Auto_Saver
 
         $this->logger->log_db_change(self::LOG_NAME, 'achats_articles', 'FETCH_WELDING_ARTICLES', ['count' => count($articles)], $user_id);
 
-        $nb_welding = $nb_welding + 1;
+        $matching_candidates = [];
 
         foreach ($articles as $article)
         {
-            $this->logger->log_user_action(self::LOG_NAME, 'checking_article', ['article_id' => $article->Id], $user_id);
-
             $data = json_decode($article->conception);
             if (!isset($data->welding))
             {
-                $this->logger->log_user_action(self::LOG_NAME, 'no_welding_field', ['article_id' => $article->Id], $user_id);
                 continue;
             }
 
             $w = $data->welding;
-            $match_nb = intval($w->nb_welding) === $nb_welding;
+            
+            // Correspondance exacte sur le nombre de soudures (ex: 2 ou 3) + 1 pour correspondre au nombre de tronçons
+            $match_nb = intval($w->nb_welding) === intval($nb_welding);
             $match_material = strtolower(trim($w->tank_material)) === strtolower(trim($material));
-            $match_diameter = abs(floatval($w->tank_diameter) - $diameter) < 5;
-
-            $this->logger->log_user_action(self::LOG_NAME, 'welding_match_check', [
-                'article_id' => $article->Id,
-                'match_nb' => $match_nb,
-                'match_material' => $match_material,
-                'match_diameter' => $match_diameter,
-                'w_nb_welding' => $w->nb_welding,
-                'w_material' => $w->tank_material,
-                'w_diameter' => $w->tank_diameter
-            ], $user_id);
+            
+            // Le diamètre de l'article doit être supérieur ou égal à celui du réservoir
+            $w_diameter = floatval($w->tank_diameter);
+            $match_diameter = $w_diameter >= floatval($diameter);
 
             if ($match_nb && $match_material && $match_diameter)
             {
-                $this->logger->log_db_change(self::LOG_NAME, 'achats_articles', 'MATCH_FOUND', ['article_id' => $article->Id], $user_id);
-                return $article;
+                $matching_candidates[] = [
+                    'article' => $article,
+                    'diameter' => $w_diameter
+                ];
             }
         }
 
-        $this->logger->log(self::LOG_NAME, 'ERROR: No matching welding article found', $user_id);
+        if (!empty($matching_candidates))
+        {
+            // Tri par diamètre croissant pour récupérer le plus petit des diamètres supérieurs (celui juste au-dessus)
+            usort($matching_candidates, function($a, $b) {
+                return $a['diameter'] <=> $b['diameter'];
+            });
+
+            $best_match = $matching_candidates[0]['article'];
+
+            $this->logger->log_db_change(self::LOG_NAME, 'achats_articles', 'MATCH_FOUND_GREATER_DIAMETER', [
+                'article_id' => $best_match->Id,
+                'matched_diameter' => $matching_candidates[0]['diameter'],
+                'tank_diameter' => $diameter,
+                'nb_welding' => $nb_welding
+            ], $user_id);
+
+            return $best_match;
+        }
+
+        $this->logger->log(self::LOG_NAME, 'ERROR: No matching welding article found for nb_welding ' . $nb_welding, $user_id);
         return null;
     }
 
     private function insert_welding_article($deal_id, $tank_id, $article)
     {
         $user_id = get_current_user_id();
-        $this->logger->log_user_action(self::LOG_NAME, 'insert_welding_article_start', ['deal_id' => $deal_id, 'tank_id' => $tank_id, 'article_id' => $article->Id], $user_id);
+        $this->logger->log_user_action(self::LOG_NAME, 'insert_welding_article_start', ['deal_id' => $deal_id, 'tank_id' => $tank_id, 'article_id' => $article->Id, 'Article' => $article->TitreArticle, 'Description' => $article->description_ispag], $user_id);
 
-        $title = apply_filters('ispag_get_welding_title', '', $article->Id);
-        $description = apply_filters('ispag_get_welding_description', '', $article->Id);
+        $title = apply_filters('ispag_get_welding_title', $article->TitreArticle, $article->Id);
+        $description = apply_filters('ispag_get_welding_description', $article->description_ispag, $article->Id);
         $default_supplier = 25;
 
         ISPAG_Article_Repository::ini();

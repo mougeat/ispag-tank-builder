@@ -76,13 +76,13 @@ class ISPAG_Nameplate_Generator extends ISPAG_PDF_Generator {
         );
 
         // --- 2. URL du Digital Product Twin ---
-        $base_url = home_url('/ispag-digital-product-twin/');
-        $qr_url_link = add_query_arg('serial', $serial_number, $base_url);
-        $qr_image_api = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($qr_url_link);
+        $base_url = home_url('/ispag-digital-product-twin/' . $serial_number);
+        // $qr_url_link = add_query_arg('serial', $serial_number, $base_url);
+        $qr_image_api = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" . urlencode($base_url);
         $this->logger->log_user_action(
             'nameplate_generator',
             'qr_code_generated',
-            ['url' => $qr_url_link],
+            ['url' => $base_url],
             $user_id
         );
 

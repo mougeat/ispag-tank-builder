@@ -124,7 +124,7 @@ class ISPAG_Tank_Welding {
             __('On-site welding of a %s tank in diameter %smm delivered in %s pieces', 'creation-reservoir'),
             $tank_material,
             $tank_diameter,
-            $nb_welding
+            ($nb_welding + 1)
         );
 
 
@@ -149,15 +149,37 @@ class ISPAG_Tank_Welding {
 
         $tank_material = $this->get_conception_value($ins['tank_material'] ?? 0 );
 
+        // Datas du bâtiment
+        $door_width_text = '';
+        if (class_exists('ISPAG_Tank_Welding_Site_Sheet')) {
+            $article_repo = new ISPAG_Article_Repository();
+            $deal_id = $article_repo->get_article_deal_id(null, $article_id);
+            $tank_welding_sheet = new ISPAG_Tank_Welding_Site_Sheet();
+            $welding_datas = $tank_welding_sheet->check_welding_sheet_data($deal_id);
+
+            // error_log(print_r($welding_datas, true));
+
+            // Vérification de door_width
+            if (!empty($welding_datas['info']->door_width)) {
+                $door_width_text = sprintf(
+                    '<br />' . __('Door width: %s mm', 'creation-reservoir'),
+                    $welding_datas['info']->door_width
+                );
+            } else {
+                $door_width_text = '<br /><span style="color:red;">' . __('Missing information: Door width (determines the number of welds).', 'creation-reservoir') . '</span>';
+            }
+        }
+
         $title = sprintf(
             __('On-site welding of a %s tank in diameter %smm delivered in %s pieces', 'creation-reservoir'),
             __($tank_material, 'creation-reservoir'),
             $tank_diameter,
-            $nb_welding
-        );
+            ($nb_welding + 1)
+        ); 
 
         // $desc = $this->get_insulation_title('', $article_id);
         $desc = $title;
+        $desc .= $door_width_text;
         $desc .= '<br />' . __('Site setup.', 'creation-reservoir');
         $desc .= '<br />' . __('The transport of the (cut) tank from the truck to its final location will be carried out by the installer.', 'creation-reservoir');
         $desc .= '<br />' . sprintf(__('Assembly, preparation, and tack welding of the water heater in %s parts.', 'creation-reservoir'), $nb_welding);
@@ -197,6 +219,17 @@ class ISPAG_Tank_Welding {
         // Récupération de la valeur stockée (par exemple 1 ou 0) pour la soudure par le client
         $welding_by_client = $this->get_welding_by_client_status($article_id);
 
+        
+
+        //Datas du bâtiment
+        if(class_exists('ISPAG_Tank_Welding_Site_Sheet')){
+            $article_repo = new ISPAG_Article_Repository();
+            $deal_id = $article_repo->get_article_deal_id(null, $article_id);
+            $tank_welding_sheet = new ISPAG_Tank_Welding_Site_Sheet();
+            $welding_datas = $tank_welding_sheet->check_welding_sheet_data($deal_id);
+        }
+        
+
         ob_start(); ?>
         <div class="ispag-welding-selector" data-article-id="<?= esc_attr($article_id); ?>">
             <label for="welding-nb"><?php _e('Number of welding', 'creation-reservoir'); ?></label>
@@ -213,11 +246,15 @@ class ISPAG_Tank_Welding {
                 ?>
                 <div style="width: 25%; text-align: left; display: flex; align-items: center; gap: 8px; margin-top: 15px; margin-bottom: 15px;">
                     <input type="checkbox" name="tank[weldingByClient]" <?php checked($welding_by_client ?? 0, 1); ?> class="form-field" style="margin: 0;">
-                    <label style="margin: 0; white-space: nowrap;"><?php _e('Welding by client', 'creation-reservoir'); ?></label>
+                    <label style="margin: 0; white-space: nowrap;"><?php _e('Welding managed by client', 'creation-reservoir'); ?></label>
                 </div>
                 <?php
             }
             ?>
+        </div>
+        <div class="field-group">
+            <label><strong><?php echo __('Smallest door width', 'creation-reservoir'); ?> (cm)</strong></label>
+            <input type="number" name="door_width" id="tank_door_width" value="<?= esc_attr($welding_datas['info']->door_width ?? '') ?>" min="0" style="width: 100%;" >
         </div>
         <?php
 

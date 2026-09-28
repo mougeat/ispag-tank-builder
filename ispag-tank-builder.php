@@ -26,6 +26,7 @@ require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-pdf-exporter.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-notice-pdf-generator.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-valves-manager.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-pricing.php';
+require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-welding-site-sheet.php';
 
 add_action('init', 'ispag_load_textdomain');
 // Initialisation du plugin
@@ -51,6 +52,7 @@ add_action('plugins_loaded', function() {
 
     new ISPAG_Nameplate_Generator();
     new ISPAG_Nameplate_SVG_Generator();
+    ISPAG_Tank_Welding_Site_Sheet::init();
     new ISPAG_Valves_Manager();
 
     

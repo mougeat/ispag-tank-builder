@@ -70,6 +70,13 @@ class ISPAG_Tank_Fittings {
         $template_welding_form = ob_get_clean();
         
         return '<div id="tank-fittings-modal" class="ispag-modal-fullscreen" style="display:none;">
+
+            <!-- <button class="ispag-modal-close ispag-btn ispag-btn-red-outlined ispag-close-croix" onclick="closeFittingsModal()">&times;</button> -->
+            <div class="ispag-modal-header ui-draggable-handle">
+                    <div id="ispag-modal-header-content">&nbsp;</div>
+                    <span class="ispag-modal-close ispag-btn ispag-btn-red-outlined ispag-close-croix" onclick="closeFittingsModal()">&times;</span>
+            </div>
+
             <input type="hidden" id="current-editing-article-id" value="">
             <input type="hidden" name="isProjectOrPurchase" value="project">
             <input type="hidden" id="tank-supplier-display" value="">
@@ -105,7 +112,7 @@ class ISPAG_Tank_Fittings {
                     </template>
                 </div>
             </div>
-            <button class="ispag-modal-close ispag-btn ispag-btn-red-outlined ispag-close-croix" onclick="closeFittingsModal()">&times;</button>
+            
         </div>
         ';
     }

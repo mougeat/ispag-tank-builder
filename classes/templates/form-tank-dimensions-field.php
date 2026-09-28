@@ -51,10 +51,15 @@ $allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE
                 <input type="number" name="tank[clearance]" value="<?= esc_attr($data['dimensions']->GroundClearance ?? '100') ?>" min="0" max="500" style="width: 100%;">
             </div>
 
-            <div class="field-group">
+            <div class="field-group" style="flex: 1; min-width: 200px;" >
                 <label><strong><?php echo __('Tipping height', 'creation-reservoir'); ?> (mm)</strong></label>
                 <input type="number" name="tank[tipping]" value="<?= esc_attr($data['dimensions']->TippingHeight ?? '') ?>" min="0" readonly style="width: 100%; background: #f0f0f1; cursor: not-allowed; border-color: #ddd;">
                 <small style="color: #888; font-style: italic;"><?= __('Calculated automatically', 'creation-reservoir') ?></small>
+            </div>
+
+            <div class="field-group">
+                <label><strong><?php echo __('Room height', 'creation-reservoir'); ?> (mm)</strong></label>
+                <input type="number" name="room_height" value="<?= esc_attr($welding_datas['info']->room_height ?? '') ?>" min="0" style="width: 100%; ">
             </div>
         </div>
 
@@ -117,6 +122,7 @@ $allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE
         </div>
         <div class="ispag-field" style="flex: 1; min-width: 250px;">
             <div class="selector-box" style="background: #fff; padding: 10px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #ddd;">
+                
                 <?php echo apply_filters('ispag_render_welding_selector', '', $article_id); ?>
             </div>
         </div>

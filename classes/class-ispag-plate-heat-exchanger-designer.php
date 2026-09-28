@@ -4,48 +4,62 @@ class ISPAG_Plate_Heat_exchanger_Designer {
     private $exchanger_table;
     private $wpdb;
     protected static $instance = null;
-    private $fluids;
-    private $exchanger_types;
+    private $fluids = null;
+    private $exchanger_types = null;
 
     public function __construct() {
         global $wpdb;
         $this->wpdb = $wpdb;
-        $this->exchanger_table = $wpdb->prefix.'achats_plate_exchanger_datas';
+        $this->exchanger_table = $wpdb->prefix . 'achats_plate_exchanger_datas';
+    }
 
-        // Liste des fluides traduisibles
-        $this->fluids = [
-            'water'      => __('Water', 'creation-reservoir'),
-            'glycol_30'  => __('Mono-Propylene-Glycol 30%', 'creation-reservoir'),
-            'glycol'     => __('Water/Glycol', 'creation-reservoir'),
-            'sea_water'  => __('Sea water', 'creation-reservoir'),
-            'meg_05'     => __('Mono-Ethylene-Glycol 05%', 'creation-reservoir'),
-            'meg_10'     => __('Mono-Ethylene-Glycol 10%', 'creation-reservoir'),
-            'meg_15'     => __('Mono-Ethylene-Glycol 15%', 'creation-reservoir'),
-            'meg_20'     => __('Mono-Ethylene-Glycol 20%', 'creation-reservoir'),
-            'meg_25'     => __('Mono-Ethylene-Glycol 25%', 'creation-reservoir'),
-            'meg_30'     => __('Mono-Ethylene-Glycol 30%', 'creation-reservoir'),
-            'meg_35'     => __('Mono-Ethylene-Glycol 35%', 'creation-reservoir'),
-            'meg_40'     => __('Mono-Ethylene-Glycol 40%', 'creation-reservoir'),
-            'meg_45'     => __('Mono-Ethylene-Glycol 45%', 'creation-reservoir'),
-            'meg_50'     => __('Mono-Ethylene-Glycol 50%', 'creation-reservoir'),
-            'mpg_10'     => __('Mono-Propylene-Glycol 10%', 'creation-reservoir'),
-            'mpg_15'     => __('Mono-Propylene-Glycol 15%', 'creation-reservoir'),
-            'mpg_20'     => __('Mono-Propylene-Glycol 20%', 'creation-reservoir'),
-            'mpg_25'     => __('Mono-Propylene-Glycol 25%', 'creation-reservoir'),
-            'mpg_30'     => __('Mono-Propylene-Glycol 30%', 'creation-reservoir'),
-            'mpg_35'     => __('Mono-Propylene-Glycol 35%', 'creation-reservoir'),
-            'mpg_40'     => __('Mono-Propylene-Glycol 40%', 'creation-reservoir'),
-            'mpg_45'     => __('Mono-Propylene-Glycol 45%', 'creation-reservoir'),
-            'mpg_50'     => __('Mono-Propylene-Glycol 50%', 'creation-reservoir'),
-            'other'      => __('Other', 'creation-reservoir')
-        ];
+    /**
+     * Récupère la liste des fluides traduits (chargement différé).
+     */
+    public function get_fluids() {
+        if ($this->fluids === null) {
+            $this->fluids = [
+                'water'      => __('Water', 'creation-reservoir'),
+                'glycol_30'  => __('Mono-Propylene-Glycol 30%', 'creation-reservoir'),
+                'glycol'     => __('Water/Glycol', 'creation-reservoir'),
+                'sea_water'  => __('Sea water', 'creation-reservoir'),
+                'meg_05'     => __('Mono-Ethylene-Glycol 05%', 'creation-reservoir'),
+                'meg_10'     => __('Mono-Ethylene-Glycol 10%', 'creation-reservoir'),
+                'meg_15'     => __('Mono-Ethylene-Glycol 15%', 'creation-reservoir'),
+                'meg_20'     => __('Mono-Ethylene-Glycol 20%', 'creation-reservoir'),
+                'meg_25'     => __('Mono-Ethylene-Glycol 25%', 'creation-reservoir'),
+                'meg_30'     => __('Mono-Ethylene-Glycol 30%', 'creation-reservoir'),
+                'meg_35'     => __('Mono-Ethylene-Glycol 35%', 'creation-reservoir'),
+                'meg_40'     => __('Mono-Ethylene-Glycol 40%', 'creation-reservoir'),
+                'meg_45'     => __('Mono-Ethylene-Glycol 45%', 'creation-reservoir'),
+                'meg_50'     => __('Mono-Ethylene-Glycol 50%', 'creation-reservoir'),
+                'mpg_10'     => __('Mono-Propylene-Glycol 10%', 'creation-reservoir'),
+                'mpg_15'     => __('Mono-Propylene-Glycol 15%', 'creation-reservoir'),
+                'mpg_20'     => __('Mono-Propylene-Glycol 20%', 'creation-reservoir'),
+                'mpg_25'     => __('Mono-Propylene-Glycol 25%', 'creation-reservoir'),
+                'mpg_30'     => __('Mono-Propylene-Glycol 30%', 'creation-reservoir'),
+                'mpg_35'     => __('Mono-Propylene-Glycol 35%', 'creation-reservoir'),
+                'mpg_40'     => __('Mono-Propylene-Glycol 40%', 'creation-reservoir'),
+                'mpg_45'     => __('Mono-Propylene-Glycol 45%', 'creation-reservoir'),
+                'mpg_50'     => __('Mono-Propylene-Glycol 50%', 'creation-reservoir'),
+                'other'      => __('Other', 'creation-reservoir')
+            ];
+        }
+        return $this->fluids;
+    }
 
-        // Liste des types d'échangeurs traduisibles
-        $this->exchanger_types = [
-            'brazed'       => __('Brazed', 'creation-reservoir'),
-            'gasketed_304' => __('Gasketed / Screwed (Inox 304)', 'creation-reservoir'),
-            'gasketed_316' => __('Gasketed / Screwed (Inox 316 L)', 'creation-reservoir')
-        ];
+    /**
+     * Récupère la liste des types d'échangeurs traduits (chargement différé).
+     */
+    public function get_exchanger_types() {
+        if ($this->exchanger_types === null) {
+            $this->exchanger_types = [
+                'brazed'       => __('Brazed', 'creation-reservoir'),
+                'gasketed_304' => __('Gasketed / Screwed (Inox 304)', 'creation-reservoir'),
+                'gasketed_316' => __('Gasketed / Screwed (Inox 316 L)', 'creation-reservoir')
+            ];
+        }
+        return $this->exchanger_types;
     }
 
     public static function init() {
@@ -75,15 +89,8 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             return $title;
         }
 
-        $type_label = $this->exchanger_types[$exchanger->type] ?? '';
-
-        // $regime = sprintf(
-        //     '(%s/%s°C → %s/%s°C)',
-        //     $exchanger->primary_temp_in ?? '?',
-        //     $exchanger->primary_temp_out ?? '?',
-        //     $exchanger->secondary_temp_in ?? '?',
-        //     $exchanger->secondary_temp_out ?? '?'
-        // );
+        $types = $this->get_exchanger_types();
+        $type_label = $types[$exchanger->type] ?? '';
 
         return sprintf(
             '%s %s %s kW',
@@ -92,6 +99,7 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             $exchanger->power
         );
     }
+
     public function generate_title_exchanger($title, $article_id) {
         $exchanger = $this->get_exchanger_data($article_id);
 
@@ -99,7 +107,8 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             return $title;
         }
 
-        $type_label = $this->exchanger_types[$exchanger->type] ?? '';
+        $types = $this->get_exchanger_types();
+        $type_label = $types[$exchanger->type] ?? '';
 
         $regime = sprintf(
             '(%s/%s°C → %s/%s°C)',
@@ -125,12 +134,14 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             return '';
         }
 
-        $primary_fluid   = $this->fluids[$exchanger->primary_fluid] ?? $exchanger->primary_fluid;
-        $secondary_fluid = $this->fluids[$exchanger->secondary_fluid] ?? $exchanger->secondary_fluid;
-        $type_label      = $this->exchanger_types[$exchanger->type] ?? $exchanger->type;
+        $fluids = $this->get_fluids();
+        $types  = $this->get_exchanger_types();
+
+        $primary_fluid   = $fluids[$exchanger->primary_fluid] ?? $exchanger->primary_fluid;
+        $secondary_fluid = $fluids[$exchanger->secondary_fluid] ?? $exchanger->secondary_fluid;
+        $type_label      = $types[$exchanger->type] ?? '';
 
         $desc = [];
-        $type_label = $this->exchanger_types[$exchanger->type] ?? '';
 
         $desc[] = sprintf(
             '<strong>%s %s</strong>',
@@ -183,10 +194,7 @@ class ISPAG_Plate_Heat_exchanger_Designer {
 
     public function render_dimensions_form($article_id, $source = 'project') {
         $data['exchanger'] = $this->get_exchanger_data($article_id);
-
-        error_log(print_r($data['exchanger'], true));
-
-        $fluids = $this->fluids;
+        $fluids = $this->get_fluids();
 
         ob_start();
         include plugin_dir_path(__FILE__) . 'templates/form-plate-exchanger-field.php'; 
@@ -277,13 +285,6 @@ class ISPAG_Plate_Heat_exchanger_Designer {
         return $this->wpdb->delete($this->exchanger_table, ['article_id' => $article_id], ['%d']) !== false;
     }
 
-    /**
-     * Duplique les données d'un échangeur vers un nouvel article.
-     *
-     * @param int $source_article_id ID de l'article d'origine
-     * @param int $target_article_id ID du nouvel article (dupliqué)
-     * @return bool True en cas de succès, False en cas d'échec
-     */
     public function duplicate_exchanger_data($source_article_id, $target_article_id) {
         $user_id = get_current_user_id();
         $source_article_id = intval($source_article_id);
@@ -308,7 +309,6 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             return false;
         }
 
-        // Récupération des données d'origine
         $data = $this->wpdb->get_row(
             $this->wpdb->prepare("SELECT * FROM {$this->exchanger_table} WHERE article_id = %d", $source_article_id),
             ARRAY_A
@@ -328,12 +328,10 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             return false;
         }
 
-        // Retrait des clés primaires uniques et assignation du nouvel article_id
         unset($data['id']);
         unset($data['Id']);
         $data['article_id'] = $target_article_id;
 
-        // Insertion de la copie
         $inserted = $this->wpdb->insert($this->exchanger_table, $data);
 
         if ($logger) {

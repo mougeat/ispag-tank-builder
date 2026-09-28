@@ -380,10 +380,10 @@ class ISPAG_Tank_Manager {
         $deal_id = get_query_var('deal_id') ?: ($_GET['deal_id'] ?? null);
 
         if (!$deal_id) {
-            wp_die('Missing article ID');
+            wp_die('Missing deal ID');
         }
         if (!$article_id) {
-            wp_die('Missing deal ID');
+            wp_die('Missing article ID');
         }
 
         global $wpdb;

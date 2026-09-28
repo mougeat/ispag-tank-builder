@@ -90,10 +90,15 @@ $display = $display ?? null;
                     <input type="number" name="tank[clearance]" value="<?= esc_attr($data['dimensions']->GroundClearance ?? '100') ?>" min="0" max="500" style="width: 100%;">
                 </div>
 
-                <div class="field-group">
+                <div class="field-group" style="margin-bottom: 15px;">
                     <label><strong><?php echo __('Tipping height', 'creation-reservoir'); ?> (mm)</strong></label>
                     <input type="number" name="tank[tipping]" value="<?= esc_attr($data['dimensions']->TippingHeight ?? '') ?>" min="0" readonly style="width: 100%; background: #f0f0f1; cursor: not-allowed; border-color: #ddd;">
                     <small style="color: #888; font-style: italic;"><?= __('Calculated automatically', 'creation-reservoir') ?></small>
+                </div>
+
+                <div class="field-group">
+                    <label><strong><?php echo __('Room height', 'creation-reservoir'); ?> (mm)</strong></label>
+                    <input type="number" name="room_height" id="tank_room_height" value="<?= esc_attr($data['dimensions']->RoomHeight ?? '') ?>" min="0" style="width: 100%; background: #f0f0f1; cursor: not-allowed; border-color: #ddd;">
                 </div>
             </div>
 

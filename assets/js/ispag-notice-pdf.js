@@ -1,5 +1,16 @@
 jQuery(document).ready(function($) {
-    window.generateNoticePDF = function(articleId) {
+    window.generateNoticePDF = function(articleId, btnElement) {
+        var $btn = $(btnElement);
+        var originalHtml = $btn.html();
+
+        // 1. Pré-ouverture de l'onglet vide pour éviter le blocage des pop-ups
+        var pdfWindow = window.open('', '_blank');
+
+        // 2. Désactivation du bouton et ajout du spinner
+        $btn.prop('disabled', true).html(
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + ispag_texts.generating + '...'
+        );
+
         $.ajax({
             url: ispagNoticePdf.ajax_url,
             type: 'POST',
@@ -10,14 +21,21 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 if (response.success && response.data.pdf_url) {
-                    window.location.href = response.data.pdf_url;
+                    // Affectation de l'URL à l'onglet ouvert
+                    pdfWindow.location.href = response.data.pdf_url;
                 } else {
-                    alert("Erreur : " + (response.data?.message || "Inconnu"));
+                    pdfWindow.close(); // Ferme l'onglet vierge si erreur
+                    alert("Erreur : " + (response.data || "Inconnu"));
                 }
             },
             error: function(xhr, status, error) {
+                pdfWindow.close(); // Ferme l'onglet vierge si erreur
                 console.error("Erreur AJAX :", xhr.status, xhr.responseText);
                 alert("Erreur lors de la génération du PDF. Vérifiez la console.");
+            },
+            complete: function() {
+                // 3. Restauration de l'état initial du bouton
+                $btn.prop('disabled', false).html(originalHtml);
             }
         });
     };
