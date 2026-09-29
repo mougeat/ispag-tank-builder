@@ -16,6 +16,11 @@ if (!defined('ISPAG_PLUGIN_PATH')) {
     define('ISPAG_PLUGIN_PATH', plugin_dir_path(__FILE__));
 }
 
+// Schéma de base de données : créé à l'activation, et re-vérifié à chaque chargement si la version change
+require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-builder-installer.php';
+register_activation_hook(__FILE__, ['ISPAG_Tank_Builder_Installer', 'install']);
+ISPAG_Tank_Builder_Installer::init();
+
 // Autochargement des classes
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-manager.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-exchanger.php';
