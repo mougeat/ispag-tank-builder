@@ -299,7 +299,7 @@ async function updateDiameterDatalistByMaterial(materialId) {
     if (!arrayBottomHeight || !arrayBottomHeight[materialId]) {
         console.error(`[ERROR] arrayBottomHeight[${materialId}] introuvable.`);
         $select.empty();
-        $select.append(new Option('-- Sélectionnez un matériau --', ''));
+        $select.append(new Option('-- Select a material --', ''));
         return;
     }
 

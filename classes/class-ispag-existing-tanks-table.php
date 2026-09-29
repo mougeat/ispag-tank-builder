@@ -185,7 +185,7 @@ class ISPAG_Existing_Tanks_Table {
                     echo paginate_links([
                         'base'      => add_query_arg('paged', '%#%', remove_query_arg('paged')),
                         'format'    => '',
-                        'prev_text' => __('&laquo; Précédent'),
+                        'prev_text' => __('&laquo; Previous'),
                         'next_text' => __('Suivant &raquo;'),
                         'total'     => $total_pages,
                         'current'   => $paged,

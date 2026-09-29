@@ -191,7 +191,7 @@ jQuery(document).ready(function($) {
         // Vérifier si le champ sales_price contient une valeur
         if (currentSalesPrice && currentSalesPrice.trim() !== '' && currentSalesPrice !== '0.00' && currentSalesPrice !== '0' && currentSalesPrice !== '---') {
             const confirmed = await ispagConfirm(
-                ispag_texts?.confirm_overwrite_price || "Un prix existe déjà. Voulez-vous le recalculer et l'écraser ?",
+                ispag_texts?.confirm_overwrite_price || "A price already exists. Do you want to recalculate and overwrite it?",
                 { danger: true }
             );
             if (!confirmed) {

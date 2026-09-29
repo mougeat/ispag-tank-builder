@@ -336,8 +336,8 @@ class ISPAG_Tank_Manager {
         // ];
 
         $notes = [
-            'Fiche générée automatiquement.',
-            'Veuillez vérifier les données avant envoi au client.',
+            'Sheet generated automatically.',
+            'Please check the data before sending to the customer.',
         ];
 
         require_once plugin_dir_path(__FILE__) . '/class-ispag-tank-pdf-generator.php';
@@ -407,8 +407,8 @@ class ISPAG_Tank_Manager {
         }
 
         $notes = [
-            'Fiche générée automatiquement.',
-            'Veuillez vérifier les données avant envoi au client.',
+            'Sheet generated automatically.',
+            'Please check the data before sending to the customer.',
         ];
 
         require_once plugin_dir_path(__FILE__) . '/class-ispag-tank-drawing-generator.php';

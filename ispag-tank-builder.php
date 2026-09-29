@@ -53,7 +53,7 @@ if (!function_exists('ispag_project_manager_dir')) {
 add_action('plugins_loaded', function () {
     if (!defined('ISPAG_PROJECT_MANAGER_DIR')) {
         add_action('admin_notices', function () {
-            echo '<div class="notice notice-error"><p><strong>ISPAG Tank Builder</strong> nécessite le plugin <strong>ISPAG Project Manager</strong> actif '
+            echo '<div class="notice notice-error"><p><strong>ISPAG Tank Builder</strong> requires the <strong>ISPAG Project Manager</strong> plugin to be active. '
                . 'Activez-le d\'abord.</p></div>';
         });
         return;

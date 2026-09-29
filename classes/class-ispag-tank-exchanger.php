@@ -138,7 +138,7 @@ class ISPAG_Tank_Exchanger
         if (!current_user_can('edit_posts'))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: User cannot edit posts', $user_id);
-            wp_die('Accès refusé');
+            wp_die('Access denied');
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'post_data_received', ['data' => $_POST], $user_id);
@@ -149,7 +149,7 @@ class ISPAG_Tank_Exchanger
         if ($tank_id === 0)
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Missing tank_id', $user_id);
-            wp_send_json_error(['message' => 'ID du réservoir manquant.']);
+            wp_send_json_error(['message' => 'Missing tank ID.']);
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'form_params_validated', ['tank_id' => $tank_id, 'coil_nb' => $coil_nb], $user_id);
@@ -457,7 +457,7 @@ class ISPAG_Tank_Exchanger
         if (!$tank_id || empty($exchangers_json))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Missing tank_id or exchangers_json', $user_id);
-            wp_send_json_error(__('Données manquantes', 'creation-reservoir'));
+            wp_send_json_error(__('Missing data', 'creation-reservoir'));
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'exchangers_json_received', ['tank_id' => $tank_id, 'json_length' => strlen($exchangers_json)], $user_id);
@@ -466,7 +466,7 @@ class ISPAG_Tank_Exchanger
         if (!is_array($exchangers_array))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: JSON decode failed - ' . json_last_error_msg(), $user_id);
-            wp_send_json_error(__('Format de données invalide', 'creation-reservoir'));
+            wp_send_json_error(__('Invalid data format', 'creation-reservoir'));
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'exchangers_decoded', ['count' => count($exchangers_array)], $user_id);

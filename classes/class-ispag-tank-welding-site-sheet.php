@@ -168,7 +168,7 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
                         <div style="display:flex; gap:10px; margin-bottom:8px;">
                             <div style="flex:1;">
                                 <label style="display:block; font-size:11px; font-weight:bold;"><?php echo esc_html__('Ceiling type', 'creation-reservoir'); ?></label>
-                                <input type="text" name="ceiling_type" id="modal_ceiling_type" placeholder="Ex: béton / poutre" style="width:100%; padding:5px; box-sizing:border-box;">
+                                <input type="text" name="ceiling_type" id="modal_ceiling_type" placeholder="E.g. concrete / beam" style="width:100%; padding:5px; box-sizing:border-box;">
                             </div>
                             <div style="flex:1;">
                                 <label style="display:block; font-size:11px; font-weight:bold;"><?php echo esc_html__('Hoist allowed', 'creation-reservoir'); ?></label>

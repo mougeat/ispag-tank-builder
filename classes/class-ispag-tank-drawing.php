@@ -91,10 +91,10 @@ class ISPAG_Tank_Drawing {
 
     public function plan_viewer(){
         $drawing_id = isset($_GET['drawing_id']) ? (int) $_GET['drawing_id'] : 0;
-        if (!$drawing_id) return "Aucun plan trouvé.";
+        if (!$drawing_id) return "No drawing found.";
 
         $article_id = isset($_GET['article_id']) ? (int) $_GET['article_id'] : 0;
-        if (!$article_id) return "Aucun article trouvé.";
+        if (!$article_id) return "No article found.";
 
         $article = apply_filters('ispag_get_article_by_id', null, $article_id);
         $url = $article->last_drawing_url;
@@ -140,7 +140,7 @@ class ISPAG_Tank_Drawing {
         exec($command, $output, $resultCode);
 
         if ($resultCode !== 0 || !file_exists($outputPdf)) {
-            throw new Exception("Erreur lors de la décompression du PDF via Ghostscript.");
+            throw new Exception("Error while decompressing the PDF with Ghostscript.");
         }
 
         return $outputPdf;

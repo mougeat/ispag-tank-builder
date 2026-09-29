@@ -227,7 +227,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             // error_log("Template manquant : " . $file);
             $file = self::$templates_path . "notice_fr.json";
             if (!file_exists($file)) {
-                throw new Exception("Template par défaut non trouvé.");
+                throw new Exception("Default template not found.");
             }
         }
 

@@ -91,14 +91,14 @@ jQuery(function($) {
 
         // Vérifier s'il y a des erreurs dans ce tank
         if (hasErrors[tankId]) {
-            alert("Corrigez les erreurs de température avant d'enregistrer.");
+            alert("Fix the temperature errors before saving.");
             return;
         }
 
         const $forms = $modalContent.find('.exchanger-form');
 
         if ($forms.length === 0) {
-            alert("Erreur : Aucun formulaire d'échangeur trouvé.");
+            alert("Error: No exchanger form found.");
             return;
         }
 
@@ -118,7 +118,7 @@ jQuery(function($) {
         });
 
         if (!tankId) {
-            alert("Erreur critique : L'ID du réservoir est manquant.");
+            alert("Critical error: The tank ID is missing.");
             return;
         }
 
@@ -143,7 +143,7 @@ jQuery(function($) {
                 }
             },
             error: function() {
-                alert("Erreur réseau lors de l'enregistrement.");
+                alert("Network error while saving.");
             },
             complete: function() {
                 $btn.html('<span class="dashicons dashicons-media-archive"></span> Enregistrer').prop('disabled', false);
@@ -194,21 +194,21 @@ jQuery(function($) {
             // 1. hotWaterOutput doit être <= loadOutput - 2°C
             if (hotWaterOutput > (loadOutput - 2)) {
                 $container.find(`[name="hotWaterOutputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Doit être ≤ T° charge sortie - 2°C");
+                          .text("Must be ≤ charge outlet temp. - 2°C");
                 hasError = true;
             }
 
             // 2. coldWaterInput doit être < loadOutput
             if (coldWaterInput >= loadOutput) {
                 $container.find(`[name="coldWaterInputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Doit être < T° charge sortie");
+                          .text("Must be < charge outlet temp.");
                 hasError = true;
             }
 
             // 3. loadInput doit être > hotWaterOutput
             if (loadInput <= hotWaterOutput) {
                 $container.find(`[name="loadInputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Doit être > T° eau chaude sortie");
+                          .text("Must be > hot water outlet temp.");
                 hasError = true;
             }
 
@@ -217,7 +217,7 @@ jQuery(function($) {
             const deltaB = loadInput - hotWaterOutput;
 
             if (deltaA <= 0 || deltaB <= 0) {
-                surfaceField.val("Erreur : Écart de température invalide")
+                surfaceField.val("Error: Invalid temperature difference")
                            .prop('readonly', false)
                            .css('background', '#ffcccc');
                 hasError = true;

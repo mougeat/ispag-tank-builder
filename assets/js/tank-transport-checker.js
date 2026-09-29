@@ -42,8 +42,8 @@ async function loadTransportRules() {
       },
       messages: ISPAG_TRANSPORT.messages || {
         standard: "Transport standard possible en Suisse.",
-        exceptional_simple: "Transport exceptionnel nécessitant une autorisation simple.",
-        exceptional_complex: "Transport exceptionnel nécessitant une autorisation spéciale (escorte possible)."
+        exceptional_simple: "Exceptional transport requiring a simple permit.",
+        exceptional_complex: "Exceptional transport requiring a special permit (escort possible)."
       }
     };
     // console.warn('⚠️ [TRANSPORT] Utilisation des règles par défaut:', transportRules);

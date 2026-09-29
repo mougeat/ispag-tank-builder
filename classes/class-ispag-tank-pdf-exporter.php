@@ -126,7 +126,7 @@ class ISPAG_Tank_PDF_Exporter extends FPDF
         if (!$article_id)
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Missing article_id', $user_id);
-            wp_send_json_error(['message' => __('ID de l\'article manquant.', 'creation-reservoir')]);
+            wp_send_json_error(['message' => __('Missing article ID.', 'creation-reservoir')]);
             exit;
         }
 

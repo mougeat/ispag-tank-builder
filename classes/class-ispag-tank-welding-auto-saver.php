@@ -282,7 +282,7 @@ class ISPAG_Tank_Welding_Auto_Saver
         if (!$tank_id)
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: No tank_id found for article ' . $article_id, $user_id);
-            return "[SYNC] Aucun tank_id trouvé pour l'article $article_id.";
+            return "[SYNC] No tank_id found for article $article_id.";
         }
 
         $row = $wpdb->get_row($wpdb->prepare(
@@ -298,7 +298,7 @@ class ISPAG_Tank_Welding_Auto_Saver
         if ($current_count === $nb_welding && $height_approved != 0)
         {
             $this->logger->log_user_action(self::LOG_NAME, 'sync_not_needed', ['current_count' => $current_count, 'nb_welding' => $nb_welding], $user_id);
-            return "[SYNC] Rien à faire, nombre exact ($nb_welding) et hauteur validée.";
+            return "[SYNC] Nothing to do, exact count ($nb_welding) and height validated.";
         }
 
         $tank_datas = apply_filters('ispag_get_tank_datas', null, $article_id);
@@ -336,7 +336,7 @@ class ISPAG_Tank_Welding_Auto_Saver
             }
 
             $this->logger->log_user_action(self::LOG_NAME, 'welding_connections_added', ['added_count' => $to_add, 'tank_id' => $tank_id], $user_id);
-            return "[SYNC] $to_add ligne(s) ajoutée(s) pour TankId $tank_id.";
+            return "[SYNC] $to_add row(s) added for TankId $tank_id.";
         }
         elseif ($current_count > $nb_welding)
         {

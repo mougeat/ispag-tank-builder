@@ -214,7 +214,7 @@ class ISPAG_Tank_Fittings {
 
         // --- SECTION RACCORDS (FITTINGS) ---
         echo '<div class="ispag-fittings-section">';
-        echo '<h3 class="ispag-modal-section-title"><span class="dashicons dashicons-admin-tools"></span> ' . __('Raccords et Accessoires', 'ispag-crm') . '</h3>';
+        echo '<h3 class="ispag-modal-section-title"><span class="dashicons dashicons-admin-tools"></span> ' . __('Fittings and Accessories', 'ispag-crm') . '</h3>';
         echo '<div id="fittings-container">'; // Conteneur pour le JS (duplication/suppression)
         if (!empty($connections)) {
             foreach ($connections as $fitting) {
@@ -231,7 +231,7 @@ class ISPAG_Tank_Fittings {
 
         // --- SECTION SOUDURE / TÔLES (WELDING) ---
         echo '<div class="ispag-welding-section">';
-        echo '<h3 class="ispag-modal-section-title"><span class="dashicons dashicons-hammer"></span> ' . __('Soudure et Tôles perforées', 'ispag-crm') . '</h3>';
+        echo '<h3 class="ispag-modal-section-title"><span class="dashicons dashicons-hammer"></span> ' . __('Welding and Perforated Sheets', 'ispag-crm') . '</h3>';
         echo '<div id="welding-container">';
         if (!empty($weldings)) {
             foreach ($weldings as $welding) {

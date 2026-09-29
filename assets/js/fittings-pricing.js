@@ -136,7 +136,7 @@ async function updateFittingsPrice() {
 
             window.lastFittingTrace = `\n--- LOG FITTINGS & ACCESSOIRES ---\n` +
                                     `DÉTAIL ACHAT :\n` +
-                                    (lochTrace || "- Aucune tôle perforée\n") +
+                                    (lochTrace || "- No perforated sheet\n") +
                                     (fittingsTrace || "- Aucun raccord payant\n") +
                                     `TOTAL ACHAT BRUT : ${totalFinalBrutAchat.toFixed(2)}€\n` +
                                     `--------------------------\n` +

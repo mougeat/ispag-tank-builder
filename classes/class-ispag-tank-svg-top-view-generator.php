@@ -236,7 +236,7 @@ class ISPAG_Tank_SVG_Top_View_Generator
             $error_message = $error ? $error['message'] : 'Unknown error';
             $this->logger->log('tank_svg_top_view_generator', 'ERROR: rsvg conversion failed - ' . $error_message, $user_id, ['return_var' => $return_var, 'output' => $output]);
 
-            throw new Exception("Conversion SVG vers PNG échouée.");
+            throw new Exception("SVG to PNG conversion failed.");
         }
     }
 
