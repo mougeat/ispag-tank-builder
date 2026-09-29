@@ -114,7 +114,7 @@ class ISPAG_Existing_Tanks_Table {
                         </select>
 
                         <select name="material" style="padding: 6px; border-radius: var(--ispag-btn-border-radius);">
-                            <option value="0">Tous les matériaux</option>
+                            <option value="0">All materials</option>
                             <?php $this->render_conception_options('material', $filters['material']); ?>
                         </select>
 
@@ -173,7 +173,7 @@ class ISPAG_Existing_Tanks_Table {
                                 </td>
                             </tr>
                         <?php endforeach; else : ?>
-                            <tr><td colspan="6" style="text-align:center; padding: 40px;">Aucun résultat trouvé pour vos filtres.</td></tr>
+                            <tr><td colspan="6" style="text-align:center; padding: 40px;">No result found for your filters.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>

@@ -172,7 +172,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         $lang_text = '';
         switch ($this->current_lang) {
             case 'fr':
-                $lang_text = 'Français';
+                $lang_text = 'French';
                 break;
             case 'de':
                 $lang_text = 'Deutsch';
