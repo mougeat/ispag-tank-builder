@@ -150,8 +150,8 @@ class ISPAG_Tank_Drawing {
         global $wpdb;
 
         // 1. Définition du chemin vers la librairie dans l'AUTRE plugin
-        $fpdi_path = WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdi/autoload.php';
-        $fpdf_path = WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdf/fpdf.php'; // FPDI a besoin de FPDF
+        $fpdi_path = ispag_project_manager_dir() . 'libs/fpdi/autoload.php';
+        $fpdf_path = ispag_project_manager_dir() . 'libs/fpdf/fpdf.php'; // FPDI a besoin de FPDF
         
         // 2. Chargement manuel des fichiers si la classe n'existe pas
         if ( ! class_exists( '\setasign\Fpdi\Fpdi' ) ) {

@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-require_once(WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdf/fpdf.php');
+require_once(ispag_project_manager_dir() . 'libs/fpdf/fpdf.php');
 
 /**
  * Class ISPAG_Tank_PDF_Exporter

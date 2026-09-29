@@ -46,7 +46,7 @@ class ISPAG_Tank_Pricing {
      */
     public function load_pricing_data($supplier = 'Diem-Werke GmbH') {
         $this->supplier = $supplier;
-        $base_path = WP_PLUGIN_DIR . '/ispag-tank-builder/price/';
+        $base_path = ISPAG_PLUGIN_PATH . 'price/';
         $user_id = get_current_user_id();
 
         // Remplacer les espaces par des underscores pour correspondre aux noms de fichiers JSON
@@ -461,7 +461,7 @@ class ISPAG_Tank_Pricing {
 
             // Récupérer la hauteur du fond depuis tank_data.json
             $bottom_height = 0;
-            $tank_data_json_path = WP_PLUGIN_DIR . '/ispag-tank-builder/assets/json/tank_data.json';
+            $tank_data_json_path = ISPAG_PLUGIN_PATH . 'assets/json/tank_data.json';
 
             if (file_exists($tank_data_json_path)) {
                 $tank_data = json_decode(file_get_contents($tank_data_json_path), true);
@@ -712,7 +712,7 @@ class ISPAG_Tank_Pricing {
 
         // Vérifier si les fichiers JSON du fournisseur existent
         $formatted_supplier = str_replace(' ', '_', $supplier);
-        $base_path = WP_PLUGIN_DIR . '/ispag-tank-builder/price/';
+        $base_path = ISPAG_PLUGIN_PATH . 'price/';
         $tank_json_path = $base_path . $formatted_supplier . '.json';
         $fittings_json_path = $base_path . $formatted_supplier . '_accessories.json';
 

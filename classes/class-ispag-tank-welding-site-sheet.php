@@ -11,14 +11,14 @@ defined('ABSPATH') || exit;
 
 // 1. Chargement de FPDF
 if (!class_exists('FPDF')) {
-    $fpdf_path = WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdf/fpdf.php';
+    $fpdf_path = ispag_project_manager_dir() . 'libs/fpdf/fpdf.php';
     if (file_exists($fpdf_path)) {
         require_once $fpdf_path;
     }
 }
 
 // 2. Chargement de l'autoloader de FPDI
-$fpdi_autoload = WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdi/autoload.php';
+$fpdi_autoload = ispag_project_manager_dir() . 'libs/fpdi/autoload.php';
 if (file_exists($fpdi_autoload)) {
     require_once $fpdi_autoload;
 }
