@@ -25,6 +25,11 @@ require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-builder-installer.php
 register_activation_hook(__FILE__, ['ISPAG_Tank_Builder_Installer', 'install']);
 ISPAG_Tank_Builder_Installer::init();
 
+// Pages nécessaires (créées à l'activation ou via Outils → Pages ISPAG ; jamais automatiquement)
+require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-page-installer.php';
+ISPAG_Page_Installer::register('ISPAG Tank Builder', require ISPAG_PLUGIN_PATH . 'install/pages.php');
+register_activation_hook(__FILE__, function () { ISPAG_Page_Installer::on_activation('ISPAG Tank Builder'); });
+
 // Autochargement des classes
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-manager.php';
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-exchanger.php';
