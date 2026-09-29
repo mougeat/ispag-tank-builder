@@ -146,7 +146,7 @@ class ISPAG_Existing_Tanks_Table {
                     <tbody>
                         <?php if ($results) : foreach ($results as $row) : 
                             $link = !empty($row->hubspot_deal_id) 
-                                ? "https://app.ispag-asp.ch/project-detail/" . esc_attr($row->hubspot_deal_id) 
+                                ? trailingslashit(get_site_url()) . 'project-detail/' . esc_attr($row->hubspot_deal_id) 
                                 : "#";
                             $price = floatval($row->sales_price);
                             if ($price <= 0 && has_filter('ispag_calculate_total_sales_price')) {
