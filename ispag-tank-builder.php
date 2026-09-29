@@ -16,6 +16,10 @@ if (!defined('ISPAG_PLUGIN_PATH')) {
     define('ISPAG_PLUGIN_PATH', plugin_dir_path(__FILE__));
 }
 
+// Mise à jour depuis une branche GitHub : inactif sauf si wp-config.php définit ISPAG_GITHUB_TOKEN et ISPAG_UPDATE_BRANCH
+require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-github-updater.php';
+ISPAG_GitHub_Updater::plugin(__FILE__, 'mougeat/ispag-tank-builder');
+
 // Schéma de base de données : créé à l'activation, et re-vérifié à chaque chargement si la version change
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-builder-installer.php';
 register_activation_hook(__FILE__, ['ISPAG_Tank_Builder_Installer', 'install']);
