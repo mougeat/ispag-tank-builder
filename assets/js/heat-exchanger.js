@@ -11,6 +11,8 @@ jQuery(function($) {
         // Réinitialiser les erreurs pour ce tank
         hasErrors[tankId] = false;
 
+        refreshExchangers($modal);
+
         // Recalculer la surface pour chaque échangeur existant
         $modal.find('.exchanger-form').each(function() {
             const coilNb = $(this).data('coilnb');
@@ -42,9 +44,14 @@ jQuery(function($) {
         const $modal = $(this).closest('.ispag-product-modal');
         const $container = $modal.find('.exchangerFormsContainer');
         const tankId = $modal.data('tank-id');
-        const nextCoilNb = $container.find('.exchanger-form').length + 1;
+        const max = parseInt($(this).data('max'), 10) || 3;
+        if ($container.find('.exchanger-form').length >= max) return;
+        // Numéro libre : après le plus grand existant (un échangeur du milieu a pu être supprimé)
+        let nextCoilNb = 1;
+        $container.find('.exchanger-form').each(function() { nextCoilNb = Math.max(nextCoilNb, parseInt($(this).data('coilnb'), 10) + 1); });
+        const $addBtn = $(this);
 
-        $(this).prop('disabled', true);
+        $addBtn.prop('disabled', true);
 
         $.ajax({
             url: ispag_ajax.url,
@@ -66,6 +73,7 @@ jQuery(function($) {
                     // Réinitialiser les erreurs
                     hasErrors[`${tankId}_${nextCoilNb}`] = false;
                     updateSaveButtonState(tankId);
+                    refreshExchangers($modal);
                 } else {
                     console.error("Error: ", response.message || "Réponse vide");
                     alert("Error: Unable to load the form.");
@@ -76,10 +84,34 @@ jQuery(function($) {
                 alert("Error while loading the form.");
             },
             complete: function() {
-                $(this).prop('disabled', false);
+                refreshExchangers($modal); // réactive le bouton tant que la limite n'est pas atteinte
             }
         });
     });
+
+    // --- SUPPRIMER UN ÉCHANGEUR ---
+    $(document).on('click', '.removeExchangerForm', function() {
+        const $form = $(this).closest('.exchanger-form');
+        const $modal = $form.closest('.ispag-product-modal');
+        const tankId = $modal.data('tank-id');
+        if (!window.confirm('Delete this heat exchanger?')) return;
+
+        delete hasErrors[`${tankId}_${$form.data('coilnb')}`];
+        $form.remove();
+        updateSaveButtonState(tankId);
+        refreshExchangers($modal);
+    });
+
+    // Bouton d'ajout (3 maximum) et numérotation affichée
+    function refreshExchangers($modal) {
+        const $forms = $modal.find('.exchanger-form');
+        const max = parseInt($modal.find('.addExchangerForm').data('max'), 10) || 3;
+        $modal.find('.addExchangerForm').prop('disabled', $forms.length >= max);
+        $forms.each(function(i) {
+            const $h3 = $(this).find('.exchanger-form-header h3');
+            $h3.text($h3.text().replace(/#\d+/, '#' + (i + 1)));
+        });
+    }
 
     // --- SAUVEGARDER LES ÉCHANGEURS ---
     $(document).on('click', '.saveExchangers', function() {
@@ -97,16 +129,13 @@ jQuery(function($) {
 
         const $forms = $modalContent.find('.exchanger-form');
 
-        if ($forms.length === 0) {
-            alert("Error: No exchanger form found.");
-            return;
-        }
-
-        $forms.each(function() {
+        // Aucun formulaire : tous les échangeurs ont été supprimés, l'enregistrement les retire du réservoir
+        $forms.each(function(index) {
             const $form = $(this);
             const coilNbForm = $form.data('coilnb');
 
-            exchangers['coil' + coilNbForm] = {
+            // Numérotation continue (coil1, coil2…) même si un échangeur du milieu a été supprimé
+            exchangers['coil' + (index + 1)] = {
                 loadInputTemperature: $form.find(`[name="loadInputTemperature_${coilNbForm}"]`).val(),
                 loadOutputTemperature: $form.find(`[name="loadOutputTemperature_${coilNbForm}"]`).val(),
                 coldWaterInputTemperature: $form.find(`[name="coldWaterInputTemperature_${coilNbForm}"]`).val(),

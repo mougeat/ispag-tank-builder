@@ -168,3 +168,18 @@
 #tank-transport-alert.exceptional_complex .dashicons-warning {
   color: #dc3545;
 }
+
+/* Échangeurs : 1 à 3 formulaires qui se partagent toute la largeur de la fenêtre */
+.exchangerFormsContainer .exchanger-form {
+    flex: 1 1 0;
+    min-width: 260px;
+    position: relative;
+}
+.exchanger-form .exchanger-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.exchanger-form .exchanger-form-header h3 { margin: 0; }
+.exchanger-form .removeExchangerForm { flex-shrink: 0; }

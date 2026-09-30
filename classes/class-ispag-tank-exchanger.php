@@ -10,6 +10,7 @@ class ISPAG_Tank_Exchanger
     protected static $instance = null;
     private $table;
     private const LOG_NAME = 'tank_exchanger';
+    public const MAX_EXCHANGERS = 3;
 
     /** @var ISPAG_Logger Instance du logger. */
     private $logger;
@@ -197,7 +198,7 @@ class ISPAG_Tank_Exchanger
                     ' . $this->load_heat_exchanger_forms($tank_id) . '
                 </div>
                 <div class="ispag-modal-footer">
-                    <button class="addExchangerForm ispag-btn ispag-btn-secondary-outlined"><span class="dashicons dashicons-plus-alt"></span> ' . __('Add exchanger', 'creation-reservoir') . '</button>
+                    <button class="addExchangerForm ispag-btn ispag-btn-secondary-outlined" data-max="' . self::MAX_EXCHANGERS . '"><span class="dashicons dashicons-plus-alt"></span> ' . __('Add exchanger', 'creation-reservoir') . '</button>
                     <button class="saveExchangers ispag-btn ispag-btn-red-outlined" data-tank-id="' . esc_attr($tank_id) . '"><span class="dashicons dashicons-media-archive"></span> ' . __('Save', 'creation-reservoir') . '</button>
                 </div>
             </div>
@@ -470,6 +471,20 @@ class ISPAG_Tank_Exchanger
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'exchangers_decoded', ['count' => count($exchangers_array)], $user_id);
+
+        if (count($exchangers_array) > self::MAX_EXCHANGERS)
+        {
+            wp_send_json_error(sprintf(__('A tank can have at most %d heat exchangers.', 'creation-reservoir'), self::MAX_EXCHANGERS));
+        }
+
+        // Plus aucun échangeur : on supprime l'enregistrement
+        if (count($exchangers_array) === 0)
+        {
+            global $wpdb;
+            $wpdb->delete($wpdb->prefix . 'achats_tank_heat_exchanger', ['tank_id' => $tank_id]);
+            $this->logger->log_db_change(self::LOG_NAME, $wpdb->prefix . 'achats_tank_heat_exchanger', 'DELETE_ALL', ['tank_id' => $tank_id], $user_id);
+            wp_send_json_success(__('Exchanger data has been saved.', 'creation-reservoir'));
+        }
 
         $totalSurface = 0;
         foreach ($exchangers_array as $coil)
