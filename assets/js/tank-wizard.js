@@ -30,8 +30,9 @@
         .ispag-wizard-nav{display:flex;justify-content:space-between;gap:10px;margin:22px 0 6px;padding-top:14px;border-top:1px solid #eee}
         .ispag-wizard-footer-btns{display:inline-flex;gap:10px;margin-right:10px}
         #ispag-wizard-fittings-host #ispag-btn-save-tank-fittings{display:none !important}
-        #ispag-wizard-fittings-host .ispag-modal-fullscreen-inner{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
-        #ispag-wizard-fittings-host .ispag-modal-fitting-right{order:1;flex:1 1 420px;width:auto;min-width:0}
+        #ispag-wizard-fittings,#ispag-wizard-fittings-host{width:100%;max-width:none;box-sizing:border-box}
+        #ispag-wizard-fittings-host .ispag-modal-fullscreen-inner{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;width:100%;height:auto;overflow:visible;box-sizing:border-box}
+        #ispag-wizard-fittings-host .ispag-modal-fitting-right{order:1;flex:1 1 420px;width:auto;min-width:0;max-height:none;overflow:visible;box-sizing:border-box}
         #ispag-wizard-fittings-host .ispag-modal-fitting-left{order:2;flex:0 0 180px;width:180px;height:auto !important;min-height:0;max-height:none;padding:8px;text-align:center}
         #ispag-wizard-fittings-host .ispag-modal-fitting-left img,#ispag-wizard-fittings-host .ispag-modal-fitting-left svg{max-width:100%;max-height:240px;height:auto}
         .ispag-wizard-error{color:#b32d2e;margin:8px 0;font-weight:600}

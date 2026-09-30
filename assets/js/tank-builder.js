@@ -893,7 +893,8 @@ function saveFittings(autoSave = false, btnElement = null) {
             // Mise à jour du SVG
             if (response.data?.drawing && $("#ispag-modal-svg").length) {
                 $("#ispag-modal-svg").html(response.data.drawing);
-                reloadArticleList();
+                // Assistant de création : la fenêtre reste ouverte pendant la saisie des piquages
+                reloadArticleList(document.body.classList.contains('ispag-wizard-on'));
             }
 
             // Mise à jour des IDs insérés
