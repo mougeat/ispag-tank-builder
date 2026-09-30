@@ -1,4 +1,10 @@
 jQuery(function($) {
+    // `ispag_ajax` est aussi défini par le plugin CRM (clés différentes) : on ne s'y fie pas pour l'URL
+    function ajaxUrl() {
+        return (window.ISPAG_TANK && ISPAG_TANK.ajax_url) || window.ajaxurl
+            || (window.ispag_ajax && (ispag_ajax.url || ispag_ajax.ajax_url)) || '/wp-admin/admin-ajax.php';
+    }
+
     // Objets pour suivre l'état des échangeurs et des erreurs
     let hasErrors = {};
 
@@ -54,13 +60,13 @@ jQuery(function($) {
         $addBtn.prop('disabled', true);
 
         $.ajax({
-            url: ispag_ajax.url,
+            url: ajaxUrl(),
             method: 'POST',
             data: {
                 action: 'ispag_add_heat_exchanger_form',
                 coil_nb: nextCoilNb,
                 tank_id: tankId,
-                nonce: ispag_ajax.nonce
+                nonce: (window.ispag_ajax && ispag_ajax.nonce) || ''
             },
             success: function(response) {
                 if (response.success && response.data) {
@@ -152,7 +158,7 @@ jQuery(function($) {
         }
 
         $.ajax({
-            url: ISPAG_TANK.ajax_url,
+            url: ajaxUrl(),
             method: 'POST',
             data: {
                 action: 'ispag_save_heat_exchangers',
