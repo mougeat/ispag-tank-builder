@@ -29,6 +29,9 @@
         .ispag-wizard-steps li.is-done{background:#e6f4ea;color:#1e7b34}
         .ispag-wizard-nav{display:flex;justify-content:space-between;gap:10px;margin:22px 0 6px;padding-top:14px;border-top:1px solid #eee}
         .ispag-wizard-footer-btns{display:inline-flex;gap:10px;margin-right:10px}
+        #ispag-wizard-fittings-host #ispag-btn-save-tank-fittings{display:none !important}
+        #ispag-wizard-fittings-host .ispag-modal-fullscreen-inner{display:flex;gap:16px;flex-wrap:wrap}
+        #ispag-wizard-fittings-host .ispag-modal-fitting-left,#ispag-wizard-fittings-host .ispag-modal-fitting-right{flex:1 1 420px;min-width:0}
         .ispag-wizard-error{color:#b32d2e;margin:8px 0;font-weight:600}
         .ispag-wizard-panel{background:#fff;border:1px solid #ddd;border-radius:6px;padding:14px 16px;margin-top:10px}
     `;
@@ -84,8 +87,9 @@
 
         const panel = $('<div class="ispag-wizard-panel" id="ispag-wizard-fittings">' +
             '<h3 style="margin-top:0">Fittings</h3>' +
-            '<p>The tank is saved. Add its fittings now, or later from the article list.</p>' +
-            '<button type="button" class="button" id="open-tank-fittings-modal">Open the fittings editor</button>' +
+            '<p>The tank is saved. Add its fittings below; they are saved when you continue.</p>' +
+            '<div id="ispag-wizard-fittings-host"></div>' +
+            '<button type="button" id="open-tank-fittings-modal" style="display:none"></button>' +
             '</div>')[0];
         $(dims).before(panel);
 
@@ -119,11 +123,49 @@
         }
         $('body').addClass('ispag-wizard-on');
 
-        wizard = { $form, current: 0, articleId: 0, busy: false, awaiting: false, items, $stepper, $error, $back, $next, $save };
+        wizard = { $form, current: 0, articleId: 0, busy: false, awaiting: false, embedded: false, $inner: null, items, $stepper, $error, $back, $next, $save };
 
         $back.on('click', () => goto(wizard.current - 1));
         $next.on('click', onNext);
         show(0);
+    }
+
+    // L'éditeur de piquages (contenu de la modale plein écran) est déplacé dans l'étape 3, puis remis en place.
+    function syncFittingsTrigger() {
+        const w = wizard;
+        const $t = w.$form.find('#open-tank-fittings-modal');
+        const vals = {
+            'article-id': w.articleId,
+            'tank-diameter': w.$form.find('select[name="tank[diameter]"]').val() || '',
+            'tank-pression': w.$form.find('input[name="tank[max_pressure]"]').val() || '',
+            'tank-using-temp': w.$form.find('input[name="tank[temperature]"]').val() || '',
+            'tank-insulation-thickness': w.$form.find('select[name="tank[InsulationThickness]"]').val() || '',
+            'tank-supplier': w.$form.find('input[name="supplier"]').val() || '',
+        };
+        Object.keys(vals).forEach(k => { $t.attr('data-' + k, vals[k]); $t.data(k, vals[k]); });
+        return $t;
+    }
+
+    function embedFittings() {
+        const w = wizard;
+        if (w.embedded || !w.articleId || typeof window.ispagOpenFittings !== 'function') return;
+        const $inner = $('#tank-fittings-modal .ispag-modal-fullscreen-inner').first();
+        const $host = $('#ispag-wizard-fittings-host');
+        if (!$inner.length) {
+            $host.text('The fittings editor is not available on this page. Add the fittings from the article list.');
+            return;
+        }
+        w.$inner = $inner;
+        $host.append($inner);
+        w.embedded = true;
+        window.ispagOpenFittings(syncFittingsTrigger(), true);
+    }
+
+    function unembedFittings() {
+        const w = wizard;
+        if (!w || !w.embedded || !w.$inner) return;
+        $('#tank-fittings-modal').append(w.$inner);
+        w.embedded = false;
     }
 
     function show(step) {
@@ -144,6 +186,7 @@
         if (w.articleId && step === 0) w.$back.hide();
         if (w.articleId && step === 1) w.$back.hide();
         setError('');
+        if (step === 2) embedFittings(); else unembedFittings();
         // Les listes dépendantes (diamètres…) se calculent à la volée : on relance leur logique
         $(document).trigger('ispag:wizard_step', [STEPS[step].key]);
     }
@@ -185,7 +228,13 @@
         // Fin de l'étape « Dimensions » : création du réservoir
         if (w.current === 1 && !w.articleId) return createTank();
         // Réservoir déjà créé : enregistrement des données techniques de l'étape
-        if (w.current >= 1 && w.articleId && typeof saveTankData === 'function') return saveStep();
+        if (w.current >= 1 && w.articleId && typeof saveTankData === 'function') {
+            if (w.current === 2 && w.embedded && typeof saveFittings === 'function') {
+                setBusy(true);
+                return saveFittings(true).then(() => { setBusy(false); saveStep(); });
+            }
+            return saveStep();
+        }
         goto(w.current + 1);
     }
 
@@ -212,15 +261,7 @@
         $('#current-editing-article-id').val(articleId);
         w.$form.find('input[name="tank[article_id]"]').val(articleId);
 
-        const $btn = w.$form.find('#open-tank-fittings-modal');
-        $btn.attr({
-            'data-article-id': articleId,
-            'data-tank-diameter': w.$form.find('select[name="tank[diameter]"]').val() || '',
-            'data-tank-pression': w.$form.find('input[name="tank[max_pressure]"]').val() || '',
-            'data-tank-using-temp': w.$form.find('input[name="tank[temperature]"]').val() || '',
-            'data-tank-insulation-thickness': w.$form.find('select[name="tank[InsulationThickness]"]').val() || '',
-            'data-tank-supplier': w.$form.find('input[name="supplier"]').val() || '',
-        });
+        syncFittingsTrigger();
         setBusy(false);
         goto(2);
     }
@@ -267,6 +308,7 @@
         if (isNewTankForm($form)) {
             init($form);
         } else if (wizard && !document.body.contains(wizard.$form[0])) {
+            unembedFittings(); // rend l'éditeur de piquages à sa modale avant de l'oublier
             wizard = null; // fenêtre refermée
             pendingId = 0;
             $('.ispag-wizard-footer-btns').remove();

@@ -677,14 +677,17 @@ function ispagResetSaveButtons() {
 
 jQuery(document).ready(function($) {
     // Délégation sur un parent permanent
-    $(document).on('click', '#open-tank-fittings-modal', function() {
-        const articleId = $(this).data('article-id');
-        const purchaseArticleId = $(this).data('purchase-article-id');
-        const tank_diam = $(this).data('tank-diameter');
-        const tank_pression = $(this).data('tank-pression');
-        const tank_using_temp = $(this).data('tank-using-temp');
-        const tank_insulation_thickness = $(this).data('tank-insulation-thickness');
-        const supplier_name = $(this).data('tank-supplier');
+    // Charge l'éditeur de piquages pour l'article porté par $el (data-*). embed=true : pas d'ouverture de la modale
+    // (utilisé par l'assistant de création, qui déplace l'éditeur dans son étape « Fittings »).
+    window.ispagOpenFittings = function($el, embed) {
+        const articleId = $el.data('article-id');
+        const purchaseArticleId = $el.data('purchase-article-id');
+        const tank_diam = $el.data('tank-diameter');
+        const tank_pression = $el.data('tank-pression');
+        const tank_using_temp = $el.data('tank-using-temp');
+        const tank_insulation_thickness = $el.data('tank-insulation-thickness');
+        const supplier_name = $el.data('tank-supplier');
+
         
 
         if (purchaseArticleId) {
@@ -712,9 +715,9 @@ jQuery(document).ready(function($) {
         console.log(`%c MODE DÉTECTÉ : ${mode.toUpperCase()} (ID: ${finalIdToEdit})`, "background: #34495e; color: #fff; padding: 2px 5px;");
 
         $('#fittings-form').html('<p>Loading...</p>');
-        $('#tank-fittings-modal').fadeIn();
+        if (!embed) { $('#tank-fittings-modal').fadeIn(); }
 
-        $.post(ajaxurl, {
+        return $.post(ajaxurl, {
             action: 'ispag_load_fittings_form',
             article_id: articleId
         }, function(response) {
@@ -737,6 +740,10 @@ jQuery(document).ready(function($) {
                 $('#fittings-form').html('<p>Loading error</p>');
             }
         });
+    };
+
+    $(document).on('click', '#open-tank-fittings-modal', function() {
+        window.ispagOpenFittings($(this), false);
     });
 
     $(document).on('click', '.ispag-modal-close', function() {
@@ -863,7 +870,7 @@ if (form) {
 
 function saveFittings(autoSave = false, btnElement = null) {
     const form = document.getElementById('fittings-form');
-    if (!form) return;
+    if (!form) return Promise.resolve();
 
     const formData = new FormData(form);
     const articleId = document.querySelector('input[name="article_id"]').value;
@@ -880,7 +887,7 @@ function saveFittings(autoSave = false, btnElement = null) {
         btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     }
 
-    fetch(ajaxurl, {
+    return fetch(ajaxurl, {
         method: 'POST',
         body: formData
     })
