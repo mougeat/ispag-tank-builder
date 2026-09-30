@@ -63,40 +63,8 @@ $(document).on('change', 'select[name="tank[insulation]"]', function() {
 
 async function updateInsulationDependencies(insulationId, typeId) {
     await setIspagTankRestrictionsValue();
-    
-    // Vérification de la disponibilité des données globales
-    if (typeof restrictions === 'undefined') {
-        console.error("ispagTankRestrictions n'est pas défini.");
-        return;
-    }
-
-    const $coverSelect = $('select[name="tank[insulationCover]"]');
-    const $thicknessSelect = $('select[name="tank[InsulationThickness]"]');
-
-    const ispagInsulation = restrictions['insulation']?.[insulationId];
-    if (!ispagInsulation) return; // aucune isolation ou aucune règle : toutes les valeurs restent proposées
-
-    const allowedCovers = (ispagInsulation['insulationCover'] || []).map(String);
-    $('select[name="tank[insulationCover]"] option').each(function () {
-        const val = $(this).val();
-        if (val === '' || !allowedCovers.length || allowedCovers.includes(val)) {
-            $(this).show().prop('disabled', false);
-        } else {
-            $(this).hide().prop('disabled', true);
-        }
-    });
-
-    const allowedThickness = (ispagInsulation['InsulationThickness'] || []).map(String);
-    $('select[name="tank[InsulationThickness]"] option').each(function () {
-        const val = $(this).val();
-        if (val === '' || !allowedThickness.length || allowedThickness.includes(val)) {
-            $(this).show().prop('disabled', false);
-        } else {
-            $(this).hide().prop('disabled', true);
-        }
-    });
-
-} 
+    ispagApplyTankRules(typeId);
+}
 
  
 async function updateTankDefaultsFromSelect(selectEl) {
@@ -158,87 +126,75 @@ function updateTankDefaults(typId) {
 
 
 function restrictTankOptions(typId) {
-    const rules = restrictions.typ?.[typId]?.restrictions;
-    if (!rules) return;
-
-    // Support
-    if (rules.Support) {
-        const allowedSupports = rules.Support.map(String);
-        $('select[name="tank[support]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '' || allowedSupports.includes(val)) {
-                $(this).show().prop('disabled', false);
-            } else {
-                $(this).hide().prop('disabled', true);
-            }
-        });
-    }
-
-    // Matériau
-    if (rules.Material) {
-        const allowedMaterials = rules.Material.map(String);
-        $('select[name="tank[materiau]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '' || allowedMaterials.includes(val)) {
-                $(this).show().prop('disabled', false);
-            } else {
-                $(this).hide().prop('disabled', true);
-            }
-        });
-    }
-
-    // Isolation
-    if (rules.insulation) {
-        const allowedInsulation = rules.insulation.map(String);
-        $('select[name="tank[insulation]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '0') {
-                $(this).show();
-                return; // Passe à l'option suivante
-            }
-            if (val === '' || allowedInsulation.includes(val)) {
-                $(this).show().prop('disabled', false);
-            } else {
-                $(this).hide().prop('disabled', true);
-            }
-        });
-    } 
-
-    // Cover
-    if (rules.cover) {
-        const allowedCovers = rules.cover.map(String);
-        $('select[name="tank[cover]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '0') {
-                $(this).show();
-                return; // Passe à l'option suivante
-            }
-            if (val === '' || allowedCovers.includes(val)) {
-                $(this).show().prop('disabled', false);
-            } else {
-                $(this).hide().prop('disabled', true);
-            }
-        });
-    } 
-
-        // Isolation épaisseur
-    if (rules.InsulationThickness) {
-        const allowedInsulationThickness = rules.InsulationThickness.map(String);
-        $('select[name="tank[InsulationThickness]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '0') {
-                $(this).show();
-                return; // Passe à l'option suivante
-            }
-            if (val === '' || allowedInsulationThickness.includes(val)) {
-                $(this).show().prop('disabled', false);
-            } else {
-                $(this).hide().prop('disabled', true);
-            }
-        });
-    }
-    
+    ispagApplyTankRules(typId);
 }
+
+// ---------------------------------------------------------------------------
+// Règles de conception (base / JSON) appliquées au fur et à mesure de l'avancement :
+//   type        -> matériaux, supports, types d'isolation et épaisseurs autorisés
+//   isolation   -> épaisseurs et revêtements autorisés (croisés avec ceux du type)
+// Les valeurs non autorisées sont retirées des listes (pas seulement masquées).
+// ---------------------------------------------------------------------------
+function ispagCurrentTypeId() {
+    const $t = jQuery('#tank-typ, select[name="tank[type]"], input[name="tank[type]"]').first();
+    let id = $t.find(':selected').data('id') || $t.val();
+    if (!id) id = jQuery('#ispag-product-modal-content h2').data('id');
+    return id ? String(id) : '';
+}
+
+function ispagFilterSelect($sel, allowed, keep) {
+    if (!$sel.length) return;
+    if (!$sel.data('ispagAllOptions')) $sel.data('ispagAllOptions', $sel.children('option').clone().prop('disabled', false).css('display', ''));
+
+    const current = String($sel.val() ?? '');
+    const allowedStr = Array.isArray(allowed) ? allowed.map(String) : null;
+    $sel.empty();
+    $sel.data('ispagAllOptions').each(function () {
+        const val = String(this.value);
+        if (allowedStr === null || keep.includes(val) || allowedStr.includes(val)) {
+            $sel.append(jQuery(this).clone());
+        }
+    });
+
+    const has = $sel.children('option').toArray().some(o => String(o.value) === current);
+    if (has) {
+        $sel.val(current);
+    } else {
+        $sel.prop('selectedIndex', 0); // valeur retirée : retour au premier choix (« -- Choose -- » / « None »)
+        $sel.trigger('change');
+    }
+}
+
+function ispagIntersect(lists) {
+    const filled = lists.filter(l => Array.isArray(l) && l.length);
+    if (!filled.length) return null; // aucune règle : tout est proposé
+    return filled.reduce((a, b) => a.map(String).filter(v => b.map(String).includes(v)));
+}
+
+function ispagApplyTankRules(typId) {
+    const $ = jQuery;
+    if (typeof restrictions === 'undefined' || !restrictions) return;
+    typId = String(typId || ispagCurrentTypeId());
+    const typ = restrictions.typ && restrictions.typ[typId];
+    const rt = (typ && typ.restrictions) || {};
+
+    ispagFilterSelect($('select[name="tank[materiau]"]'), rt.Material || null, ['']);
+    ispagFilterSelect($('select[name="tank[support]"]'), rt.Support || null, ['']);
+    ispagFilterSelect($('select[name="tank[insulation]"]'), rt.insulation || null, ['', '0']);
+
+    const insId = String($('select[name="tank[insulation]"]').val() || '');
+    const ins = insId && insId !== '0' && restrictions.insulation ? restrictions.insulation[insId] : null;
+
+    ispagFilterSelect($('select[name="tank[InsulationThickness]"]'), ispagIntersect([rt.InsulationThickness, ins && ins.InsulationThickness]), ['', '0']);
+    ispagFilterSelect($('select[name="tank[insulationCover]"]'), ispagIntersect([ins && ins.insulationCover]), ['', '0', '53']);
+}
+
+// L'assistant de création : les règles sont réappliquées à chaque étape
+jQuery(document).on('ispag:wizard_step', async function () {
+    await setIspagTankRestrictionsValue();
+    ispagApplyTankRules();
+});
+
 function updateSupplierByMaterial(selectEl) {
     const $ = jQuery;
     const materialId = $(selectEl).val();

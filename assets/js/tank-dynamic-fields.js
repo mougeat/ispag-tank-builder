@@ -143,7 +143,7 @@ function applyNewTankRestrictions(typeId) {
         }
     }
 
-    // console.log(`✅ [TANK] Restrictions appliquées pour le NOUVEAU réservoir (Type ID: ${typeId})`);
+    if (typeof ispagApplyTankRules === 'function') ispagApplyTankRules(typeId);
 }
 
 // =============================================
