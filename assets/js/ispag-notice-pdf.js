@@ -25,13 +25,13 @@ jQuery(document).ready(function($) {
                     pdfWindow.location.href = response.data.pdf_url;
                 } else {
                     pdfWindow.close(); // Ferme l'onglet vierge si erreur
-                    alert("Erreur : " + (response.data || "Inconnu"));
+                    alert("Error: " + (response.data || "Inconnu"));
                 }
             },
             error: function(xhr, status, error) {
                 pdfWindow.close(); // Ferme l'onglet vierge si erreur
-                console.error("Erreur AJAX :", xhr.status, xhr.responseText);
-                alert("Erreur lors de la génération du PDF. Vérifiez la console.");
+                console.error("Error AJAX :", xhr.status, xhr.responseText);
+                alert("Error lors de la génération du PDF. Vérifiez la console.");
             },
             complete: function() {
                 // 3. Restauration de l'état initial du bouton

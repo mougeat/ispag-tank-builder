@@ -101,8 +101,8 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             wp_send_json_success($result);
 
         } catch (Exception $e) {
-            // error_log("Erreur AJAX : " . $e->getMessage());
-            wp_send_json_error('Erreur : ' . $e->getMessage(), 500);
+            // error_log("AJAX error: " . $e->getMessage());
+            wp_send_json_error('Error: ' . $e->getMessage(), 500);
         }
     }
 
@@ -235,7 +235,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         $template = json_decode($template_content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("Erreur JSON dans le template : " . json_last_error_msg());
+            throw new Exception("Error JSON dans le template : " . json_last_error_msg());
         }
 
         return $template;
@@ -418,7 +418,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
                 $imagick->destroy();
                 return true;
             } catch (Exception $e) {
-                // error_log("Erreur Imagick : " . $e->getMessage());
+                // error_log("Error Imagick : " . $e->getMessage());
                 return false;
             }
         }

@@ -18,14 +18,14 @@ async function loadTransportRules() {
     const response = await fetch(ISPAG_TRANSPORT.transportRulesUrl);
 
     if (!response.ok) {
-      throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
     }
 
     transportRules = await response.json();
     // console.log('✅ [TRANSPORT] Règles de transport chargées avec succès:', transportRules);
     return true;
   } catch (error) {
-    console.error('❌ [TRANSPORT] Erreur lors du chargement des règles:', error);
+    console.error('❌ [TRANSPORT] Error lors du chargement des règles:', error);
 
     // 👇 Utiliser des valeurs par défaut
     transportRules = {

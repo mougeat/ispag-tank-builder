@@ -509,7 +509,7 @@ class ISPAG_Tank_Designer
             $debug['sql_error'] = $wpdb->last_error;
             $debug['last_query'] = $wpdb->last_query;
             $this->logger->log(self::LOG_NAME, 'ERROR: SQL error - ' . $wpdb->last_error, $user_id, ['last_query' => $wpdb->last_query]);
-            wp_send_json_error(['message' => 'Erreur SQL', 'debug' => $debug]);
+            wp_send_json_error(['message' => 'SQL error', 'debug' => $debug]);
         }
 
         $nb_welding = $data_received['nbWelding'] ?? 0;
@@ -865,7 +865,7 @@ class ISPAG_Tank_Designer
         {
             $error = $wpdb->last_error;
             $logger->log(self::LOG_NAME, 'ERROR: DB update failed - ' . $error, $user_id);
-            wp_send_json_error(['message' => 'Erreur DB : ' . $error]);
+            wp_send_json_error(['message' => 'DB error: ' . $error]);
         }
 
         wp_die();

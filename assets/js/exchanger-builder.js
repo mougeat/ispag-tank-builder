@@ -31,11 +31,11 @@ function saveHeatExchangerData(articleId, is_purchase = false) {
         exchanger: exchanger
     }).done(response => {
         if (!response.success) {
-            console.error('Erreur sauvegarde échangeur : ', response.data || response.message);
+            console.error('Error sauvegarde échangeur : ', response.data || response.message);
         } else {
             console.log('Succès sauvegarde technique échangeur');
         }
     }).fail(xhr => {
-        console.error('Erreur critique AJAX lors de la sauvegarde de l\'échangeur', xhr.responseText);
+        console.error('Error critique AJAX lors de la sauvegarde de l\'échangeur', xhr.responseText);
     });
 }

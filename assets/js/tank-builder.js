@@ -638,12 +638,12 @@ function saveTankData(articleId, is_purchase = false) {
         tank: tank
     }).done(response => {
         if (!response.success) {
-            console.error('Erreur cuve : ', response.data);
+            console.error('Error cuve : ', response.data);
         } else {
             console.log('Succès sauvegarde technique', response.data);
         }
     }).fail(xhr => {
-        console.error('Erreur critique AJAX', xhr.responseText);
+        console.error('Error critique AJAX', xhr.responseText);
     });
 }
 
@@ -684,7 +684,7 @@ jQuery(document).ready(function($) {
 
         console.log(`%c MODE DÉTECTÉ : ${mode.toUpperCase()} (ID: ${finalIdToEdit})`, "background: #34495e; color: #fff; padding: 2px 5px;");
 
-        $('#fittings-form').html('<p>Chargement...</p>');
+        $('#fittings-form').html('<p>Loading...</p>');
         $('#tank-fittings-modal').fadeIn();
 
         $.post(ajaxurl, {
@@ -707,7 +707,7 @@ jQuery(document).ready(function($) {
                 }, 50);
 
             } else {
-                $('#fittings-form').html('<p>Erreur de chargement</p>');
+                $('#fittings-form').html('<p>Loading error</p>');
             }
         });
     });
@@ -888,8 +888,8 @@ function saveFittings(autoSave = false, btnElement = null) {
         }
     })
     .catch(err => {
-        console.error('Erreur Save:', err);
-        alert("Erreur de connexion au serveur.");
+        console.error('Error Save:', err);
+        alert("Server connection error.");
     })
     .finally(() => {
         // --- RÉINITIALISATION DU BOUTON ---
@@ -923,7 +923,7 @@ document.addEventListener('click', function (e) {
                 if (response.success) {
                     row.remove(); // suppression du DOM
                 } else {
-                    alert('❌ Erreur lors de la suppression');
+                    alert('❌ Error while deleting');
                     console.error(response);
                 }
             });

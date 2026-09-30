@@ -67,13 +67,13 @@ jQuery(function($) {
                     hasErrors[`${tankId}_${nextCoilNb}`] = false;
                     updateSaveButtonState(tankId);
                 } else {
-                    console.error("Erreur : ", response.message || "Réponse vide");
-                    alert("Erreur : Impossible de charger le formulaire.");
+                    console.error("Error: ", response.message || "Réponse vide");
+                    alert("Error: Unable to load the form.");
                 }
             },
             error: function(xhr) {
-                console.error("Erreur AJAX :", xhr.responseText);
-                alert("Erreur lors du chargement du formulaire.");
+                console.error("Error AJAX :", xhr.responseText);
+                alert("Error while loading the form.");
             },
             complete: function() {
                 $(this).prop('disabled', false);
@@ -139,14 +139,14 @@ jQuery(function($) {
                         // Optionnel : rafraîchir une partie de la page
                     });
                 } else {
-                    alert("Erreur PHP : " + (response.data || "Erreur inconnue"));
+                    alert("PHP error: " + (response.data || "Unknown error"));
                 }
             },
             error: function() {
                 alert("Network error while saving.");
             },
             complete: function() {
-                $btn.html('<span class="dashicons dashicons-media-archive"></span> Enregistrer').prop('disabled', false);
+                $btn.html('<span class="dashicons dashicons-media-archive"></span> Save').prop('disabled', false);
             }
         });
     });

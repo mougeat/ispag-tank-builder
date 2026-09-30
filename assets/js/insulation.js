@@ -68,11 +68,11 @@ function renderInsulationForm(articleId){
 //         tank: tank
 //     }).done(response => {
 //         if (!response.success) {
-//             console.error('Erreur cuve : ', response.data);
+//             console.error('Error cuve : ', response.data);
 //         } else {
 //             console.log('Succès sauvegarde technique', response.data);
 //         }
 //     }).fail(xhr => {
-//         console.error('Erreur critique AJAX', xhr.responseText);
+//         console.error('Error critique AJAX', xhr.responseText);
 //     });
 // }

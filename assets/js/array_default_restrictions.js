@@ -9,7 +9,7 @@ async function setIspagTankRestrictionsValue() {
 
   try {
     const response = await fetch(ISPAG_TANK.jsonUrl);
-    if (!response.ok) throw new Error('Erreur chargement JSON');
+    if (!response.ok) throw new Error('JSON loading error');
 
     const data = await response.json();
     arrayBottomHeight = data.arrayBottomHeight;
@@ -19,6 +19,6 @@ async function setIspagTankRestrictionsValue() {
     isDataLoaded = true;
     jQuery(document).trigger('ispag:restrictions_loaded');
   } catch (error) {
-    console.error('Erreur lors du chargement des données:', error);
+    console.error('Error lors du chargement des données:', error);
   }
 }

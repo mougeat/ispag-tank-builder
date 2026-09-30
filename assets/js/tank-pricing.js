@@ -174,8 +174,8 @@ jQuery(document).ready(function($) {
                 $('#tank-price-value').val(data.net_price);
             },
             error: function(xhr, status, error) {
-                console.error('[Tank Pricing] Erreur AJAX critique :', error, { xhr, status });
-                $('#tank-price-display').val('Erreur');
+                console.error('[Tank Pricing] Error AJAX critique :', error, { xhr, status });
+                $('#tank-price-display').val('Error');
                 $('#tank-price-errors').html('<div class="ispag-errors" style="color: red; margin-top: 10px;"><strong>⚠️ ' + ispag_texts.critical_error + ' :</strong> ' + error + '</div>');
             }
         });
@@ -211,7 +211,7 @@ jQuery(document).ready(function($) {
         // Afficher le spinner et désactiver le bouton
         const $button = $('#generate-report-button');
         const originalButtonHtml = $button.html();
-        $button.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> ' + (ispag_texts.loading || 'Chargement...'));
+        $button.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> ' + (ispag_texts.loading || 'Loading...'));
         $('#report-status').html('<span style="color: orange;">' + ispag_texts.report_generation_progress + '...</span>');
 
         $.ajax({
@@ -229,7 +229,7 @@ jQuery(document).ready(function($) {
                 if (!response || !response.success || !response.data) {
                     const errorMsg = response && response.data && response.data.message ? response.data.message : ispag_texts.invalid_server_response;
                     $('#report-status').html('<div class="ispag-errors" style="color: red; margin-top: 10px;">⚠️ ' + ispag_texts.error + ' : ' + errorMsg + '</div>');
-                    console.error('[Tank Pricing] Erreur lors de la génération du rapport :', errorMsg);
+                    console.error('[Tank Pricing] Error lors de la génération du rapport :', errorMsg);
                     return;
                 }
 
@@ -251,7 +251,7 @@ jQuery(document).ready(function($) {
             error: function(xhr, status, error) {
                 $button.prop('disabled', false).html(originalButtonHtml);
                 $('#report-status').html('<div class="ispag-errors" style="color: red; margin-top: 10px;">⚠️ ' + ispag_texts.critical_error + ' : ' + error + '</div>');
-                console.error('[Tank Pricing] Erreur AJAX :', error);
+                console.error('[Tank Pricing] Error AJAX :', error);
             }
         });
     }

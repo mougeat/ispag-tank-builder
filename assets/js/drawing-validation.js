@@ -40,7 +40,7 @@ if (btn_validation) {
             location.reload();
           }
         } else {
-          alert('Erreur : ' + res.data);
+          alert('Error: ' + res.data);
           btn_validation.disabled = false;
           btn_validation.textContent = '✅ ' + ispag_validation.validateDrawingButton;
         }
