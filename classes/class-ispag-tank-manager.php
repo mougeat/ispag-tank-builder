@@ -352,26 +352,21 @@ class ISPAG_Tank_Manager {
     }
 
     public static function get_sketch_btn($html, $article, $deal_id = null){
-        
-        if($article->Type == 1){
 
-            $script = '<script>
-                    document.getElementById(\'sketch-pdf\').addEventListener(\'click\', function () {
-                        // alert(\'yes\');
-                        const url = new URL(\'' . admin_url('admin-ajax.php') . '\');
-                        url.searchParams.set(\'action\', \'ispag_ajax_generate_sketch\');
-                        url.searchParams.set(\'deal_id\', getUrlParam(\'deal_id\'));
-                        url.searchParams.set(\'article_id\', ' . intval($article->Id) . ');
-
-                        window.open(url.toString(), \'_blank\');
-                    });
-                    </script>';
-            return '<button id="sketch-pdf" class="ispag-btn ispag-btn-secondary-outlined" style="margin-top: 1rem;" data-tank-sketch="' . intval($article->Id) . '" data-deal-id="' . intval($deal_id) . '" data-ajax-action="tank_data_extractor">
-                        <span class="dashicons dashicons-hammer"></span>
-                        ' .  __('Sketch', 'creation-reservoir') . '
-                    </button>
-                    ';
+        if ($article->Type != 1) {
+            return $html;
         }
+
+        $url = add_query_arg([
+            'action'     => 'ispag_ajax_generate_sketch',
+            'deal_id'    => intval($deal_id ?: ($article->hubspot_deal_id ?? 0)),
+            'article_id' => intval($article->Id),
+        ], admin_url('admin-ajax.php'));
+
+        return '<button type="button" class="ispag-btn ispag-btn-secondary-outlined" style="margin-top: 1rem;" data-tank-sketch="' . intval($article->Id) . '" onclick="window.open(' . esc_attr(wp_json_encode($url)) . ', \'_blank\');">
+                    <span class="dashicons dashicons-hammer"></span>
+                    ' . esc_html__('Sketch', 'creation-reservoir') . '
+                </button>';
     }
 
     public static function ispag_ajax_generate_sketch() {
