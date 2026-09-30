@@ -160,7 +160,7 @@ class ISPAG_Tank_Insulation {
         $tank_height = $ins['tankHeightLimit'] ?? '';
         
         // Récupérer les textes via les IDs
-        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0);
+        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0) ?: ($ins['insulationThickness'] ?? 0); // Id de conception, ou épaisseur directe en mm
         $type_text = $this->get_conception_value($ins['insulationType'] ?? 0);
         $cover_text = $this->get_conception_value($ins['insulationCover'] ?? 0);
 
@@ -199,7 +199,7 @@ class ISPAG_Tank_Insulation {
         $tank_height = $ins['tankHeightLimit'] ?? '';
         
         // Récupérer les textes via les IDs
-        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0);
+        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0) ?: ($ins['insulationThickness'] ?? 0); // Id de conception, ou épaisseur directe en mm
         $type_text = $this->get_conception_value($ins['insulationType'] ?? 0);
         $cover_text = $this->get_conception_value($ins['insulationCover'] ?? 0);
 
