@@ -10,7 +10,6 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
     const FRONT_MARGIN_LEFT = 200;   // marge gauche du SVG de face
     const FRONT_PAD_X       = 340;   // espace conservé de chaque côté de la cuve (piquages)
     const FRONT_PAD_TOP     = 300;   // espace conservé au-dessus de la cuve (piquages verticaux)
-    const TOP_MARGIN_LEFT   = 100;   // marge gauche du SVG de dessus
     const TOP_INSULATION    = 160;
     const TOP_RADIAL_PAD    = 450;   // espace conservé autour du cercle de la cuve
 
@@ -478,26 +477,40 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $cx = $ix + $img / 2;
         $cy = $iy + $img / 2;
 
-        // centre du cercle dans le SVG de dessus
-        $cxs = self::TOP_MARGIN_LEFT + $diam / 2 + self::TOP_INSULATION + self::TOP_MARGIN_LEFT;
-        $cys = self::TOP_INSULATION + 50 + $diam / 2 + self::TOP_INSULATION + self::TOP_MARGIN_LEFT;
+        // Dessin vectoriel direct (plus de dépendance au SVG/PNG : positions toujours cohérentes)
+        $tank_h = floatval($dim->Height ?? 0);
+        $r = $diam / 2 * $s;
+        $ins = self::TOP_INSULATION * $s;
 
-        $svg = $this->load_svg('ispag_get_tank_top_view_svg', $article->Id);
-        if ($svg) {
-            $png = $this->svg_to_png($svg, [$cxs - $half, $cys - $half, 2 * $half, 2 * $half], 'sketch_top_' . intval($article->Id), 1800);
-            if ($png) {
-                $this->Image($png, $ix, $iy, $img, $img);
+        $this->SetDrawColor(150);
+        $this->SetLineWidth(0.15);
+        $this->SetDash(1.2, 1.2);
+        $this->circle($cx, $cy, $r + $ins, 'D');
+        $this->SetDash();
+
+        $this->SetDrawColor(0);
+        $this->SetFillColor(200);
+        $this->SetLineWidth(0.25);
+        foreach ($fittings as $f) {
+            $this->drawTopFitting($f, $cx, $cy, $r, $ins, $s, $tank_h);
+        }
+        $this->SetFillColor(225);
+        $this->circle($cx, $cy, $r, 'FD');
+        // piquages verticaux (au-dessus de la cuve) par-dessus la calotte
+        $this->SetFillColor(170);
+        foreach ($fittings as $f) {
+            if (floatval($f->Height ?? 0) > $tank_h) {
+                $this->circle($cx, $cy, max(0.8, floatval($f->InternalDiamter ?? 50) / 2 * $s), 'FD');
             }
         }
 
         // Angles + bulles
-        $tank_h = floatval($dim->Height ?? 0);
         $groups = [];
         foreach ($fittings as $f) {
             if (floatval($f->Height ?? 0) > $tank_h) { continue; } // piquage vertical : au centre
             $groups[intval($f->Angle ?? 0) % 360][] = $f;
         }
-        $r_lab = ($diam / 2 + 300) * $s;
+        $r_lab = ($diam / 2 + 370) * $s;
         $this->SetTextColor(0);
         foreach ($groups as $angle => $list) {
             $a = deg2rad($angle);
@@ -572,6 +585,48 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
             $this->_out(sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c', $p[0] * $k, ($hp - $p[1]) * $k, $p[2] * $k, ($hp - $p[3]) * $k, $p[4] * $k, ($hp - $p[5]) * $k));
         }
         $this->_out($style === 'F' ? 'f' : ($style === 'FD' || $style === 'DF' ? 'B' : 'S'));
+    }
+
+    /** Piquage latéral vu de dessus : tube radial (+ bride si type 24), de la paroi vers l'extérieur. */
+    protected function drawTopFitting($f, $cx, $cy, $r, $ins, $s, $tank_h) {
+        if (floatval($f->Height ?? 0) > $tank_h) {
+            return; // vertical : dessiné au centre
+        }
+        $a = deg2rad(intval($f->Angle ?? 0));
+        $ux = sin($a);   // 0° = bas de la vue, 90° = droite (comme le plan d'atelier)
+        $uy = cos($a);
+        $is_flange = intval($f->Type ?? 0) === 24;
+        $len = $ins + ($is_flange ? 30 * $s : 0);
+        $wd = max(1.2, floatval($f->InternalDiamter ?? 20) * $s);
+        $this->radialRect($cx, $cy, $ux, $uy, $r - 0.3, $r + $len, $wd);
+        if ($is_flange) {
+            $fw = max($wd + 1, floatval($f->ExternalDiameter ?? 0) * $s);
+            $ft = max(0.8, floatval($f->Thickness ?? 10) * $s);
+            $this->radialRect($cx, $cy, $ux, $uy, $r + $len - $ft, $r + $len, $fw);
+        }
+    }
+
+    /** Rectangle orienté selon (ux,uy), entre les rayons d1 et d2, de largeur $w. */
+    protected function radialRect($cx, $cy, $ux, $uy, $d1, $d2, $w) {
+        $px = -$uy * $w / 2;
+        $py = $ux * $w / 2;
+        $pts = [
+            [$cx + $ux * $d1 + $px, $cy + $uy * $d1 + $py],
+            [$cx + $ux * $d2 + $px, $cy + $uy * $d2 + $py],
+            [$cx + $ux * $d2 - $px, $cy + $uy * $d2 - $py],
+            [$cx + $ux * $d1 - $px, $cy + $uy * $d1 - $py],
+        ];
+        $k = $this->k;
+        $hp = $this->h;
+        $this->_out(sprintf('%.2F %.2F m', $pts[0][0] * $k, ($hp - $pts[0][1]) * $k));
+        for ($i = 1; $i < 4; $i++) {
+            $this->_out(sprintf('%.2F %.2F l', $pts[$i][0] * $k, ($hp - $pts[$i][1]) * $k));
+        }
+        $this->_out('b');
+    }
+
+    protected function SetDash($black = null, $white = null) {
+        $this->_out($black !== null ? sprintf('[%.3F %.3F] 0 d', $black * $this->k, $white * $this->k) : '[] 0 d');
     }
 
     protected function balloon($cx, $cy, $n) {
