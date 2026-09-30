@@ -108,7 +108,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
     private function insert_insulation_article($deal_id, $tank_id, $article) {
         $title = apply_filters('ispag_get_insulation_title', '', $article->Id);
         $description = apply_filters('ispag_get_insulation_description', '', $article->Id);
-        $default_supplier = 17;
+        $default_supplier = 17; // ID fournisseur = wor9711_ispag_companies.id : à remapper (voir ispag-crm/migrations)
         
         ISPAG_Article_Repository::ini(); // assure que le filtre est dispo
         $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);

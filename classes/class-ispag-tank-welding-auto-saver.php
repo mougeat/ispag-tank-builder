@@ -156,7 +156,7 @@ class ISPAG_Tank_Welding_Auto_Saver
 
         $title = apply_filters('ispag_get_welding_title', $article->TitreArticle, $article->Id);
         $description = apply_filters('ispag_get_welding_description', $article->description_ispag, $article->Id);
-        $default_supplier = 25;
+        $default_supplier = 25; // ID fournisseur = wor9711_ispag_companies.id : à remapper (voir ispag-crm/migrations)
 
         ISPAG_Article_Repository::ini();
         $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);
