@@ -129,6 +129,7 @@ $allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE
     </div>
 
     <div class="ispag-modal-grid" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+        <?php if (current_user_can('manage_order')): ?>
         <div class="ispag-field" style="flex: 1; min-width: 250px;">
              <div class="field-group" style="margin-bottom: 15px;">
                 <div id="ispag-article-template-wrapper" style="margin-bottom: 15px;">
@@ -186,6 +187,7 @@ $allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE
                 </div>
             </div>
         </div>
+        <?php endif; // template de commentaire : manage_order uniquement ?>
         
         <div class="ispag-field" style="flex: 1; min-width: 250px;">
                 
