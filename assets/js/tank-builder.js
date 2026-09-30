@@ -850,7 +850,7 @@ function saveFittings(autoSave = false, btnElement = null) {
         btnElement.disabled = true; // Désactive pour éviter le double clic
         originalHtml = btnElement.innerHTML;
         // On remplace le contenu par un spinner (FontAwesome)
-        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     }
 
     fetch(ajaxurl, {

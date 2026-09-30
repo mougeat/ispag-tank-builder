@@ -131,7 +131,7 @@ jQuery(function($) {
                 exchangers: JSON.stringify(exchangers)
             },
             beforeSend: function() {
-                $btn.text('Enregistrement...').prop('disabled', true);
+                $btn.text('Saving...').prop('disabled', true);
             },
             success: function(response) {
                 if (response.success) {

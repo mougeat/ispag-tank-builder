@@ -106,7 +106,7 @@ class ISPAG_Existing_Tanks_Table {
                     <?php endif; ?>
 
                     <div class="filter-group" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                        <input type="search" name="search" value="<?php echo esc_attr($search); ?>" placeholder="Rechercher un projet..." style="min-width: 200px; padding: 6px 10px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;" />
+                        <input type="search" name="search" value="<?php echo esc_attr($search); ?>" placeholder="Search for a project..." style="min-width: 200px; padding: 6px 10px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;" />
                         
                         <select name="tank_type" style="padding: 6px; border-radius: var(--ispag-btn-border-radius);">
                             <option value="0">Tous les types</option>

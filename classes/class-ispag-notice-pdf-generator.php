@@ -138,7 +138,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             self::add_content_from_template($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
         }
 
-        // Sauvegarder le PDF
+        // Save le PDF
         $upload_dir = wp_upload_dir();
         $filename = "Notice_Reservoir_" . self::sanitize_filename($data['article']->Article) . "_Multilingue_" . time() . ".pdf";
         $pdf_path = $upload_dir['path'] . '/' . $filename;
@@ -282,7 +282,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             $pdf->SetFont('Arial', '', self::$font_size_body);
             $pdf->SetTextColor(0, 0, 0);
 
-            // Sauvegarder la position Y actuelle
+            // Save la position Y actuelle
             $start_y = $pdf->GetY();
 
             // 1. Afficher le texte SI il existe
