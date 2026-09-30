@@ -38,7 +38,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         // var_dump($tank);
         
  
-        if (!$tank) {
+        if (!$tank || empty($tank['dimensions'])) {
             // echo "[DEBUG] Pas de données de cuve. Abort.\n";
             return ob_get_clean();
         }
@@ -55,7 +55,6 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             // echo "[DEBUG] Article trouvé : ID {$matching_article->Id} | Titre : {$matching_article->TitreArticle}\n";
             $result_save = $this->insert_insulation_article($deal_id, $article_id, $matching_article);
             // echo "[DEBUG] result_save : \n";
-            var_dump($result_save);
         } else {
             // echo "[DEBUG] Aucun article d'isolation correspondant trouvé.\n";
         }
@@ -63,41 +62,49 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         return ob_get_clean(); // On renvoie les logs capturés
     }
 
+    /**
+     * Le libellé de hauteur de l'article ("over"/"under", éventuellement traduit) indique
+     * s'il vaut pour les cuves au-dessus ou en dessous de la limite tankHeightLimit.
+     */
+    private function is_over_height_label($label) {
+        $label = strtolower(trim((string) $label));
+        return (bool) preg_match('/^(over|above|greater|higher|more|plus|sup|au[- ]?dessus|über|ueber|hoch|>)/u', $label);
+    }
+
     private function find_matching_insulation_article($volume, $height, $type, $thickness, $cover) {
-        $height_case = $height > 2500 ? 'over' : 'under';
+        if ($type <= 0 || $thickness <= 0) return null;
+
         $articles = $this->wpdb->get_results(
             "SELECT * FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2"
         );
 
         $best = null;
-        $min_surplus_vol = PHP_INT_MAX;
+        $best_vol = PHP_INT_MAX;
 
         foreach ($articles as $article) {
             $data = json_decode($article->conception);
-            if (!isset($data->insulation)) continue;
-
+            if (empty($data->insulation)) continue;
             $i = $data->insulation;
-           // On extrait et convertit les valeurs du JSON pour la comparaison
-            $i_type      = isset($i->insulationType) ? intval($i->insulationType) : null;
-            $i_thickness = isset($i->insulationThickness) ? intval($i->insulationThickness) : null;
-            $i_cover     = isset($i->insulationCover) ? intval($i->insulationCover) : null;
-            $i_height    = isset($i->tankHeight) ? $i->tankHeight : '';
-            $i_volume    = isset($i->tankVolum) ? floatval($i->tankVolum) : 0;
 
-            // 3. Vérification de tous les critères
-            if (
-                $i_type === intval($type) &&
-                $i_thickness === intval($thickness) &&
-                $i_cover === intval($cover) &&
-                $i_height === $height_case &&
-                $i_volume >= $volume
-            ) {
-                // Calcul du surplus pour trouver l'isolation la plus proche du volume réel
-                $surplus = $i_volume - $volume;
-                if ($surplus < $min_surplus_vol) {
-                    $best = $article;
-                    $min_surplus_vol = $surplus;
-                }
+            if (intval($i->insulationType ?? 0) !== $type) continue;
+            if (intval($i->insulationThickness ?? 0) !== $thickness) continue;
+            // Le revêtement n'est un critère que s'il est choisi (sinon on ne l'impose pas)
+            if ($cover > 0 && intval($i->insulationCover ?? 0) !== $cover) continue;
+
+            // Hauteur : limite propre à l'article (2500 mm par défaut)
+            $limit = isset($i->tankHeightLimit) && floatval($i->tankHeightLimit) > 0 ? floatval($i->tankHeightLimit) : 2500;
+            $is_over = $this->is_over_height_label($i->tankHeight ?? '');
+            if ($height > 0) {
+                if ($is_over && !($height > $limit)) continue;
+                if (!$is_over && !($height <= $limit)) continue;
+            }
+
+            // Volume : plus petit volume d'article couvrant le volume de la cuve
+            $i_volume = floatval($i->tankVolum ?? 0);
+            if ($i_volume < $volume) continue;
+            if ($i_volume < $best_vol) {
+                $best = $article;
+                $best_vol = $i_volume;
             }
         }
 
