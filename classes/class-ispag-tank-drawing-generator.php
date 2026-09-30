@@ -83,6 +83,24 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         return $label;
     }
 
+    /** Isolation liée à la cuve (article isolation du projet, ou livraison fournisseur) ; '' si aucune. */
+    protected function get_insulation_text($article) {
+        $id = $article->Id ?? 0;
+        $html = apply_filters('ispag_get_related_insulation_information', null, $id);
+        if (empty($html)) {
+            $html = apply_filters('ispag_get_insulation_for_tank_description', null, $id, false);
+        }
+        if (empty($html)) {
+            return '';
+        }
+        // On garde les deux premières lignes (épaisseur/type et revêtement), sans les conditions commerciales
+        $lines = preg_split('/<br\s*\/?>|\R/i', (string) $html);
+        $lines = array_values(array_filter(array_map(function ($l) {
+            return trim(html_entity_decode(strip_tags($l), ENT_QUOTES, 'UTF-8'));
+        }, $lines)));
+        return implode(' - ', array_slice($lines, 0, 2));
+    }
+
     /** Construit la nomenclature : un numéro par type de raccord, puis pieds / virole / échangeurs. */
     protected function build_bom($article, $tank_datas, $fittings) {
         $material = isset($tank_datas['conception']->material_text) ? __($tank_datas['conception']->material_text, 'creation-reservoir') : '';
@@ -275,14 +293,14 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
 
         // Caractéristiques
         $finition = $conc->Finition ?? '';
-        $insulation = $article->insulationType ?? '';
+        $insulation = $this->get_insulation_text($article);
         $lines = [
             [__('Tank', 'creation-reservoir'), $article->Groupe ?? ($article->Article ?? '-')],
             [__('Material', 'creation-reservoir'), isset($conc->material_text) ? __($conc->material_text, 'creation-reservoir') : '-'],
             [__('Finish', 'creation-reservoir'), $finition ? __($finition, 'creation-reservoir') : '-'],
             [__('Pressure (exerc./test)', 'creation-reservoir'), ($dim->MaxPressure ?? '-') . ' bar / ' . ($dim->TestPressure ?? '-') . ' bar'],
             [__('Temperature', 'creation-reservoir'), ($dim->usingTemperature ?? '-') . ' °C'],
-            [__('Insulation', 'creation-reservoir'), $insulation !== '' && $insulation !== null ? $insulation : __('NOT INSULATED', 'creation-reservoir')],
+            [__('Insulation', 'creation-reservoir'), $insulation !== '' ? $insulation : __('NOT INSULATED', 'creation-reservoir')],
         ];
         foreach ($lines as $l) {
             $this->SetXY($x, $y);
