@@ -409,6 +409,8 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $this->SetTextColor(0);
         $this->SetLineWidth(0.15);
 
+        $this->drawFrontAccessories($fittings, $diam, $height, $X, $Y, $s);
+
         // Cote du diamètre
         $yd = $iy + 4;
         $this->dimH($tank_l, $tank_r, $yd, 'Ø' . round($diam));
@@ -514,6 +516,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         }
         $this->SetFillColor(225);
         $this->circle($cx, $cy, $r, 'FD');
+        $this->drawTopAccessories($fittings, $cx, $cy, $r, $diam, $tank_h, $s);
         // piquages verticaux (au-dessus de la cuve) par-dessus la calotte
         $this->SetFillColor(170);
         foreach ($fittings as $f) {
@@ -605,6 +608,117 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $this->_out($style === 'F' ? 'f' : ($style === 'FD' || $style === 'DF' ? 'B' : 'S'));
     }
 
+    /** Type d'accessoire interne : 'bend' (tube plongeant), 'spray' (tube diffuseur), 'baffle' (tôle de déflexion) ou ''. */
+    protected function accessory_kind($f) {
+        $txt = mb_strtolower((string) ($f->Accessories ?? ''));
+        $id = intval($f->id_accessories ?? 0);
+        if ($id === 15 || preg_match('/spray|sparge|diffus/', $txt) && !preg_match('/bend pipe/', $txt)) {
+            return 'spray';
+        }
+        if ($id === 16 || preg_match('/baffle|d[ée]fle/', $txt)) {
+            return 'baffle';
+        }
+        if ($id === 14 || preg_match('/bend pipe|plongeant|plongeur/', $txt)) {
+            return 'bend';
+        }
+        return '';
+    }
+
+    /** Tube vu de côté : deux traits parallèles le long de la ligne brisée $pts (centre), rayon $r, bouchon final. */
+    protected function drawTube(array $pts, $r) {
+        $n = count($pts);
+        for ($i = 0; $i < $n - 1; $i++) {
+            $dx = $pts[$i + 1][0] - $pts[$i][0];
+            $dy = $pts[$i + 1][1] - $pts[$i][1];
+            $l = sqrt($dx * $dx + $dy * $dy) ?: 1;
+            $nx = -$dy / $l * $r;
+            $ny = $dx / $l * $r;
+            foreach ([1, -1] as $sg) {
+                $this->Line($pts[$i][0] + $sg * $nx, $pts[$i][1] + $sg * $ny, $pts[$i + 1][0] + $sg * $nx, $pts[$i + 1][1] + $sg * $ny);
+            }
+            if ($i > 0) { // pli (onglet) entre deux tronçons
+                $this->Line($pts[$i][0] + $nx, $pts[$i][1] + $ny, $pts[$i][0] - $nx, $pts[$i][1] - $ny);
+            }
+        }
+        $last = $pts[$n - 1];
+        $dx = $last[0] - $pts[$n - 2][0];
+        $dy = $last[1] - $pts[$n - 2][1];
+        $l = sqrt($dx * $dx + $dy * $dy) ?: 1;
+        $nx = -$dy / $l * $r;
+        $ny = $dx / $l * $r;
+        $this->Line($last[0] + $nx, $last[1] + $ny, $last[0] - $nx, $last[1] - $ny);
+    }
+
+    /** Accessoires internes en vue de face (traits interrompus) : tube plongeant, tube diffuseur, tôle de déflexion. */
+    protected function drawFrontAccessories($fittings, $diam, $tank_h, $X, $Y, $s) {
+        $this->SetDrawColor(70);
+        $this->SetLineWidth(0.2);
+        $this->SetDash(1.4, 0.9);
+        foreach ($fittings as $f) {
+            $kind = $this->accessory_kind($f);
+            $h = floatval($f->Height ?? 0);
+            if ($kind === '' || $h > $tank_h) { continue; }
+            $a = deg2rad(intval($f->Angle ?? 0));
+            $sin = sin($a);
+            $dn = max(20, floatval($f->InternalDiamter ?? 50));
+            $r = max(0.8, $dn / 2 * $s);
+            $x0 = $X($diam / 2 * (1 + $sin));
+            $y0 = $Y($h);
+            $p = abs($sin);                 // projection de la profondeur sur la vue
+            $dir = $sin > 0 ? -1 : 1;       // vers l'intérieur de la cuve
+            if ($p < 0.25) {                // piquage de face ou de dos : tube vu par son extrémité
+                $this->SetDash();
+                $this->circle($x0, $y0, $r, 'D');
+                $this->SetDash(1.4, 0.9);
+                continue;
+            }
+            if ($kind === 'bend') {
+                $up = $h > $tank_h / 2 ? -1 : 1;
+                $x1 = $x0 + $dir * 120 * $p * $s;
+                $x2 = $x1 + $dir * 200 * cos(M_PI_4) * $p * $s;
+                $y2 = $y0 + $up * 200 * sin(M_PI_4) * $s;
+                $this->drawTube([[$x0, $y0], [$x1, $y0], [$x2, $y2]], $r);
+            } elseif ($kind === 'spray') {
+                $x1 = $x0 + $dir * 0.7 * $diam * $p * $s;
+                $this->drawTube([[$x0, $y0], [$x1, $y0]], $r);
+                for ($i = 1; $i <= 8; $i++) { // perçages
+                    $hx = $x0 + ($x1 - $x0) * ($i / 9);
+                    $this->Line($hx, $y0 + $r, $hx, $y0 + $r + 1.2);
+                }
+            } else { // baffle
+                $xp = $x0 + $dir * 70 * $p * $s;
+                $half = 1.1 * $dn * $s;
+                $t = max(0.6, 10 * $s);
+                $this->Rect(min($xp, $xp + $dir * $t), $y0 - $half, $t, 2 * $half, 'D');
+            }
+        }
+        $this->SetDash();
+    }
+
+    /** Accessoires internes en vue de dessus. */
+    protected function drawTopAccessories($fittings, $cx, $cy, $r, $diam, $tank_h, $s) {
+        $this->SetDrawColor(70);
+        $this->SetLineWidth(0.2);
+        $this->SetDash(1.4, 0.9);
+        foreach ($fittings as $f) {
+            $kind = $this->accessory_kind($f);
+            if ($kind === '' || floatval($f->Height ?? 0) > $tank_h) { continue; }
+            $a = deg2rad(intval($f->Angle ?? 0));
+            $ux = sin($a);
+            $uy = cos($a);
+            $dn = max(20, floatval($f->InternalDiamter ?? 50));
+            $w = max(1.2, $dn * $s);
+            if ($kind === 'bend') {
+                $this->radialRect($cx, $cy, $ux, $uy, $r - (120 + 200 * cos(M_PI_4)) * $s, $r, $w, 'S');
+            } elseif ($kind === 'spray') {
+                $this->radialRect($cx, $cy, $ux, $uy, $r - 0.7 * $diam * $s, $r, $w, 'S');
+            } else {
+                $this->radialRect($cx, $cy, $ux, $uy, $r - 80 * $s, $r - 70 * $s, 2.2 * $dn * $s, 'S');
+            }
+        }
+        $this->SetDash();
+    }
+
     /** Piquage latéral vu de dessus : tube radial (+ bride si type 24), de la paroi vers l'extérieur. */
     protected function drawTopFitting($f, $cx, $cy, $r, $ins, $s, $tank_h) {
         if (floatval($f->Height ?? 0) > $tank_h) {
@@ -625,7 +739,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
     }
 
     /** Rectangle orienté selon (ux,uy), entre les rayons d1 et d2, de largeur $w. */
-    protected function radialRect($cx, $cy, $ux, $uy, $d1, $d2, $w) {
+    protected function radialRect($cx, $cy, $ux, $uy, $d1, $d2, $w, $op = 'b') {
         $px = -$uy * $w / 2;
         $py = $ux * $w / 2;
         $pts = [
@@ -640,7 +754,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         for ($i = 1; $i < 4; $i++) {
             $this->_out(sprintf('%.2F %.2F l', $pts[$i][0] * $k, ($hp - $pts[$i][1]) * $k));
         }
-        $this->_out('b');
+        $this->_out($op);
     }
 
     protected function SetDash($black = null, $white = null) {
