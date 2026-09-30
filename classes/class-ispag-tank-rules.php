@@ -33,6 +33,7 @@ class ISPAG_Tank_Rules {
         add_action('wp_ajax_ispag_get_tank_rules', [self::class, 'ajax_get_rules']);
         add_action('admin_menu', [self::class, 'menu'], 30);
         add_action('admin_post_ispag_save_tank_rules', [self::class, 'handle_save']);
+        add_action('admin_post_ispag_save_tank_accessories', [self::class, 'handle_save_accessories']);
     }
 
     public static function table() {
@@ -242,6 +243,7 @@ class ISPAG_Tank_Rules {
         <div class="wrap">
             <h1>Tank rules</h1>
             <?php if (!empty($_GET['saved'])): ?><div class="notice notice-success is-dismissible"><p>Rules saved.</p></div><?php endif; ?>
+            <?php if (!empty($_GET['acc_saved'])): ?><div class="notice notice-success is-dismissible"><p>Accessory saved.</p></div><?php endif; ?>
             <p>Allowed values and defaults used by the tank form. Leave every box of a field unchecked to allow all values. The suppliers proposed for a tank are those of its type and of its material.</p>
             <style>
                 .ispag-rule-card{background:#fff;border:1px solid #ccd0d4;padding:10px 16px;margin:0 0 14px;max-width:1100px}
@@ -250,6 +252,7 @@ class ISPAG_Tank_Rules {
                 .ispag-rule-checks label{display:inline-block;margin:0 14px 4px 0}
                 .ispag-rule-default{display:block;margin-top:4px}
             </style>
+            <?php self::render_accessories(); ?>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <input type="hidden" name="action" value="ispag_save_tank_rules">
                 <?php wp_nonce_field('ispag_save_tank_rules'); ?>
@@ -314,6 +317,44 @@ class ISPAG_Tank_Rules {
             </form>
         </div>
         <?php
+    }
+
+    /** Articles standard utilisables comme accessoires d'isolation (TypeArticle 200). */
+    private static function accessory_articles() {
+        global $wpdb;
+        return (array) $wpdb->get_results("SELECT Id, TitreArticle, ref_article_ispag FROM {$wpdb->prefix}achats_articles WHERE TypeArticle = 200 ORDER BY TitreArticle ASC");
+    }
+
+    private static function render_accessories() {
+        $selected = (int) get_option('ispag_manhole_cover_article_id', 0);
+        ?>
+        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="ispag-rule-card">
+            <input type="hidden" name="action" value="ispag_save_tank_accessories">
+            <?php wp_nonce_field('ispag_save_tank_accessories'); ?>
+            <h3>Insulation accessories</h3>
+            <div class="ispag-rule-row">
+                <strong>Manhole cover</strong>
+                <select name="manhole_cover_article_id">
+                    <option value="0">– None (search by title) –</option>
+                    <?php foreach (self::accessory_articles() as $a): ?>
+                        <option value="<?php echo (int) $a->Id; ?>" <?php selected($selected, (int) $a->Id); ?>>
+                            <?php echo esc_html(html_entity_decode($a->TitreArticle) . ($a->ref_article_ispag ? ' (' . $a->ref_article_ispag . ')' : '')); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="description">Added to the insulation of a tank, one per manhole (revision flange fitting).</p>
+            </div>
+            <?php submit_button('Save accessory', 'secondary', 'submit', false); ?>
+        </form>
+        <?php
+    }
+
+    public static function handle_save_accessories() {
+        if (!current_user_can('manage_options')) wp_die('Forbidden', 403);
+        check_admin_referer('ispag_save_tank_accessories');
+        update_option('ispag_manhole_cover_article_id', (int) ($_POST['manhole_cover_article_id'] ?? 0));
+        wp_safe_redirect(add_query_arg(['page' => self::PAGE, 'acc_saved' => 1], class_exists('ISPAG_Settings') ? admin_url('admin.php') : admin_url('options-general.php')));
+        exit;
     }
 
     public static function handle_save() {
