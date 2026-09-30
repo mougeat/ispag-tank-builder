@@ -42,6 +42,27 @@ class ISPAG_Tank_Pricing {
     }
 
     /**
+     * Nom de base du fichier de prix d'un fournisseur (sans .json).
+     * "Diem-Werke GmbH" → Diem-Werke_GmbH ; à défaut, "Diemwerke" retrouve le même fichier
+     * (comparaison sans forme juridique, tirets, espaces ni casse).
+     */
+    private function price_basename($supplier) {
+        $formatted = str_replace(' ', '_', $supplier);
+        $dir = ISPAG_PLUGIN_PATH . 'price/';
+        if (file_exists($dir . $formatted . '.json')) return $formatted;
+
+        $key = ISPAG_Tank_Rules::normalize_name($supplier);
+        if ($key !== '') {
+            foreach ((array) glob($dir . '*.json') as $file) {
+                $base = basename($file, '.json');
+                if (substr($base, -12) === '_accessories') continue;
+                if (ISPAG_Tank_Rules::normalize_name(str_replace('_', ' ', $base)) === $key) return $base;
+            }
+        }
+        return $formatted;
+    }
+
+    /**
      * Charge les données de tarification depuis les fichiers JSON en fonction du fournisseur
      */
     public function load_pricing_data($supplier = 'Diem-Werke GmbH') {
@@ -50,7 +71,7 @@ class ISPAG_Tank_Pricing {
         $user_id = get_current_user_id();
 
         // Remplacer les espaces par des underscores pour correspondre aux noms de fichiers JSON
-        $formatted_supplier = str_replace(' ', '_', $supplier);
+        $formatted_supplier = $this->price_basename($supplier);
 
         // Charger les données de la cuve
         $tank_json_path = $base_path . $formatted_supplier . '.json';
@@ -711,7 +732,7 @@ class ISPAG_Tank_Pricing {
         }
 
         // Vérifier si les fichiers JSON du fournisseur existent
-        $formatted_supplier = str_replace(' ', '_', $supplier);
+        $formatted_supplier = $this->price_basename($supplier);
         $base_path = ISPAG_PLUGIN_PATH . 'price/';
         $tank_json_path = $base_path . $formatted_supplier . '.json';
         $fittings_json_path = $base_path . $formatted_supplier . '_accessories.json';

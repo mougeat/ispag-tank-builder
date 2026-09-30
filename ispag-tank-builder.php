@@ -58,6 +58,7 @@ add_action('plugins_loaded', function () {
         });
         return;
     }
+    require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-rules.php';
     require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-manager.php';
     require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-tank-exchanger.php';
     require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-fitting-autosaver.php';
@@ -76,6 +77,7 @@ add_action('init', function () { if (function_exists('ispag_load_textdomain')) i
 add_action('plugins_loaded', function() {
     if (!defined('ISPAG_TANK_BUILDER_CLASSES_LOADED')) return; // dépendance absente (voir l'avis ci-dessus)
 
+    ISPAG_Tank_Rules::init();
     ISPAG_Tank_Manager::init();
     ISPAG_Tank_Designer::init();
     ISPAG_Tank_Description::init();

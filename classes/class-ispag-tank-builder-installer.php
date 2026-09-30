@@ -17,7 +17,7 @@ defined('ABSPATH') || exit;
  */
 class ISPAG_Tank_Builder_Installer {
 
-    const DB_VERSION = '1.1.1';
+    const DB_VERSION = '1.2.0';
     const OPTION     = 'ispag_tank_builder_db_version';
 
     /** Droits utilisés par ce plugin (voir grant_default_caps()). */
@@ -49,6 +49,11 @@ class ISPAG_Tank_Builder_Installer {
             }
         }
         if (!self::seed()) {
+            $ok = false;
+        }
+        // Règles de conception : reprise de tank_data.json (uniquement si la table est vide)
+        require_once __DIR__ . '/class-ispag-tank-rules.php';
+        if (!ISPAG_Tank_Rules::maybe_seed()) {
             $ok = false;
         }
         $wpdb->suppress_errors($suppress);

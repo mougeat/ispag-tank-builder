@@ -15,6 +15,18 @@ async function setIspagTankRestrictionsValue() {
     arrayBottomHeight = data.arrayBottomHeight;
     restrictions = data.restrictions;
 
+    // Les règles (fournisseurs, valeurs autorisées et par défaut) viennent de la base ; le JSON reste le repli
+    try {
+      const rulesResponse = await fetch(ISPAG_TANK.ajax_url + '?action=ispag_get_tank_rules');
+      const rules = rulesResponse.ok ? await rulesResponse.json() : null;
+      const fromDb = rules && rules.success && rules.data ? rules.data.restrictions : null;
+      if (fromDb && fromDb.typ && Object.keys(fromDb.typ).length > 0) {
+        restrictions = fromDb;
+      }
+    } catch (e) {
+      console.warn('Tank rules : lecture en base impossible, utilisation du JSON', e);
+    }
+
     // 👇 Déclencher un événement personnalisé quand les données sont prêtes
     isDataLoaded = true;
     jQuery(document).trigger('ispag:restrictions_loaded');

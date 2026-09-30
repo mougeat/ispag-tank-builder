@@ -47,6 +47,20 @@ CREATE TABLE IF NOT EXISTS `{prefix}achats_plate_exchanger_datas` (
 ) ENGINE=InnoDB {charset}
 SQL
     ,
+    'achats_tank_rules' => <<<'SQL'
+CREATE TABLE IF NOT EXISTS `{prefix}achats_tank_rules` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `scope` varchar(20) NOT NULL COMMENT 'typ, material ou insulation',
+  `scope_id` int NOT NULL COMMENT 'Id dans achats_tank_conception',
+  `kind` varchar(10) NOT NULL COMMENT 'allowed ou default',
+  `field` varchar(30) NOT NULL,
+  `value` varchar(100) NOT NULL,
+  `sort` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`Id`),
+  KEY `scope_lookup` (`scope`,`scope_id`,`kind`,`field`)
+) ENGINE=InnoDB {charset}
+SQL
+    ,
     'achats_tank_conception' => <<<'SQL'
 CREATE TABLE IF NOT EXISTS `{prefix}achats_tank_conception` (
   `Id` int NOT NULL AUTO_INCREMENT,
