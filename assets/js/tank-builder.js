@@ -246,18 +246,14 @@ function updateSupplierByMaterial(selectEl) {
     const $supplierDatalist = $('#supplier-list');
     const $supplierInput = $('input[name="supplier"]');
 
-    // 1. Récupérer tous les fournisseurs autorisés (matériau + type)
-    let allSuppliers = new Set();
+    // 1. Fournisseurs du matériau et du type (le premier de chaque liste est le fournisseur par défaut)
+    const matSuppliers = restrictions.material?.[materialId]?.default?.supplier_name || [];
+    const typSuppliers = restrictions.typ?.[typeId]?.default?.supplier_name || [];
+    const allSuppliers = new Set([...matSuppliers, ...typSuppliers]);
 
-    // Fournisseurs du matériau
-    if (restrictions.material?.[materialId]?.default?.supplier_name) {
-        restrictions.material[materialId].default.supplier_name.forEach(s => allSuppliers.add(s));
-    }
-
-    // Fournisseurs du type
-    if (restrictions.typ?.[typeId]?.default?.supplier_name) {
-        restrictions.typ[typeId].default.supplier_name.forEach(s => allSuppliers.add(s));
-    }
+    // Même règle que côté serveur : un fournisseur commun au matériau et au type, sinon celui du matériau, sinon celui du type
+    const common = matSuppliers.find(s => typSuppliers.includes(s));
+    const preferred = common || matSuppliers[0] || typSuppliers[0];
 
     // 2. Mettre à jour la datalist
     $supplierDatalist.empty();
@@ -268,8 +264,8 @@ function updateSupplierByMaterial(selectEl) {
     const currentSupplier = $supplierInput.val();
     if (supplierArray.length > 0) {
         if (!allSuppliers.has(currentSupplier)) {
-            $supplierInput.val(supplierArray[0]);
-            console.log(`[SUPPLIER] "${currentSupplier}" non autorisé. Remplacé par : ${supplierArray[0]}`);
+            $supplierInput.val(preferred);
+            console.log(`[SUPPLIER] "${currentSupplier}" non autorisé. Remplacé par : ${preferred}`);
         }
         // Sinon, on garde currentSupplier
     }
