@@ -149,6 +149,22 @@ class ISPAG_Tank_Welding_Auto_Saver
         return null;
     }
 
+    /**
+     * Ligne de soudure d'un réservoir : d'abord celle qui lui est liée (linked_tank), quel que soit son groupe,
+     * sinon celle du même groupe. Sans cela, renseigner le groupe après coup créait un doublon.
+     */
+    private function find_welding_row($deal_id, $tank_article_id, $groupe)
+    {
+        $table = "{$this->wpdb->prefix}achats_details_commande";
+        $id = $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Id FROM {$table} WHERE linked_tank = %d AND Type = 3 LIMIT 1", $tank_article_id
+        ));
+        if ($id) return $id;
+        return $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Id FROM {$table} WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 3 LIMIT 1", $deal_id, $groupe
+        ));
+    }
+
     private function insert_welding_article($deal_id, $tank_id, $article)
     {
         $user_id = get_current_user_id();
@@ -169,12 +185,7 @@ class ISPAG_Tank_Welding_Auto_Saver
 
         $this->logger->log_db_change(self::LOG_NAME, 'articles', 'FETCH_TANK', ['tank_id' => $tank_id], $user_id);
 
-        $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
-            "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
-            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 3 LIMIT 1",
-            $deal_id,
-            $tank->Groupe
-        ));
+        $existing_id = $this->find_welding_row($deal_id, $tank_id, $tank->Groupe);
 
         $this->logger->log_db_change(self::LOG_NAME, 'achats_details_commande', 'CHECK_EXISTING', ['deal_id' => $deal_id, 'groupe' => $tank->Groupe, 'existing_id' => $existing_id], $user_id);
 
@@ -192,6 +203,7 @@ class ISPAG_Tank_Welding_Auto_Saver
 
         if ($existing_id)
         {
+            $data['Groupe'] = $tank->Groupe; // le groupe a pu être renseigné après la création de la ligne
             $result = $this->wpdb->update("{$this->wpdb->prefix}achats_details_commande", $data, ['Id' => $existing_id]);
             $this->logger->log_db_change(self::LOG_NAME, 'achats_details_commande', 'UPDATE', ['existing_id' => $existing_id, 'result' => $result], $user_id);
             return ['success' => true, 'action' => 'updated', 'row_id' => $existing_id];
@@ -231,12 +243,7 @@ class ISPAG_Tank_Welding_Auto_Saver
 
         $this->logger->log_db_change(self::LOG_NAME, 'articles', 'FETCH_TANK', ['article_id' => $article_id], $user_id);
 
-        $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
-            "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
-            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 3 LIMIT 1",
-            $deal_id,
-            $tank->Groupe
-        ));
+        $existing_id = $this->find_welding_row($deal_id, $article_id, $tank->Groupe);
 
         $this->logger->log_db_change(self::LOG_NAME, 'achats_details_commande', 'FETCH_WELDING_ARTICLE', ['deal_id' => $deal_id, 'groupe' => $tank->Groupe, 'existing_id' => $existing_id], $user_id);
 

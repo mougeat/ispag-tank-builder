@@ -241,12 +241,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         $tank = apply_filters('ispag_get_article_by_id', null, $tank_article_id);
         if (!$tank) return;
 
-        $has_insulation = (bool) $this->wpdb->get_var($this->wpdb->prepare(
-            "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
-             WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2
-             AND IdArticleStandard IN (SELECT Id FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2) LIMIT 1",
-            $tank->hubspot_deal_id, $tank->Groupe
-        ));
+        $has_insulation = (bool) $this->find_insulation_row($tank->hubspot_deal_id, $tank_article_id, $tank->Groupe);
         $this->sync_manhole_covers($tank->hubspot_deal_id, $tank_article_id, $has_insulation);
     }
 
@@ -317,6 +312,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         if (!empty($standard->IdFournisseur)) $data['IdFournisseur'] = intval($standard->IdFournisseur);
 
         if ($existing_id) {
+            $data['Groupe'] = $tank->Groupe;
             $this->wpdb->update($table, $data, ['Id' => $existing_id]);
         } else {
             $data['hubspot_deal_id'] = $deal_id;
@@ -328,18 +324,28 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         $this->debug("capots de trou d'homme : qty=$count article=$cover_id -> " . ($this->wpdb->last_error ?: 'ok'));
     }
 
+    /**
+     * Ligne d'isolation d'un réservoir : d'abord celle qui lui est liée (linked_tank), quel que soit son groupe,
+     * sinon celle du même groupe. Sans cela, renseigner le groupe après coup créait un doublon.
+     */
+    private function find_insulation_row($deal_id, $tank_article_id, $groupe) {
+        $table = "{$this->wpdb->prefix}achats_details_commande";
+        $is_insulation = "IdArticleStandard IN (SELECT Id FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2)";
+        $id = $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Id FROM {$table} WHERE linked_tank = %d AND Type = 2 AND {$is_insulation} LIMIT 1", $tank_article_id
+        ));
+        if ($id) return $id;
+        return $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Id FROM {$table} WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2 AND {$is_insulation} LIMIT 1", $deal_id, $groupe
+        ));
+    }
+
     private function delete_insulation_article($deal_id, $tank_id) {
         ISPAG_Article_Repository::ini();
         $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);
         if (!$tank) return false;
 
-        $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
-            "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
-            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2
-            AND IdArticleStandard IN (SELECT Id FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2) LIMIT 1",
-            $deal_id,
-            $tank->Groupe
-        ));
+        $existing_id = $this->find_insulation_row($deal_id, $tank_id, $tank->Groupe);
         if (!$existing_id) return false;
 
         return $this->wpdb->delete("{$this->wpdb->prefix}achats_details_commande", ['Id' => $existing_id]) !== false;
@@ -363,13 +369,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         // $demande_achat = $article->sales_price != 0 ? true : false;
 
         // Vérifie si une ligne existe déjà
-        $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
-            "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
-            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2
-            AND IdArticleStandard IN (SELECT Id FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2) LIMIT 1",
-            $deal_id,
-            $tank->Groupe
-        ));
+        $existing_id = $this->find_insulation_row($deal_id, $tank_id, $tank->Groupe);
 
 
         $data = [
@@ -384,6 +384,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         ];
 
         if ($existing_id) {
+            $data['Groupe'] = $tank->Groupe; // le groupe a pu être renseigné après la création de la ligne
             $updated = $this->wpdb->update(
                 "{$this->wpdb->prefix}achats_details_commande",
                 $data,
