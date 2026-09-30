@@ -63,6 +63,8 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             $this->delete_insulation_article($deal_id, $article_id);
         }
 
+        $this->sync_manhole_covers($deal_id, $article_id, (bool) $matching_article);
+
         return ob_get_clean(); // On renvoie les logs capturés
     }
 
@@ -143,6 +145,84 @@ class ISPAG_Tank_Insulation_Auto_Saver {
     }
 
 
+    /** Id de l'article standard « capot de trou d'homme » (option, filtre, sinon recherche par titre dans les accessoires d'isolation). */
+    private function manhole_cover_article_id() {
+        $id = intval(apply_filters('ispag_manhole_cover_article_id', get_option('ispag_manhole_cover_article_id', 0)));
+        if ($id > 0) return $id;
+
+        $id = $this->wpdb->get_var(
+            "SELECT Id FROM {$this->wpdb->prefix}achats_articles
+             WHERE TypeArticle = 200 AND (TitreArticle LIKE '%capot%trou%homme%' OR TitreArticle LIKE '%manhole%cover%' OR TitreArticle LIKE '%capot%manhole%')
+             ORDER BY Id ASC LIMIT 1"
+        );
+        return intval($id);
+    }
+
+    /** Nombre de trous d'homme (piquages de type « revision flange ») du réservoir. */
+    private function count_manholes($tank_article_id) {
+        $type_id = intval($this->wpdb->get_var(
+            "SELECT Id FROM {$this->table_conception} WHERE SelectType = 'connection' AND Value = 'revision flange' LIMIT 1"
+        )) ?: 24;
+
+        return intval($this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT COUNT(*) FROM {$this->table_connections} c
+             INNER JOIN {$this->wpdb->prefix}achats_tank_dimensions d ON c.TankId = d.Id
+             WHERE d.customerTankId = %d AND c.Type = %d",
+            $tank_article_id, $type_id
+        )));
+    }
+
+    /**
+     * Accessoire de l'isolation : un capot par trou d'homme. La ligne est liée au réservoir (linked_tank)
+     * et disparaît quand il n'y a plus d'isolation ou plus de trou d'homme.
+     */
+    private function sync_manhole_covers($deal_id, $tank_id, $has_insulation) {
+        $cover_id = $this->manhole_cover_article_id();
+        if (!$cover_id) {
+            $this->debug('capot de trou d\'homme : aucun article standard trouvé (option ispag_manhole_cover_article_id)');
+            return;
+        }
+
+        $table = "{$this->wpdb->prefix}achats_details_commande";
+        $count = $has_insulation ? $this->count_manholes($tank_id) : 0;
+        $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Id FROM {$table} WHERE linked_tank = %d AND IdArticleStandard = %d LIMIT 1",
+            $tank_id, $cover_id
+        ));
+
+        if ($count <= 0) {
+            if ($existing_id) $this->wpdb->delete($table, ['Id' => $existing_id]);
+            return;
+        }
+
+        ISPAG_Article_Repository::ini();
+        $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);
+        $standard = $this->wpdb->get_row($this->wpdb->prepare(
+            "SELECT * FROM {$this->wpdb->prefix}achats_articles WHERE Id = %d", $cover_id
+        ));
+        if (!$tank || !$standard) return;
+
+        $data = [
+            'linked_tank'       => $tank_id,
+            'IdArticleStandard' => $cover_id,
+            'Article'           => $standard->TitreArticle,
+            'Description'       => $standard->description_ispag,
+            'Qty'               => $count,
+        ];
+        if (!empty($standard->IdFournisseur)) $data['IdFournisseur'] = intval($standard->IdFournisseur);
+
+        if ($existing_id) {
+            $this->wpdb->update($table, $data, ['Id' => $existing_id]);
+        } else {
+            $data['hubspot_deal_id'] = $deal_id;
+            $data['Groupe'] = $tank->Groupe;
+            $data['Type'] = 2;
+            $data['sales_price'] = floatval($standard->sales_price);
+            $this->wpdb->insert($table, $data);
+        }
+        $this->debug("capots de trou d'homme : qty=$count article=$cover_id -> " . ($this->wpdb->last_error ?: 'ok'));
+    }
+
     private function delete_insulation_article($deal_id, $tank_id) {
         ISPAG_Article_Repository::ini();
         $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);
@@ -150,7 +230,8 @@ class ISPAG_Tank_Insulation_Auto_Saver {
 
         $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
             "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
-            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2 LIMIT 1",
+            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2
+            AND IdArticleStandard IN (SELECT Id FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2) LIMIT 1",
             $deal_id,
             $tank->Groupe
         ));
@@ -179,7 +260,8 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         // Vérifie si une ligne existe déjà
         $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
             "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
-            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2 LIMIT 1",
+            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2
+            AND IdArticleStandard IN (SELECT Id FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2) LIMIT 1",
             $deal_id,
             $tank->Groupe
         ));

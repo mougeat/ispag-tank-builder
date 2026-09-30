@@ -300,6 +300,7 @@ class ISPAG_Tank_Insulation {
             WHERE hubspot_deal_id = %d
             AND Type = 2
             AND Groupe = %s
+            AND IdArticleStandard IN (SELECT Id FROM {$wpdb->prefix}achats_articles WHERE TypeArticle = 2)
             LIMIT 1
         ";
 
@@ -316,6 +317,7 @@ class ISPAG_Tank_Insulation {
             SELECT Id FROM {$this->table_project_article}
             WHERE linked_tank = %d
             AND Type = 2
+            AND IdArticleStandard IN (SELECT Id FROM {$wpdb->prefix}achats_articles WHERE TypeArticle = 2)
             LIMIT 1
         ";
         $linked_tank = $wpdb->get_var($wpdb->prepare($sql, $article_id));
