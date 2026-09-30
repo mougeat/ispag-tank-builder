@@ -21,6 +21,21 @@ async function setIspagTankRestrictionsValue() {
       const rules = rulesResponse.ok ? await rulesResponse.json() : null;
       const fromDb = rules && rules.success && rules.data ? rules.data.restrictions : null;
       if (fromDb && fromDb.typ && Object.keys(fromDb.typ).length > 0) {
+        // Une règle absente en base (aucune valeur autorisée enregistrée pour un type, ni isolation) retombe sur le JSON :
+        // sans cela, un type sans liste en base perdrait toutes ses restrictions (ex. un chauffe-eau accepterait l'acier)
+        const json = data.restrictions || {};
+        Object.keys(fromDb.typ).forEach(function (id) {
+          const entry = fromDb.typ[id];
+          if (!entry.restrictions && json.typ && json.typ[id] && json.typ[id].restrictions) {
+            entry.restrictions = json.typ[id].restrictions;
+          }
+          if (!entry.default && json.typ && json.typ[id] && json.typ[id].default) {
+            entry.default = json.typ[id].default;
+          }
+        });
+        if (!fromDb.insulation || Object.keys(fromDb.insulation).length === 0) {
+          fromDb.insulation = json.insulation || {};
+        }
         restrictions = fromDb;
       }
     } catch (e) {

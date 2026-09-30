@@ -47,8 +47,8 @@ function applyNewTankRestrictions(typeId) {
     }
 
     const typeRestrictions = restrictions.typ[typeId];
-    const defaults = typeRestrictions.default;
-    const allowed = typeRestrictions.restrictions;
+    const defaults = typeRestrictions.default || {};
+    const allowed = typeRestrictions.restrictions || {};
 
     // --- 1. Matériaux ---
     if (allowed.Material) {
