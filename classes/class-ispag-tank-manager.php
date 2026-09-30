@@ -392,12 +392,7 @@ class ISPAG_Tank_Manager {
 
         $article = apply_filters('ispag_get_article_by_id', null, $article_id);
         $project = apply_filters('ispag_get_project_by_deal_id', null, $deal_id);
-        $svg_path = apply_filters('ispag_get_tank_svg', null, $article_id, true);
         $tank_datas = apply_filters('ispag_get_tank_datas', null, $article_id);
-
-        // echo'<pre>';
-        // var_dump($article);
-        // echo'</pre>';
 
 
         if (!$article) {
@@ -417,7 +412,7 @@ class ISPAG_Tank_Manager {
         $pdf = new ISPAG_Tank_Drawing_Generator();
         $title = __('Sketch', 'creation-reservoir') . ' - ' . $article->Article;
         $file_name = preg_replace('/[^A-Za-z0-9\-]/', '', str_replace(' ', '-', $title));
-        $pdf->generate_drawing($article, $tank_datas, $title);
+        $pdf->generate_drawing($article, $tank_datas, $title, $project);
         $pdf->Output('I', $file_name.'.pdf');
         exit;
     }
