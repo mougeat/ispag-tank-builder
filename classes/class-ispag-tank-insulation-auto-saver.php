@@ -21,6 +21,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         }
 
         add_filter('ispag_auto_insulation_saver', [self::$instance, 'maybe_add_insulation_article'], 10, 6);
+        add_action('ispag_fittings_changed', [self::$instance, 'resync_manhole_covers']);
         
     }
 
@@ -144,6 +145,24 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         return $best;
     }
 
+
+    /** Piquages modifiés : recalcule les capots si le réservoir a une ligne d'isolation. */
+    public function resync_manhole_covers($tank_article_id) {
+        $tank_article_id = intval($tank_article_id);
+        if ($tank_article_id <= 0) return;
+
+        ISPAG_Article_Repository::ini();
+        $tank = apply_filters('ispag_get_article_by_id', null, $tank_article_id);
+        if (!$tank) return;
+
+        $has_insulation = (bool) $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
+             WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2
+             AND IdArticleStandard IN (SELECT Id FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2) LIMIT 1",
+            $tank->hubspot_deal_id, $tank->Groupe
+        ));
+        $this->sync_manhole_covers($tank->hubspot_deal_id, $tank_article_id, $has_insulation);
+    }
 
     /** Id de l'article standard « capot de trou d'homme » (option, filtre, sinon recherche par titre dans les accessoires d'isolation). */
     private function manhole_cover_article_id() {

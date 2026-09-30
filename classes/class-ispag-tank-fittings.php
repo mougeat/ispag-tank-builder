@@ -337,6 +337,7 @@ class ISPAG_Tank_Fittings {
 //         error_log('ajax_save_fittings : ' . print_r($fittings, true));
 
         $inserted = $this->save_fittings($article_id, $fittings);
+        do_action('ispag_fittings_changed', $article_id);
         $drawing = apply_filters('ispag_design_tank_svg', null, $article_id, true);
         $drawing .= apply_filters('ispag_design_tank_top_view_svg', null, $article_id); 
 
@@ -360,11 +361,17 @@ class ISPAG_Tank_Fittings {
 
         global $wpdb;
         $table = $wpdb->prefix . 'achats_tank_connection';
+        // Article du réservoir, lu avant la suppression
+        $tank_article_id = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT d.customerTankId FROM {$table} c INNER JOIN {$wpdb->prefix}achats_tank_dimensions d ON c.TankId = d.Id WHERE c.Id = %d",
+            $fitting_id
+        ));
         $deleted = $wpdb->delete($table, ['id' => $fitting_id]);
 
         if ($deleted === false) {
             wp_send_json_error('Database error');
         }
+        if ($tank_article_id) do_action('ispag_fittings_changed', $tank_article_id);
 
         wp_send_json_success();
     }
