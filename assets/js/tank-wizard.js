@@ -2,7 +2,7 @@
  * Création d'un réservoir sur mesure, étape par étape.
  *
  * S'active uniquement sur le formulaire d'un NOUVEL article de type réservoir (pas de data-article-id) :
- *   1. Design  2. Dimensions  3. Fittings  4. Insulation  5. Welding  6. Details & save
+ *   1. Design  2. Dimensions  3. Welding  4. Fittings  5. Insulation  6. Details & save
  * Le réservoir est créé à la fin de l'étape 2 (avec le circuit d'enregistrement habituel du formulaire),
  * puis chaque étape suivante enregistre les données techniques (saveTankData). La dernière étape utilise
  * l'enregistrement normal du formulaire (article existant) qui referme la fenêtre.
@@ -14,9 +14,9 @@
     const STEPS = [
         { key: 'design',     label: 'Design' },
         { key: 'dimensions', label: 'Dimensions' },
+        { key: 'welding',    label: 'Welding' },
         { key: 'fittings',   label: 'Fittings' },
         { key: 'insulation', label: 'Insulation' },
-        { key: 'welding',    label: 'Welding' },
         { key: 'details',    label: 'Details & save' },
     ];
 
@@ -88,6 +88,11 @@
         const insField    = $(grids[1]).children('.ispag-field').eq(0)[0];
         const weldField   = $(grids[1]).children('.ispag-field').eq(1)[0];
 
+        // Prix et workflow ne servent pas à la création d'un réservoir
+        const hidden = $form.children('.ispag-modal-grid').filter(function () {
+            return $(this).find('.workflow-checkboxes, .js-sales-price-input').length > 0;
+        })[0];
+
         const panel = $('<div class="ispag-wizard-panel" id="ispag-wizard-fittings">' +
             '<h3 style="margin-top:0">Fittings</h3>' +
             '<p>The tank is saved. Add its fittings below; they are saved when you continue.</p>' +
@@ -99,14 +104,15 @@
         // [élément, étapes où il est visible] (index d'étape à partir de 0)
         const items = [
             [designBlock, [0]],
-            [dims, [1, 3, 4, 5]],
+            [dims, [1, 2, 4, 5]],
             [$(dims).children('.card-header')[0], [1]],
             [grids[0], [1]],
-            [grids[1], [3, 4]],
-            [insField, [3]],
-            [weldField, [4]],
+            [grids[1], [2, 4]],
+            [insField, [4]],
+            [weldField, [2]],
             [grids[2], [5]],
-            [panel, [2]],
+            [panel, [3]],
+            [hidden, []],
         ].concat(common.map(el => [el, [5]])).filter(i => i[0]);
 
         const $stepper = $('<ol class="ispag-wizard-steps"></ol>');
@@ -189,7 +195,7 @@
         if (w.articleId && step === 0) w.$back.hide();
         if (w.articleId && step === 1) w.$back.hide();
         setError('');
-        if (step === 2) embedFittings(); else unembedFittings();
+        if (step === 3) embedFittings(); else unembedFittings();
         // Les listes dépendantes (diamètres…) se calculent à la volée : on relance leur logique
         $(document).trigger('ispag:wizard_step', [STEPS[step].key]);
     }
@@ -232,7 +238,7 @@
         if (w.current === 1 && !w.articleId) return createTank();
         // Réservoir déjà créé : enregistrement des données techniques de l'étape
         if (w.current >= 1 && w.articleId && typeof saveTankData === 'function') {
-            if (w.current === 2 && w.embedded && typeof saveFittings === 'function') {
+            if (w.current === 3 && w.embedded && typeof saveFittings === 'function') {
                 setBusy(true);
                 return saveFittings(true).then(() => { setBusy(false); saveStep(); });
             }
