@@ -544,7 +544,7 @@ class ISPAG_Tank_Designer
             do_action('ispag_delete_welding_article', $deal_id, $article_id);
         }
 
-        apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '', $newData['insulationCover'] ?? '');
+        $debug['insulation'] = apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '', $newData['insulationCover'] ?? '');
         $this->logger->log_user_action(self::LOG_NAME, 'insulation_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'insulation' => $newData['insulation'] ?? '', 'thickness' => $newData['InsulationThickness'] ?? '', 'cover' => $newData['insulationCover'] ?? ''], $user_id);
 
         $debug['success'] = true;

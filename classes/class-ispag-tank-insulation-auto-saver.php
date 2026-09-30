@@ -28,6 +28,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
     public function maybe_add_insulation_article($html, $deal_id, $article_id, $selected_type, $selected_thickness, $selected_cover) {
         
         
+        $this->log = [];
         $this->debug("start deal=$deal_id article=$article_id type=$selected_type thickness=$selected_thickness cover=$selected_cover");
         $tank = apply_filters('ispag_get_tank_datas', null, $article_id);
 // \1('maybe_add_insulation_article article ' . $article_id .' : ' . print_r($tank, true));
@@ -41,8 +42,9 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         
  
         if (!$tank || empty($tank['dimensions'])) {
-            // echo "[DEBUG] Pas de données de cuve. Abort.\n";
-            return ob_get_clean();
+            $this->debug('aucune donnée de réservoir (ispag_get_tank_datas)');
+            ob_end_clean();
+            return implode("\n", $this->log);
         }
 
         $this->debug('tank volume=' . ($tank['dimensions']->Volume ?? 'null') . ' height=' . ($tank['dimensions']->Height ?? 'null'));
@@ -64,9 +66,15 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             $this->delete_insulation_article($deal_id, $article_id);
         }
 
-        $this->sync_manhole_covers($deal_id, $article_id, (bool) $matching_article);
+        // Les capots ne doivent jamais empêcher l'enregistrement de l'isolation
+        try {
+            $this->sync_manhole_covers($deal_id, $article_id, (bool) $matching_article);
+        } catch (\Throwable $e) {
+            $this->debug('capots de trou d\'homme : ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
+        }
 
-        return ob_get_clean(); // On renvoie les logs capturés
+        ob_end_clean();
+        return implode("\n", $this->log); // Journal de cet enregistrement (visible dans la réponse AJAX)
     }
 
     /**
@@ -78,7 +86,10 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         return (bool) preg_match('/^(over|above|greater|higher|more|plus|sup|au[- ]?dessus|über|ueber|hoch|>)/u', $label);
     }
 
+    private $log = [];
+
     private function debug($msg) {
+        $this->log[] = $msg;
         if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) error_log('[ISPAG insulation] ' . $msg);
     }
 
