@@ -22,12 +22,13 @@
 
     const CSS = `
         .ispag-wizard-hidden{display:none !important}
-        body.ispag-wizard-on .ispag-modal-actions button[type="submit"]{display:none !important}
+        body.ispag-wizard-on .ispag-wizard-orig-save{display:none !important}
         .ispag-wizard-steps{display:flex;gap:6px;list-style:none;margin:0 0 18px;padding:0;flex-wrap:wrap}
         .ispag-wizard-steps li{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:6px;background:#f0f0f1;color:#666;font-size:12px;font-weight:600}
         .ispag-wizard-steps li.is-active{background:var(--ispag-red,#c00);color:#fff}
         .ispag-wizard-steps li.is-done{background:#e6f4ea;color:#1e7b34}
         .ispag-wizard-nav{display:flex;justify-content:space-between;gap:10px;margin:22px 0 6px;padding-top:14px;border-top:1px solid #eee}
+        .ispag-wizard-footer-btns{display:inline-flex;gap:10px;margin-right:10px}
         .ispag-wizard-error{color:#b32d2e;margin:8px 0;font-weight:600}
         .ispag-wizard-panel{background:#fff;border:1px solid #ddd;border-radius:6px;padding:14px 16px;margin-top:10px}
     `;
@@ -46,8 +47,25 @@
             && $form.find('#ispag-tank-form-container').length;
     }
 
+    // Pied de la fenêtre (boutons Save / Cancel), situé hors du formulaire
+    function findFooter($form) {
+        let $f = $();
+        $form.parents().each(function () {
+            const $found = $(this).find('.ispag-modal-actions').first();
+            if ($found.length) { $f = $found; return false; }
+        });
+        return $f.length ? $f : $('.ispag-modal-actions:visible').last();
+    }
+
     function init($form) {
         if ($form.data('ispagWizard')) return;
+
+        // Le pied de la fenêtre peut arriver après le formulaire : on réessaie quelques fois avant de se rabattre sur le bas du formulaire
+        const $footer = findFooter($form);
+        const tries = ($form.data('ispagWizardTries') || 0) + 1;
+        $form.data('ispagWizardTries', tries);
+        if (!$footer.length && tries < 15) return;
+
         $form.data('ispagWizard', true);
 
         if (!document.getElementById('ispag-wizard-css')) {
@@ -89,10 +107,16 @@
         const $error = $('<div class="ispag-wizard-error" style="display:none"></div>');
         const $back  = $('<button type="button" class="ispag-btn ispag-btn-secondary-outlined">Back</button>');
         const $next  = $('<button type="button" class="ispag-btn ispag-btn-red-outlined">Next</button>');
-        const $save  = $('<button type="submit" class="ispag-btn ispag-btn-red-outlined">Save</button>');
-        const $nav   = $('<div class="ispag-wizard-nav"></div>').append($back, $('<span></span>').append($next, $save));
+        const $save  = $('<button type="submit" class="ispag-btn ispag-btn-red-outlined">Save</button>').attr('form', $form.attr('id') || 'ispag-edit-article-form');
         $form.prepend($stepper);
-        $form.append($error, $nav);
+        $form.append($error);
+        if ($footer.length) {
+            // Boutons dans le pied de la fenêtre, à côté de Cancel ; le Save d'origine est masqué
+            $footer.find('button[type="submit"]').addClass('ispag-wizard-orig-save');
+            $footer.prepend($('<span class="ispag-wizard-footer-btns"></span>').append($back, $next, $save));
+        } else {
+            $form.append($('<div class="ispag-wizard-nav"></div>').append($back, $('<span></span>').append($next, $save)));
+        }
         $('body').addClass('ispag-wizard-on');
 
         wizard = { $form, current: 0, articleId: 0, busy: false, awaiting: false, items, $stepper, $error, $back, $next, $save };
@@ -245,6 +269,8 @@
         } else if (wizard && !document.body.contains(wizard.$form[0])) {
             wizard = null; // fenêtre refermée
             pendingId = 0;
+            $('.ispag-wizard-footer-btns').remove();
+            $('.ispag-wizard-orig-save').removeClass('ispag-wizard-orig-save');
             $('body').removeClass('ispag-wizard-on');
         }
     }
