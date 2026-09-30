@@ -98,6 +98,30 @@ class ISPAG_Tank_Rules {
         return $out;
     }
 
+    /**
+     * Fournisseur par défaut (Id de ispag_companies) pour un type et un matériau de réservoir.
+     * Préfère un fournisseur commun aux deux règles, sinon celui du matériau, sinon celui du type.
+     */
+    public static function default_supplier_id($typ_id, $material_id) {
+        global $wpdb;
+        $by_scope = function ($scope, $scope_id) use ($wpdb) {
+            if (!$scope_id) return [];
+            return array_map('intval', (array) $wpdb->get_col($wpdb->prepare(
+                'SELECT value FROM ' . self::table() . " WHERE scope = %s AND scope_id = %d AND field = 'supplier' ORDER BY sort ASC, Id ASC",
+                $scope, (int) $scope_id
+            )));
+        };
+        $mat = $by_scope('material', $material_id);
+        $typ = $by_scope('typ', $typ_id);
+
+        foreach ($mat as $id) {
+            if (in_array($id, $typ, true)) return $id;
+        }
+        if ($mat) return $mat[0];
+        if ($typ) return $typ[0];
+        return null;
+    }
+
     public static function ajax_get_rules() {
         wp_send_json_success(['restrictions' => self::build_restrictions()]);
     }

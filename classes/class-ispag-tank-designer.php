@@ -532,6 +532,8 @@ class ISPAG_Tank_Designer
             wp_send_json_error(['message' => 'SQL error', 'debug' => $debug]);
         }
 
+        $this->apply_default_supplier($article_id, $newData['TankType'] ?? 0, $newData['Material'] ?? 0);
+
         $nb_welding = $data_received['nbWelding'] ?? 0;
         $welding_by_client = $newData['weldingByClient'] ?? 0;
         if($welding_by_client != 1){
@@ -548,6 +550,26 @@ class ISPAG_Tank_Designer
         $debug['success'] = true;
         $this->logger->log_user_action(self::LOG_NAME, 'save_tank_data_complete', [], $user_id);
         return $debug;
+    }
+
+    /**
+     * Quand le fournisseur n'est pas saisi (réservoir créé par un ingénieur ou un client),
+     * on prend celui défini par défaut pour le type et le matériau. Un fournisseur déjà choisi n'est jamais écrasé.
+     */
+    private function apply_default_supplier($article_id, $type_id, $material_id)
+    {
+        if (!class_exists('ISPAG_Tank_Rules')) return;
+        global $wpdb;
+        $table = $wpdb->prefix . 'achats_details_commande';
+
+        $current = (int) $wpdb->get_var($wpdb->prepare("SELECT IdFournisseur FROM {$table} WHERE Id = %d", $article_id));
+        if ($current > 0) return;
+
+        $supplier_id = ISPAG_Tank_Rules::default_supplier_id((int) $type_id, (int) $material_id);
+        if (!$supplier_id) return;
+
+        $wpdb->update($table, ['IdFournisseur' => $supplier_id], ['Id' => $article_id]);
+        $this->logger->log_db_change(self::LOG_NAME, $table, 'DEFAULT_SUPPLIER', ['article_id' => $article_id, 'supplier_id' => $supplier_id], get_current_user_id());
     }
 
     private function get_default_diameter($material = null, $volume = null, $type = null)
