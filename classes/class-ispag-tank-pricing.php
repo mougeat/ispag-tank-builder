@@ -736,8 +736,19 @@ class ISPAG_Tank_Pricing {
             $this->load_pricing_data($tank_params['supplier']);
         }
 
-        // Calculer le prix total et les majorations
-        $result = $this->calculate_total_price($tank_params, $tank_datas['piquages_techniques'] ?? []);
+        // Calculer le prix total et les majorations (une erreur PHP ne doit pas casser la réponse AJAX)
+        ob_start();
+        try {
+            $result = $this->calculate_total_price($tank_params, $tank_datas['piquages_techniques'] ?? []);
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            error_log('[ISPAG pricing] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
+            wp_send_json_error(['message' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+        }
+        $stray = ob_get_clean();
+        if ($stray !== '' && $stray !== false) {
+            error_log('[ISPAG pricing] sortie parasite ignorée : ' . substr(strip_tags($stray), 0, 500));
+        }
 
         // Ajouter une information sur l'existence des fichiers JSON
         $result['json_files_exist'] = $json_files_exist;
