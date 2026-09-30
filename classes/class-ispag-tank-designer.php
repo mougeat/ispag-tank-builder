@@ -362,7 +362,23 @@ class ISPAG_Tank_Designer
         $user_id = get_current_user_id();
         $this->logger->log_user_action(self::LOG_NAME, 'ajax_save_tank_data_start', [], $user_id);
 
-        $result = $this->save_tank_data(null, $_POST);
+        // Toute sortie parasite (warnings/notices PHP) casserait le JSON de la réponse
+        ob_start();
+        try
+        {
+            $result = $this->save_tank_data(null, $_POST);
+        }
+        catch (\Throwable $e)
+        {
+            ob_end_clean();
+            error_log('[ISPAG tank save] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            wp_send_json_error(['message' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+        }
+        $stray = ob_get_clean();
+        if ($stray !== '' && $stray !== false)
+        {
+            error_log('[ISPAG tank save] sortie parasite ignorée : ' . substr(strip_tags($stray), 0, 500));
+        }
         $this->logger->log_user_action(self::LOG_NAME, 'ajax_save_tank_data_result', ['result' => $result], $user_id);
 
         wp_send_json_success(['debug' => $result]);
@@ -459,12 +475,14 @@ class ISPAG_Tank_Designer
             if (!isset($newData['Diameter']))
             {
                 $newData['Diameter'] = $this->get_default_diameter($newData['Material'] ?? 2, $newData['Volume'] ?? 100);
-                $this->logger->log_user_action(self::LOG_NAME, 'default_diameter_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'diameter' => $newData['Diameter']], $user_id);
+                if ($newData['Diameter'] === null) unset($newData['Diameter']);
+                $this->logger->log_user_action(self::LOG_NAME, 'default_diameter_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'diameter' => $newData['Diameter'] ?? null], $user_id);
             }
             if (!isset($newData['Height']))
             {
                 $newData['Height'] = $this->get_default_height($newData['Material'] ?? 2, $newData['Volume'] ?? 100);
-                $this->logger->log_user_action(self::LOG_NAME, 'default_height_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'height' => $newData['Height']], $user_id);
+                if ($newData['Height'] === null) unset($newData['Height']);
+                $this->logger->log_user_action(self::LOG_NAME, 'default_height_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'height' => $newData['Height'] ?? null], $user_id);
             }
             if (!isset($newData['TankType']))
             {
@@ -554,7 +572,7 @@ class ISPAG_Tank_Designer
             $this->logger->log_user_action(self::LOG_NAME, 'material_defaulted', ['type' => $type, 'material' => $material], $user_id);
         }
 
-        $filePath = __DIR__ . '/../assets/js/default_value.json';
+        $filePath = __DIR__ . '/../assets/json/default_value.json';
         if (!file_exists($filePath) || !is_readable($filePath))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Default value file not found or not readable - ' . $filePath, $user_id);
@@ -605,7 +623,7 @@ class ISPAG_Tank_Designer
             $this->logger->log_user_action(self::LOG_NAME, 'material_defaulted', ['type' => $type, 'material' => $material], $user_id);
         }
 
-        $filePath = __DIR__ . '/../assets/js/default_value.json';
+        $filePath = __DIR__ . '/../assets/json/default_value.json';
         if (!file_exists($filePath) || !is_readable($filePath))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Default value file not found or not readable - ' . $filePath, $user_id);
