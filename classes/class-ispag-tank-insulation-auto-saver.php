@@ -54,9 +54,9 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         if ($matching_article) {
             // echo "[DEBUG] Article trouvé : ID {$matching_article->Id} | Titre : {$matching_article->TitreArticle}\n";
             $result_save = $this->insert_insulation_article($deal_id, $article_id, $matching_article);
-            // echo "[DEBUG] result_save : \n";
         } else {
-            // echo "[DEBUG] Aucun article d'isolation correspondant trouvé.\n";
+            // Isolation retirée ou sans article correspondant : on enlève la ligne existante
+            $this->delete_insulation_article($deal_id, $article_id);
         }
 
         return ob_get_clean(); // On renvoie les logs capturés
@@ -111,6 +111,22 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         return $best;
     }
 
+
+    private function delete_insulation_article($deal_id, $tank_id) {
+        ISPAG_Article_Repository::ini();
+        $tank = apply_filters('ispag_get_article_by_id', null, $tank_id);
+        if (!$tank) return false;
+
+        $existing_id = $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Id FROM {$this->wpdb->prefix}achats_details_commande
+            WHERE hubspot_deal_id = %d AND Groupe = %s AND Type = 2 LIMIT 1",
+            $deal_id,
+            $tank->Groupe
+        ));
+        if (!$existing_id) return false;
+
+        return $this->wpdb->delete("{$this->wpdb->prefix}achats_details_commande", ['Id' => $existing_id]) !== false;
+    }
 
     private function insert_insulation_article($deal_id, $tank_id, $article) {
         $title = apply_filters('ispag_get_insulation_title', '', $article->Id);
