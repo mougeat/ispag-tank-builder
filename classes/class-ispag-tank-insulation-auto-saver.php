@@ -71,8 +71,32 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         return (bool) preg_match('/^(over|above|greater|higher|more|plus|sup|au[- ]?dessus|über|ueber|hoch|>)/u', $label);
     }
 
+    private function accepted_keys($id, $kind) {
+        $keys = [intval($id)];
+        $value = $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT Value FROM {$this->table_conception} WHERE Id = %d", $id
+        ));
+        if ($value !== null) {
+            if ($kind === 'thickness') {
+                $keys[] = intval($value); // "130" => 130 mm
+            } elseif ($kind === 'cover') {
+                // "with ..." => 1, "without ..." => 0
+                $keys[] = preg_match('/^without/i', $value) ? 0 : 1;
+            }
+        }
+        // Correspondance explicite éventuelle Id conception => valeur article
+        $keys = apply_filters('ispag_insulation_article_keys', $keys, $id, $kind);
+        return array_map('intval', array_unique($keys));
+    }
+
     private function find_matching_insulation_article($volume, $height, $type, $thickness, $cover) {
         if ($type <= 0 || $thickness <= 0) return null;
+
+        // Le formulaire envoie des Id de achats_tank_conception, alors que les articles
+        // stockent leurs propres valeurs (ex. épaisseur en mm, revêtement 1/0) : on accepte les deux.
+        $type_keys      = $this->accepted_keys($type, 'type');
+        $thickness_keys = $this->accepted_keys($thickness, 'thickness');
+        $cover_keys     = $this->accepted_keys($cover, 'cover');
 
         $articles = $this->wpdb->get_results(
             "SELECT * FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2"
@@ -86,10 +110,9 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             if (empty($data->insulation)) continue;
             $i = $data->insulation;
 
-            if (intval($i->insulationType ?? 0) !== $type) continue;
-            if (intval($i->insulationThickness ?? 0) !== $thickness) continue;
-            // Le revêtement n'est un critère que s'il est choisi (sinon on ne l'impose pas)
-            if ($cover > 0 && intval($i->insulationCover ?? 0) !== $cover) continue;
+            if (!in_array(intval($i->insulationType ?? 0), $type_keys, true)) continue;
+            if (!in_array(intval($i->insulationThickness ?? 0), $thickness_keys, true)) continue;
+            if (!in_array(intval($i->insulationCover ?? 0), $cover_keys, true)) continue;
 
             // Hauteur : limite propre à l'article (2500 mm par défaut)
             $limit = isset($i->tankHeightLimit) && floatval($i->tankHeightLimit) > 0 ? floatval($i->tankHeightLimit) : 2500;
