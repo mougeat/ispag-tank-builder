@@ -636,15 +636,42 @@ function saveTankData(articleId, is_purchase = false) {
         article_id: articleId,
         is_purchase: is_purchase,
         tank: tank
-    }).done(response => {
-        if (!response.success) {
-            console.error('Error cuve : ', response.data);
-        } else {
-            console.log('Succès sauvegarde technique', response.data);
+    }).then(response => {
+        // Une réponse sans succès (ou non JSON) doit être traitée comme un échec
+        if (!response || !response.success) {
+            console.error('Error cuve : ', response && response.data);
+            const d = response && response.data;
+            const msg = (d && (d.message || d.sql_error)) || 'Invalid server response';
+            ispagResetSaveButtons();
+            return $.Deferred().reject({ message: msg, response: response });
         }
-    }).fail(xhr => {
+        console.log('Succès sauvegarde technique', response.data);
+        return response;
+    }, xhr => {
         console.error('Error critique AJAX', xhr.responseText);
+        ispagResetSaveButtons();
+        return $.Deferred().reject({ message: 'Invalid server response', xhr: xhr });
     });
+}
+
+// Mémorise l'état des boutons d'enregistrement au clic (avant que le code appelant ne les désactive)
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.ispag-edit-article-form button, .ispag-edit-article-form input[type="submit"]');
+    if (!btn || btn.disabled) return;
+    btn.dataset.ispagOrigHtml = btn.tagName === 'INPUT' ? btn.value : btn.innerHTML;
+}, true);
+
+// Réactive les boutons du formulaire d'article pour pouvoir refaire un essai sans recharger la page
+function ispagResetSaveButtons() {
+    document.querySelectorAll('.ispag-edit-article-form button, .ispag-edit-article-form input[type="submit"]').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('loading', 'is-loading', 'disabled');
+        if (btn.dataset.ispagOrigHtml !== undefined) {
+            if (btn.tagName === 'INPUT') btn.value = btn.dataset.ispagOrigHtml;
+            else btn.innerHTML = btn.dataset.ispagOrigHtml;
+        }
+    });
+    document.dispatchEvent(new CustomEvent('ispag_tank_save_failed'));
 }
 
 
