@@ -53,6 +53,7 @@ class ISPAG_Tank_Manager {
         // Scripts principaux
         wp_enqueue_script('ispag-tank-builder', plugin_dir_url(__FILE__) . '../assets/js/tank-builder.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-tank-dynamic-fields', plugin_dir_url(__FILE__) . '../assets/js/tank-dynamic-fields.js', ['jquery'], false, true);
+        wp_enqueue_script('ispag-tank-wizard', plugin_dir_url(__FILE__) . '../assets/js/tank-wizard.js', ['jquery', 'ispag-tank-builder', 'ispag-tank-dynamic-fields'], @filemtime(__DIR__ . '/../assets/js/tank-wizard.js') ?: false, true);
         wp_enqueue_script('ispag-exchanger-builder', plugin_dir_url(__FILE__) . '../assets/js/exchanger-builder.js', ['jquery', 'ispag-tank-builder'], false, true);
         // wp_enqueue_script('ispag-tank-pricing', plugin_dir_url(__FILE__) . '../assets/js/tank-pricing.js', ['jquery'], false, true);
         // wp_enqueue_script('ispag-tank-fitting', plugin_dir_url(__FILE__) . '../assets/js/fittings-pricing.js', ['jquery'], false, true);
