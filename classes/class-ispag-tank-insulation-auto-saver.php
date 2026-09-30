@@ -27,6 +27,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
     public function maybe_add_insulation_article($html, $deal_id, $article_id, $selected_type, $selected_thickness, $selected_cover) {
         
         
+        $this->debug("start deal=$deal_id article=$article_id type=$selected_type thickness=$selected_thickness cover=$selected_cover");
         $tank = apply_filters('ispag_get_tank_datas', null, $article_id);
 // \1('maybe_add_insulation_article article ' . $article_id .' : ' . print_r($tank, true));
 
@@ -43,6 +44,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             return ob_get_clean();
         }
 
+        $this->debug('tank volume=' . ($tank['dimensions']->Volume ?? 'null') . ' height=' . ($tank['dimensions']->Height ?? 'null'));
         $matching_article = $this->find_matching_insulation_article(
             floatval($tank['dimensions']->Volume),
             floatval($tank['dimensions']->Height),
@@ -54,7 +56,9 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         if ($matching_article) {
             // echo "[DEBUG] Article trouvé : ID {$matching_article->Id} | Titre : {$matching_article->TitreArticle}\n";
             $result_save = $this->insert_insulation_article($deal_id, $article_id, $matching_article);
+            $this->debug('article ' . $matching_article->Id . ' -> ' . wp_json_encode($result_save) . ' | db error: ' . $this->wpdb->last_error);
         } else {
+            $this->debug('aucun article correspondant');
             // Isolation retirée ou sans article correspondant : on enlève la ligne existante
             $this->delete_insulation_article($deal_id, $article_id);
         }
@@ -69,6 +73,10 @@ class ISPAG_Tank_Insulation_Auto_Saver {
     private function is_over_height_label($label) {
         $label = strtolower(trim((string) $label));
         return (bool) preg_match('/^(over|above|greater|higher|more|plus|sup|au[- ]?dessus|über|ueber|hoch|>)/u', $label);
+    }
+
+    private function debug($msg) {
+        if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) error_log('[ISPAG insulation] ' . $msg);
     }
 
     private function accepted_keys($id, $kind) {
