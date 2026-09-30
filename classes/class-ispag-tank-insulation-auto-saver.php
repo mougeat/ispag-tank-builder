@@ -21,6 +21,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         }
 
         add_filter('ispag_auto_insulation_saver', [self::$instance, 'maybe_add_insulation_article'], 10, 6);
+        add_action('wp_ajax_ispag_get_insulation_catalog', [self::$instance, 'ajax_insulation_catalog']);
         add_filter('ispag_insulation_last_status', [self::$instance, 'last_status']);
         add_action('ispag_fittings_changed', [self::$instance, 'resync_manhole_covers']);
         
@@ -133,6 +134,56 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         // Correspondance explicite éventuelle Id conception => valeur article
         $keys = apply_filters('ispag_insulation_article_keys', $keys, $id, $kind);
         return array_map('intval', array_unique($keys));
+    }
+
+    /**
+     * Combinaisons réellement disponibles au catalogue : pour chaque type d'isolation (Id de conception),
+     * les épaisseurs et revêtements (Id de conception) pour lesquels un article d'isolation existe.
+     */
+    public function ajax_insulation_catalog() {
+        $options = function ($select_type) {
+            return (array) $this->wpdb->get_col($this->wpdb->prepare(
+                "SELECT Id FROM {$this->table_conception} WHERE SelectType = %s", $select_type
+            ));
+        };
+        $types = $options('insulationType');
+        $thicknesses = $options('insulationThickness');
+        $covers = $options('insulationCover');
+
+        // Clés acceptées calculées une seule fois par valeur (évite une requête par article)
+        $keys = ['type' => [], 'thickness' => [], 'cover' => []];
+        foreach ($types as $id) $keys['type'][$id] = $this->accepted_keys($id, 'type');
+        foreach ($thicknesses as $id) $keys['thickness'][$id] = $this->accepted_keys($id, 'thickness');
+        foreach ($covers as $id) $keys['cover'][$id] = $this->accepted_keys($id, 'cover');
+
+        $articles = $this->wpdb->get_results("SELECT conception FROM {$this->wpdb->prefix}achats_articles WHERE TypeArticle = 2");
+        $out = [];
+        foreach ($articles as $article) {
+            $data = json_decode($article->conception);
+            if (empty($data->insulation)) continue;
+            $i = $data->insulation;
+
+            foreach ($types as $type_id) {
+                if (!in_array(intval($i->insulationType ?? 0), $keys['type'][$type_id], true)) continue;
+                foreach ($thicknesses as $th_id) {
+                    if (in_array(intval($i->insulationThickness ?? 0), $keys['thickness'][$th_id], true)) {
+                        $out[$type_id]['thickness'][$th_id] = intval($th_id);
+                    }
+                }
+                foreach ($covers as $cv_id) {
+                    if (in_array(intval($i->insulationCover ?? 0), $keys['cover'][$cv_id], true)) {
+                        $out[$type_id]['cover'][$cv_id] = intval($cv_id);
+                    }
+                }
+            }
+        }
+        foreach ($out as $type_id => $lists) {
+            $out[$type_id] = [
+                'thickness' => array_values($lists['thickness'] ?? []),
+                'cover'     => array_values($lists['cover'] ?? []),
+            ];
+        }
+        wp_send_json_success(['catalog' => (object) $out]);
     }
 
     private function find_matching_insulation_article($volume, $height, $type, $thickness, $cover) {

@@ -166,7 +166,7 @@ function ispagFilterSelect($sel, allowed, keep) {
 }
 
 function ispagIntersect(lists) {
-    const filled = lists.filter(l => Array.isArray(l) && l.length);
+    const filled = lists.filter(l => Array.isArray(l));
     if (!filled.length) return null; // aucune règle : tout est proposé
     return filled.reduce((a, b) => a.map(String).filter(v => b.map(String).includes(v)));
 }
@@ -185,8 +185,12 @@ function ispagApplyTankRules(typId) {
     const insId = String($('select[name="tank[insulation]"]').val() || '');
     const ins = insId && insId !== '0' && restrictions.insulation ? restrictions.insulation[insId] : null;
 
-    ispagFilterSelect($('select[name="tank[InsulationThickness]"]'), ispagIntersect([rt.InsulationThickness, ins && ins.InsulationThickness]), ['', '0']);
-    ispagFilterSelect($('select[name="tank[insulationCover]"]'), ispagIntersect([ins && ins.insulationCover]), ['', '0', '53']);
+    // Catalogue : épaisseurs et revêtements pour lesquels un article existe pour le type d'isolation choisi
+    const hasInsulation = insId && insId !== '0';
+    const cat = hasInsulation && insulationCatalog ? (insulationCatalog[insId] || { thickness: [], cover: [] }) : null;
+
+    ispagFilterSelect($('select[name="tank[InsulationThickness]"]'), ispagIntersect([rt.InsulationThickness, ins && ins.InsulationThickness, cat && cat.thickness]), ['', '0']);
+    ispagFilterSelect($('select[name="tank[insulationCover]"]'), ispagIntersect([ins && ins.insulationCover, cat && cat.cover]), ['', '0', '53']);
 }
 
 // L'assistant de création : les règles sont réappliquées à chaque étape

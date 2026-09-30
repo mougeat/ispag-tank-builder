@@ -1,6 +1,7 @@
 var arrayBottomHeight = {};
 var restrictions = {};
 var conceptionId;
+var insulationCatalog = null; // {typeId: {thickness: [...], cover: [...]}} : combinaisons d'isolation présentes au catalogue
 
 let isDataLoaded = false; // Variable globale
 
@@ -40,6 +41,14 @@ async function setIspagTankRestrictionsValue() {
       }
     } catch (e) {
       console.warn('Tank rules : lecture en base impossible, utilisation du JSON', e);
+    }
+
+    try {
+      const catResponse = await fetch(ISPAG_TANK.ajax_url + '?action=ispag_get_insulation_catalog');
+      const cat = catResponse.ok ? await catResponse.json() : null;
+      if (cat && cat.success && cat.data) insulationCatalog = cat.data.catalog || {};
+    } catch (e) {
+      console.warn('Catalogue d\'isolation indisponible', e);
     }
 
     // 👇 Déclencher un événement personnalisé quand les données sont prêtes
