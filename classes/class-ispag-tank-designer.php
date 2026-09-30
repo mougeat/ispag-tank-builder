@@ -399,6 +399,7 @@ class ISPAG_Tank_Designer
         $data_received = $datas['tank'] ?? [];
         $is_purchase = !empty($datas['is_purchase']) && $datas['is_purchase'] === 'true';
 
+        error_log('[ISPAG tank save] start article=' . $article_id . ' deal=' . $deal_id . ' fields=' . wp_json_encode($data_received));
         $this->logger->log_user_action(self::LOG_NAME, 'save_params_parsed', ['article_id' => $article_id, 'deal_id' => $deal_id, 'is_purchase' => $is_purchase], $user_id);
 
         if ($is_purchase)
@@ -524,6 +525,7 @@ class ISPAG_Tank_Designer
 
         if ($wpdb->last_error)
         {
+            error_log('[ISPAG tank save] SQL error: ' . $wpdb->last_error . ' | query: ' . $wpdb->last_query);
             $debug['sql_error'] = $wpdb->last_error;
             $debug['last_query'] = $wpdb->last_query;
             $this->logger->log(self::LOG_NAME, 'ERROR: SQL error - ' . $wpdb->last_error, $user_id, ['last_query' => $wpdb->last_query]);
