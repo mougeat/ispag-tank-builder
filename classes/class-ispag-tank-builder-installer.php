@@ -17,7 +17,7 @@ defined('ABSPATH') || exit;
  */
 class ISPAG_Tank_Builder_Installer {
 
-    const DB_VERSION = '1.0.0';
+    const DB_VERSION = '1.1.0';
     const OPTION     = 'ispag_tank_builder_db_version';
 
     /** Droits utilisés par ce plugin (voir grant_default_caps()). */
