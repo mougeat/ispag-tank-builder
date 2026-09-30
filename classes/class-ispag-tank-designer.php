@@ -545,6 +545,7 @@ class ISPAG_Tank_Designer
         }
 
         $debug['insulation'] = apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '', $newData['insulationCover'] ?? '');
+        $debug['insulation_status'] = apply_filters('ispag_insulation_last_status', '');
         $this->logger->log_user_action(self::LOG_NAME, 'insulation_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'insulation' => $newData['insulation'] ?? '', 'thickness' => $newData['InsulationThickness'] ?? '', 'cover' => $newData['insulationCover'] ?? ''], $user_id);
 
         $debug['success'] = true;

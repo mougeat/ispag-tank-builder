@@ -21,6 +21,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         }
 
         add_filter('ispag_auto_insulation_saver', [self::$instance, 'maybe_add_insulation_article'], 10, 6);
+        add_filter('ispag_insulation_last_status', [self::$instance, 'last_status']);
         add_action('ispag_fittings_changed', [self::$instance, 'resync_manhole_covers']);
         
     }
@@ -29,6 +30,7 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         
         
         $this->log = [];
+        $this->status = ['status' => 'skipped', 'message' => ''];
         $this->debug("start deal=$deal_id article=$article_id type=$selected_type thickness=$selected_thickness cover=$selected_cover");
         $tank = apply_filters('ispag_get_tank_datas', null, $article_id);
 // \1('maybe_add_insulation_article article ' . $article_id .' : ' . print_r($tank, true));
@@ -43,6 +45,9 @@ class ISPAG_Tank_Insulation_Auto_Saver {
  
         if (!$tank || empty($tank['dimensions'])) {
             $this->debug('aucune donnée de réservoir (ispag_get_tank_datas)');
+            if (intval($selected_type) > 0 && intval($selected_thickness) > 0) {
+                $this->status = ['status' => 'error', 'message' => 'The insulation could not be checked: tank data not found.'];
+            }
             ob_end_clean();
             return implode("\n", $this->log);
         }
@@ -56,12 +61,24 @@ class ISPAG_Tank_Insulation_Auto_Saver {
             intval($selected_cover)
         );
 
+        $requested = intval($selected_type) > 0 && intval($selected_thickness) > 0;
+
         if ($matching_article) {
             // echo "[DEBUG] Article trouvé : ID {$matching_article->Id} | Titre : {$matching_article->TitreArticle}\n";
             $result_save = $this->insert_insulation_article($deal_id, $article_id, $matching_article);
             $this->debug('article ' . $matching_article->Id . ' -> ' . wp_json_encode($result_save) . ' | db error: ' . $this->wpdb->last_error);
+            // update sans changement renvoie false sans être une erreur : on ne signale que les erreurs SQL
+            $this->status = (empty($result_save['success']) && ($this->wpdb->last_error || !empty($result_save['error'])))
+                ? ['status' => 'error', 'message' => 'The insulation could not be saved' . ($this->wpdb->last_error ? ' : ' . $this->wpdb->last_error : (!empty($result_save['error']) ? ' : ' . $result_save['error'] : '.'))]
+                : ['status' => 'ok', 'message' => ''];
         } else {
             $this->debug('aucun article correspondant');
+            if ($requested) {
+                $this->status = ['status' => 'missing', 'message' => sprintf(
+                    'No insulation article matches this tank (volume %s L, height %s mm). Change the insulation options, or choose none.',
+                    floatval($tank['dimensions']->Volume), floatval($tank['dimensions']->Height)
+                )];
+            }
             // Isolation retirée ou sans article correspondant : on enlève la ligne existante
             $this->delete_insulation_article($deal_id, $article_id);
         }
@@ -87,6 +104,13 @@ class ISPAG_Tank_Insulation_Auto_Saver {
     }
 
     private $log = [];
+    private $status = ['status' => '', 'message' => ''];
+
+    /** Résultat du dernier enregistrement : skipped (aucune isolation demandée), ok, missing (aucun article) ou error. */
+    public function last_status($default = '') {
+        return $this->status;
+    }
+
 
     private function debug($msg) {
         $this->log[] = $msg;

@@ -287,7 +287,15 @@
     function saveStep() {
         setBusy(true);
         saveTankData(wizard.articleId, urlParam('poid') ? 'true' : 'false')
-            .done(() => { setBusy(false); goto(wizard.current + 1); })
+            .done(res => {
+                setBusy(false);
+                // Isolation demandée mais introuvable (ou non enregistrée) : on reste sur l'étape
+                const ins = res && res.data && res.data.debug && res.data.debug.insulation_status;
+                if (wizard.current === 4 && ins && (ins.status === 'missing' || ins.status === 'error')) {
+                    return setError(ins.message || 'No insulation could be added.');
+                }
+                goto(wizard.current + 1);
+            })
             .fail(err => { setBusy(false); setError('Save failed' + (err && err.message ? ' : ' + err.message : '')); });
     }
 
