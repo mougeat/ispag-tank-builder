@@ -21,7 +21,8 @@
     ];
 
     const CSS = `
-        .ispag-wizard-hidden{display:none !important}
+        .ispag-wizard-hidden,.ispag-wizard-skipped{display:none !important}
+        .ispag-wizard-skip{margin:0 0 12px}.ispag-wizard-skip label{display:inline;font-weight:600;cursor:pointer}
         body.ispag-wizard-on .ispag-wizard-orig-save{display:none !important}
         .ispag-wizard-steps{display:flex;gap:6px;list-style:none;margin:0 0 18px;padding:0;flex-wrap:wrap}
         .ispag-wizard-steps li{flex:1;min-width:90px;text-align:center;padding:8px 6px;border-radius:6px;background:#f0f0f1;color:#666;font-size:12px;font-weight:600}
@@ -63,6 +64,12 @@
         return $f.length ? $f : $('.ispag-modal-actions:visible').last();
     }
 
+    function makeSkip(label, onToggle) {
+        const $box = $('<div class="ispag-wizard-skip"><label><input type="checkbox" style="margin-right:6px">' + label + '</label></div>');
+        $box.find('input').on('change', function () { onToggle(this.checked); });
+        return $box[0];
+    }
+
     function init($form) {
         if ($form.data('ispagWizard')) return;
 
@@ -93,6 +100,23 @@
             return $(this).find('.workflow-checkboxes, .js-sales-price-input').length > 0;
         })[0];
 
+        // Soudure et isolation sont facultatives : une case permet de les ignorer (valeurs « aucune »)
+        const weldSkip = makeSkip('No welding for this tank', function (skip) {
+            const $nb = $form.find('input[name="tank[nbWelding]"]');
+            if (skip) { $nb.data('prev', $nb.val()); $nb.val(0); } else { $nb.val($nb.data('prev') === undefined ? '' : $nb.data('prev')); }
+            $(weldField).toggleClass('ispag-wizard-skipped', skip);
+        });
+        const insSkip = makeSkip('No insulation for this tank', function (skip) {
+            const sels = { 'tank[insulation]': 0, 'tank[insulationCover]': 53, 'tank[InsulationThickness]': 0 };
+            Object.keys(sels).forEach(function (n) {
+                const $el = $form.find('[name="' + n + '"]');
+                if (skip) { $el.data('prev', $el.val()); $el.val(sels[n]); } else if ($el.data('prev') !== undefined) { $el.val($el.data('prev')); }
+            });
+            $(insField).toggleClass('ispag-wizard-skipped', skip);
+        });
+        $(weldField).before(weldSkip);
+        $(insField).before(insSkip);
+
         const panel = $('<div class="ispag-wizard-panel" id="ispag-wizard-fittings">' +
             '<h3 style="margin-top:0">Fittings</h3>' +
             '<p>The tank is saved. Add its fittings below; they are saved when you continue.</p>' +
@@ -110,6 +134,8 @@
             [grids[1], [2, 4]],
             [insField, [4]],
             [weldField, [2]],
+            [weldSkip, [2]],
+            [insSkip, [4]],
             [grids[2], [5]],
             [panel, [3]],
             [hidden, []],
@@ -239,6 +265,10 @@
         // Réservoir déjà créé : enregistrement des données techniques de l'étape
         if (w.current >= 1 && w.articleId && typeof saveTankData === 'function') {
             if (w.current === 3 && w.embedded && typeof saveFittings === 'function') {
+                if (!$('#fittings-container .fitting-row').length
+                    && !window.confirm('No fitting has been added to this tank. Continue without fittings?')) {
+                    return setError('Add at least one fitting, or confirm to continue without.');
+                }
                 setBusy(true);
                 return saveFittings(true).then(() => { setBusy(false); saveStep(); });
             }
