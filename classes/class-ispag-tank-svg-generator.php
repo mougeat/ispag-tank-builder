@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/class-ispag-tank-accessories-svg.php';
 /**
  * Class ISPAG_Tank_SVG_Generator
  * Génère des représentations SVG des cuves ISPAG avec leurs piquages, soudures et tôles perforées.
@@ -1200,6 +1201,9 @@ class ISPAG_Tank_SVG_Generator
 
                 $plates_svg = $this->render_drilled_plate_svg($diam, $height);
                 echo $plates_svg;
+
+                // Accessoires internes (tube plongeant, tube diffuseur, tôle de déflexion)
+                echo ISPAG_Tank_Accessories_SVG::front($this->fittings, $diam, $height);
                 $this->logger->log_user_action('tank_svg_generator', 'drilled_plates_rendered', [], $user_id);
 
                 if ($with_cotation)

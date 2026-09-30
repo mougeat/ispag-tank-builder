@@ -509,16 +509,16 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $this->SetDash();
 
         $this->SetDrawColor(0);
-        $this->SetFillColor(200);
+        $this->SetFillColor(255);
         $this->SetLineWidth(0.25);
         foreach ($fittings as $f) {
             $this->drawTopFitting($f, $cx, $cy, $r, $ins, $s, $tank_h);
         }
-        $this->SetFillColor(225);
+        $this->SetFillColor(255);
         $this->circle($cx, $cy, $r, 'FD');
         $this->drawTopAccessories($fittings, $cx, $cy, $r, $diam, $tank_h, $s);
         // piquages verticaux (au-dessus de la cuve) par-dessus la calotte
-        $this->SetFillColor(170);
+        $this->SetFillColor(255);
         foreach ($fittings as $f) {
             if (floatval($f->Height ?? 0) > $tank_h) {
                 $this->circle($cx, $cy, max(0.8, floatval($f->InternalDiamter ?? 50) / 2 * $s), 'FD');
@@ -818,6 +818,9 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         );
         $svg = preg_replace('/<svg\b[^>]*>/', $tag, $svg, 1);
         $svg = preg_replace('/<\?xml[^>]*\?>/', '', $svg);
+        // Plan : cuve sans remplissage (dégradés -> blanc) et sans accessoires SVG (redessinés en vectoriel)
+        $svg = preg_replace('#<g id=[\'"]internal-accessories[\'"].*?</g>#s', '', $svg);
+        $svg = preg_replace('/url\(#[A-Za-z0-9_-]+\)/', '#fff', $svg);
 
         $upload_dir = wp_upload_dir();
         $dir = trailingslashit($upload_dir['basedir']) . 'ispag-svg/';

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/class-ispag-tank-accessories-svg.php';
 /**
  * Class ISPAG_Tank_SVG_Top_View_Generator
  * Génère une vue de dessus en SVG pour les réservoirs ISPAG.
@@ -296,6 +297,9 @@ class ISPAG_Tank_SVG_Top_View_Generator
                 }
 
                 $this->logger->log_user_action('tank_svg_top_view_generator', 'rendering_fittings_complete', [], $user_id);
+
+                // Accessoires internes (tube plongeant, tube diffuseur, tôle de déflexion)
+                echo ISPAG_Tank_Accessories_SVG::top($this->fittings, $cx, $cy, $diam, $height);
                 ?>
             </g>
         </svg>
