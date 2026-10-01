@@ -248,7 +248,7 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_Tank_TechSheet_Generator
         $path = apply_filters('ispag_welding_signature_path', $path);
 
         // Dossier par défaut : interdit l'accès direct par URL (Apache ; sur Nginx, bloquer /uploads/ispag-private/)
-        if (is_dir($dir)) {
+        if (wp_mkdir_p($dir)) {
             if (!file_exists($dir . '/.htaccess')) {
                 @file_put_contents($dir . '/.htaccess', "Require all denied\nDeny from all\n");
             }
