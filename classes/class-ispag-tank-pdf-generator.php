@@ -335,6 +335,7 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         $h = max(9, count($lines) * 4.6 + 5);
         $y = $this->ensure($y, $h + 10);
         $y = $this->sectionTitle($x, $y, $w, $title);
+        $this->SetFont('Arial', '', 8.5);
         $this->roundedBox($x, $y, $w, $h, self::PANEL);
         $this->SetXY($x + 4, $y + 2.5);
         $this->color('text', self::INK);
