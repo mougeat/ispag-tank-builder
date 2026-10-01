@@ -18,7 +18,10 @@ class ISPAG_Nameplate_Generator extends ISPAG_PDF_Generator {
         parent::__construct('L', 'mm', [120, 80]);
         $this->logger = ISPAG_Logger::get_instance();
 
-        $this->logo_url = WP_CONTENT_DIR . '/uploads/2025/03/Logo_ISPAG_RGB_F.png';
+        // Logo du site (défini par le constructeur parent) ; sinon fichier d'origine
+        if (!class_exists('ISPAG_Site_Logo') || !ISPAG_Site_Logo::path()) {
+            $this->logo_url = WP_CONTENT_DIR . '/uploads/2025/03/Logo_ISPAG_RGB_F.png';
+        }
     }
 
     /**
@@ -112,7 +115,7 @@ class ISPAG_Nameplate_Generator extends ISPAG_PDF_Generator {
 
         // --- 5. En-tête (Logo + Adresse) ---
         if (file_exists($this->logo_url)) {
-            $this->Image($this->logo_url, 5, 5, 30);
+            $this->drawLogo(5, 5, 30, 12);
             $this->logger->log_user_action(
                 'nameplate_generator',
                 'logo_added',

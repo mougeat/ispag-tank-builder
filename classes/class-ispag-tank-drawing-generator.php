@@ -165,13 +165,8 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $this->SetLineWidth(0.25);
 
         // Logo
-        if ($this->logo_url) {
-            try {
-                $this->Image($this->logo_url, $x + 3, $y + 3, 38);
-            } catch (Exception $e) {
-                // logo indisponible : on continue sans
-            }
-        }
+        // logo du site (ou celui d'origine) ; indisponible : on continue sans
+        $this->drawLogo($x + 3, $y + 3, 38, 14);
 
         // Bloc droit : références
         $bx = $x + 62;

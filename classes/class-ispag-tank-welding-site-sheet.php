@@ -42,6 +42,10 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         parent::__construct('P', 'mm', 'A4');
 
         $this->logo_path = ISPAG_PLUGIN_PATH . 'assets/logo_ispag.png';
+        // Logo du site s'il existe (sinon fichier d'origine, téléchargé au besoin)
+        if (class_exists('ISPAG_Site_Logo') && ($site_logo = ISPAG_Site_Logo::path())) {
+            $this->logo_path = $site_logo;
+        }
         if (!file_exists($this->logo_path)) {
             $this->download_logo();
         }
@@ -943,7 +947,8 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
     protected function draw_header($title)
     {
         if (file_exists($this->logo_path)) {
-            $this->Image($this->logo_path, $this->margin, $this->margin, 25);
+            [$logo_w, $logo_h] = class_exists('ISPAG_Site_Logo') ? ISPAG_Site_Logo::fit($this->logo_path, 25, 14) : [25, 0];
+            $this->Image($this->logo_path, $this->margin, $this->margin, $logo_w, $logo_h);
         }
 
         $this->SetFont('Arial', 'B', 9);

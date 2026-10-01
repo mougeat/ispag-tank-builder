@@ -28,7 +28,7 @@ class ISPAG_Tank_Welding {
         }
 
         add_filter('ispag_get_welding_title', [self::$instance, 'get_welding_title'], 10, 2 );
-        add_filter('ispag_get_welding_description', [self::$instance, 'get_welding_description'], 10, 2 );
+        add_filter('ispag_get_welding_description', [self::$instance, 'get_welding_description'], 10, 3 );
         add_filter('ispag_get_welding_text', [self::$instance, 'get_welding_text'], 10, 3 );
         add_filter('ispag_render_welding_selector', [self::$instance, 'render_welding_selector'], 10, 2);
         add_filter('ispag_get_warranty_information', [self::$instance, 'get_warranty_information'], 10, 2);
@@ -131,7 +131,8 @@ class ISPAG_Tank_Welding {
         return $title;
     }
 
-    public function get_welding_description($description, $article_id) {
+    /** $article_id : article standard de soudure ; $deal_id : projet de la ligne (la largeur de porte est une donnée du projet). */
+    public function get_welding_description($description, $article_id, $deal_id = 0) {
         $article = $this->get_article_data($article_id);
         if (!$article) return $description;
 
@@ -152,17 +153,17 @@ class ISPAG_Tank_Welding {
         // Datas du bâtiment
         $door_width_text = '';
         if (class_exists('ISPAG_Tank_Welding_Site_Sheet')) {
-            $article_repo = new ISPAG_Article_Repository();
-            $deal_id = $article_repo->get_article_deal_id(null, $article_id);
+            if (!$deal_id) {
+                $article_repo = new ISPAG_Article_Repository();
+                $deal_id = $article_repo->get_article_deal_id(null, $article_id);
+            }
             $tank_welding_sheet = new ISPAG_Tank_Welding_Site_Sheet();
             $welding_datas = $tank_welding_sheet->check_welding_sheet_data($deal_id);
-
-            // error_log(print_r($welding_datas, true));
 
             // Vérification de door_width
             if (!empty($welding_datas['info']->door_width)) {
                 $door_width_text = sprintf(
-                    '<br />' . __('Door width: %s mm', 'creation-reservoir'),
+                    '<br />' . __('Door width: %s cm', 'creation-reservoir'),
                     $welding_datas['info']->door_width
                 );
             } else {
