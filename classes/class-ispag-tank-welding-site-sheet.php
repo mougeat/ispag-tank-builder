@@ -32,7 +32,18 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
     protected $logo_path;
     protected $schema_path;
 
+    // Palette de la fiche technique
+    const RED   = [210, 16, 52];
+    const INK   = [30, 41, 59];
+    const MUTED = [100, 116, 139];
+    const LINE  = [226, 232, 240];
+    const PANEL = [244, 246, 249];
+    const WHITE = [255, 255, 255];
+
     protected $margin = 12;
+
+    /** @var bool Pied de page actif sur la page courante (inactif sur les plans importés). */
+    protected $footer_on = true;
 
     protected $tank_index = 0;
     protected $tank_total = 0;
@@ -518,6 +529,10 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         $this->tank_total = count($tank_article_ids);
         $this->tank_index = 0;
 
+        $this->AliasNbPages('{nb}');
+        $this->SetTitle($this->tx(__('Welding site sheet', 'creation-reservoir') . ' - ' . ($project->ObjetCommande ?? '')), false);
+        $this->SetAutoPageBreak(true, 22);
+
         $delivery_info = (new ISPAG_Project_Details_Repository())->get_infos_livraison($deal_id);
 
         // 1. Page générale et questionnaire technique de chantier
@@ -541,155 +556,257 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         $this->add_general_conditions_page();
     }
 
-    protected function add_site_header_page($project, $delivery_info)
+    /* ==================================================================== */
+    /* OUTILS DE DESSIN (même charte que la fiche technique)                */
+    /* ==================================================================== */
+
+    protected function color($type, array $rgb)
+    {
+        if ($type === 'fill') $this->SetFillColor($rgb[0], $rgb[1], $rgb[2]);
+        elseif ($type === 'draw') $this->SetDrawColor($rgb[0], $rgb[1], $rgb[2]);
+        else $this->SetTextColor($rgb[0], $rgb[1], $rgb[2]);
+    }
+
+    protected function roundedBox($x, $y, $w, $h, array $fill, ?array $border = null, $r = 2.5)
+    {
+        $this->color('fill', $fill);
+        if ($border) {
+            $this->color('draw', $border);
+            $this->SetLineWidth(0.25);
+        }
+        $this->RoundedRect($x, $y, $w, $h, $r, $border ? 'DF' : 'F');
+    }
+
+    /** Titre de section : petites capitales rouges et filet. Renvoie le Y suivant. */
+    protected function sectionTitle($x, $y, $w, $label)
+    {
+        $this->SetXY($x, $y);
+        $this->SetFont('Arial', 'B', 8);
+        $this->color('text', self::RED);
+        $this->Cell($w, 5, $this->tx(mb_strtoupper($label)), 0, 1, 'L');
+        $this->color('draw', self::LINE);
+        $this->SetLineWidth(0.3);
+        $this->Line($x, $y + 5.5, $x + $w, $y + 5.5);
+        return $y + 8;
+    }
+
+    /** Lignes « libellé : valeur » sur fond alterné. Renvoie le Y suivant. */
+    protected function keyValueRows($x, $y, $w, array $rows, $label_w = 56)
+    {
+        $i = 0;
+        foreach ($rows as $label => $value) {
+            if ($value === null || $value === '') continue;
+            if ($i % 2 === 0) {
+                $this->color('fill', self::PANEL);
+                $this->Rect($x, $y, $w, 5.8, 'F');
+            }
+            $this->SetXY($x + 2, $y + 0.4);
+            $this->SetFont('Arial', '', 8.5);
+            $this->color('text', self::MUTED);
+            $this->Cell($label_w, 5, $this->tx($label), 0, 0, 'L');
+            $this->SetFont('Arial', 'B', 8.5);
+            $this->color('text', self::INK);
+            $this->Cell($w - $label_w - 4, 5, $this->tx($value), 0, 0, 'L');
+            $y += 5.8;
+            $i++;
+        }
+        return $y + 2;
+    }
+
+    /** Nouvelle page avec bandeau ; renvoie le Y où commence le contenu. */
+    protected function start_page($doc_title)
     {
         $this->AddPage();
-        
-        // Titre du document plus grand
-        $sheet_title = __('Welding site sheet', 'creation-reservoir') . ' : ' . ($project->ObjetCommande ?? '');
-        $this->draw_header($sheet_title);
-
-        // Date de retour souhaitée (J+7)
-        $return_date = date('d.m.Y', strtotime('+7 days'));
-        $this->SetFont('Arial', 'B', 9);
-        $this->SetTextColor(180, 0, 0);
-        $this->Cell(0, 5, $this->tx(__('Please return by:', 'creation-reservoir') . ' ' . $return_date), 0, 1, 'R');
-
-        // Nom du projet / Objet de commande plus grand
-        $this->SetFont('Arial', 'B', 14);
-        $this->SetTextColor(0);
-        $this->Cell(0, 8, $this->tx($project->ObjetCommande ?? ''), 0, 1);
-        
-        $this->SetFont('Arial', '', 9);
-        $this->SetTextColor(100);
-        $this->Cell(0, 5, $this->tx(__('Order No.', 'creation-reservoir') . ' : ' . ($project->NumCommande ?? '')), 0, 1);
-        $this->Ln(6);
-
-        // Bloc Adresse & Contact plus grand
-        $this->SetFont('Arial', 'B', 11);
-        $this->SetTextColor(180, 0, 0);
-        $this->Cell(0, 6, $this->tx(__('Site address & contact', 'creation-reservoir')), 0, 1);
-        $this->Ln(2);
-
-        $this->SetFont('Arial', '', 10);
-        $this->SetTextColor(0);
-
-        // Affichage multiligne de l'adresse
-        $this->Cell(0, 5, $this->tx(__('Address', 'creation-reservoir') . ' :'), 0, 1);
-        
-        if (!empty($delivery_info->AdresseDeLivraison)) {
-            $this->Cell(0, 5, $this->tx($delivery_info->AdresseDeLivraison), 0, 1);
-        }
-        if (!empty($delivery_info->DeliveryAdresse2)) {
-            $this->Cell(0, 5, $this->tx($delivery_info->DeliveryAdresse2), 0, 1);
-        }
-        $city_line = trim(($delivery_info->NIP ?? '') . ' ' . ($delivery_info->City ?? ''));
-        if (!empty($city_line)) {
-            $this->Cell(0, 5, $this->tx($city_line), 0, 1);
-        }
-
-        if (empty($delivery_info->AdresseDeLivraison) && empty($city_line)) {
-            $this->Cell(0, 5, $this->tx($this->dots()), 0, 1);
-        }
-
-        $this->Ln(2);
-        $contact_name = $this->val($delivery_info->PersonneContact ?? '');
-        $contact_tel = $this->val($delivery_info->num_tel_contact ?? '');
-        $this->Cell(0, 5, $this->tx(__('Contact', 'creation-reservoir') . ' : ' . $contact_name . ' (' . $contact_tel . ')'), 0, 1);
-        
-        // Espacement important avant le tableau
-        $this->Ln(8);
-
-        // Résolution des valeurs : DB connue → affichée, sinon pointillés / cases à cocher.
-        $corridor_width  = $this->val($delivery_info->corridor_width ?? null, ' cm');
-        $door_width      = $this->val($delivery_info->door_width ?? null, ' cm');
-        $number_doors    = $this->val($delivery_info->number_doors ?? null);
-        $other_obstacles = $this->val($delivery_info->other_obstacles ?? null);
-        $room_size       = $this->val($delivery_info->room_size ?? null, ' cm');
-        $room_height     = $this->val($delivery_info->room_height ?? null, ' cm');
-
-        $ceiling_type   = $this->checkbox_or_value(
-            $delivery_info->ceiling_type ?? null,
-            [__('concrete', 'creation-reservoir'), __('wood beam', 'creation-reservoir')]
-        );
-        $hoist_allowed  = $this->checkbox_or_value(
-            $delivery_info->hoist_allowed ?? null,
-            [__('Yes', 'creation-reservoir'), __('No', 'creation-reservoir')]
-        );
-        $floor_covering = $this->checkbox_or_value(
-            $delivery_info->floor_covering ?? null,
-            [__('poured cement', 'creation-reservoir'), __('tiles', 'creation-reservoir')]
-        );
-        $ventilation    = $this->checkbox_or_value(
-            $delivery_info->ventilation ?? null,
-            [__('No', 'creation-reservoir'), __('Natural', 'creation-reservoir'), __('Mechanical', 'creation-reservoir')]
-        );
-        $electricity    = $this->checkbox_or_value(
-            $delivery_info->electricity_available ?? null,
-            [__('Yes', 'creation-reservoir'), __('No', 'creation-reservoir')],
-            '3x400V min. 10A  '
-        );
-        $parking_address = $this->val($delivery_info->parking_address ?? null);
-        $observations    = $this->val($delivery_info->observations ?? null);
-
-
-        // Titre encadré : Accessibilité & Intérieur du bâtiment
-        $this->SetFillColor(240, 240, 240);
-        $this->SetFont('Arial', 'B', 9);
-        $this->SetTextColor(0);
-        $this->Cell(0, 6, $this->tx(__('Accessibility & internal path', 'creation-reservoir')), 1, 1, 'L', true);
-
-        $this->SetFont('Arial', '', 8);
-        $this->row_field(__('Corridor width:', 'creation-reservoir'), $corridor_width, __('Smallest door width:', 'creation-reservoir'), $door_width, 42, 51, 42, 51);
-        $this->row_field(__('Number of doors:', 'creation-reservoir'), $number_doors, __('Other obstacles:', 'creation-reservoir'), $other_obstacles, 42, 51, 42, 51);
-        $this->Ln(2);
-
-        // Local technique / Chaufferie
-        $this->SetFillColor(240, 240, 240);
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(0, 6, $this->tx(__('Heater room / Technical room', 'creation-reservoir')), 1, 1, 'L', true);
-
-        $this->SetFont('Arial', '', 8);
-        $this->row_field(__('Room size (LxW):', 'creation-reservoir'), $room_size, __('Room height:', 'creation-reservoir'), $room_height, 42, 51, 42, 51);
-        $this->row_field(__('Ceiling type:', 'creation-reservoir'), $ceiling_type, __('Hoist allowed on ceiling:', 'creation-reservoir'), $hoist_allowed, 42, 51, 42, 51);
-        $this->row_field(__('Floor covering:', 'creation-reservoir'), $floor_covering, __('Ventilation available:', 'creation-reservoir'), $ventilation, 42, 51, 42, 51);
-        $this->Ln(2);
-
-        // Infrastructure (Électricité uniquement)
-        $this->SetFillColor(240, 240, 240);
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(0, 6, $this->tx(__('Infrastructure', 'creation-reservoir')), 1, 1, 'L', true);
-
-        $this->SetFont('Arial', '', 8);
-        $this->Cell(35, 5, $this->tx(__('Electricity available:', 'creation-reservoir')), 1, 0);
-        $this->Cell(0, 5, $this->tx($electricity), 1, 1);
-
-        // Espacement important avant le parking
-        $this->Ln(8);
-
-        // Adresse du parking / déchargement
-        $this->SetFillColor(240, 240, 240);
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(0, 6, $this->tx(__('Parking / Unloading address', 'creation-reservoir')), 1, 1, 'L', true);
-
-        $this->SetFont('Arial', '', 8);
-        $this->Ln(2);
-        $this->Cell(0, 5, $this->tx(__('Parking address / Unloading location:', 'creation-reservoir') . ' ' . $parking_address), 0, 1);
-
-        $this->Ln(2);
-        $this->Cell(0, 5, $this->tx(__('Observations:', 'creation-reservoir')), 0, 1);
-        $this->Cell(0, 6, $this->tx($observations), 0, 1);
+        $this->footer_on = true;
+        $this->draw_header($doc_title);
+        return 31;
     }
 
-    protected function row_field($label1, $val1, $label2, $val2, $w1 = 38, $w2 = 57, $w3 = 38, $w4 = 57)
+    /** Titre du document et sous-titre (une ligne grise) ; renvoie le Y suivant. */
+    protected function page_title($title, $subtitle = '', $y = 31)
     {
-        $this->Cell($w1, 5, $this->tx($label1), 1, 0);
-        $this->Cell($w2, 5, $this->tx($val1), 1, 0);
-        $this->Cell($w3, 5, $this->tx($label2), 1, 0);
-        $this->Cell($w4, 5, $this->tx($val2), 1, 1);
+        $this->SetXY($this->margin, $y);
+        $this->SetFont('Arial', 'B', 19);
+        $this->color('text', self::INK);
+        $this->MultiCell(186, 8, $this->tx($title), 0, 'L');
+        $y = $this->GetY() + 1;
+        if ($subtitle !== '') {
+            $this->SetXY($this->margin, $y);
+            $this->SetFont('Arial', '', 10);
+            $this->color('text', self::MUTED);
+            $this->Cell(186, 6, $this->tx($subtitle), 0, 1, 'L');
+            $y = $this->GetY();
+        }
+        return $y + 5;
     }
 
-    
+    /** Indicateurs clés : [libellé, valeur, unité]. Renvoie le Y suivant. */
+    protected function kpi_row(array $items, $y)
+    {
+        $gap = 4;
+        $w = (186 - ($gap * (count($items) - 1))) / count($items);
+        foreach ($items as $i => [$label, $value, $unit]) {
+            $x = $this->margin + $i * ($w + $gap);
+            $this->roundedBox($x, $y, $w, 20, self::PANEL);
+
+            $this->SetXY($x, $y + 3);
+            $this->SetFont('Arial', '', 7.5);
+            $this->color('text', self::MUTED);
+            $this->Cell($w, 4, $this->tx(mb_strtoupper($label)), 0, 2, 'C');
+
+            $has = ($value !== null && $value !== '');
+            $text = $has ? (string) $value : '-';
+            $this->SetFont('Arial', 'B', 15);
+            $this->color('text', self::INK);
+            $this->Cell($w, 8, $this->tx($text), 0, 0, 'C');
+            if ($has && $unit !== '') {
+                $this->SetXY($x + $w / 2 + $this->GetStringWidth($this->tx($text)) / 2 + 0.6, $y + 9.2);
+                $this->SetFont('Arial', '', 8);
+                $this->color('text', self::MUTED);
+                $this->Cell(10, 6, $this->tx($unit), 0, 0, 'L');
+            }
+        }
+        return $y + 28;
+    }
+
+    /**
+     * Champ de formulaire : libellé au-dessus, cadre dessous.
+     * Valeur connue : cadre grisé, texte en gras. Sinon : cadre blanc à remplir à la main,
+     * avec des cases à cocher si $options est renseigné. Renvoie le Y suivant.
+     */
+    protected function form_field($x, $y, $w, $label, $value = null, array $options = [], $h = 8, $prefix = '')
+    {
+        $this->SetXY($x, $y);
+        $this->SetFont('Arial', '', 7.5);
+        $this->color('text', self::MUTED);
+        $this->Cell($w, 4, $this->tx(rtrim($label, ' :')), 0, 0, 'L');
+
+        $by = $y + 4.2;
+        $known = ($value !== null && $value !== '');
+        $this->roundedBox($x, $by, $w, $h, $known ? self::PANEL : self::WHITE, self::LINE, 1.5);
+
+        if ($known) {
+            $this->SetXY($x + 2, $by + ($h <= 8 ? 1.7 : 1.8));
+            $this->SetFont('Arial', 'B', 8.5);
+            $this->color('text', self::INK);
+            $this->MultiCell($w - 4, 4.4, $this->tx($prefix . $value), 0, 'L');
+        } elseif ($options) {
+            $cx = $x + 2.5;
+            $cy = $by + $h / 2;
+            if ($prefix !== '') {
+                $this->SetXY($cx, $cy - 2.4);
+                $this->SetFont('Arial', '', 8);
+                $this->color('text', self::MUTED);
+                $this->Cell($this->GetStringWidth($this->tx($prefix)) + 2, 4.8, $this->tx($prefix), 0, 0, 'L');
+                $cx += $this->GetStringWidth($this->tx($prefix)) + 4;
+            }
+            $this->SetFont('Arial', '', 8);
+            foreach ($options as $opt) {
+                $this->color('draw', self::MUTED);
+                $this->SetLineWidth(0.25);
+                $this->Rect($cx, $cy - 1.6, 3.2, 3.2, 'D');
+                $this->color('text', self::INK);
+                $this->SetXY($cx + 4.4, $cy - 2.4);
+                $tw = $this->GetStringWidth($this->tx($opt));
+                $this->Cell($tw + 1, 4.8, $this->tx($opt), 0, 0, 'L');
+                $cx += $tw + 11;
+            }
+        }
+        return $by + $h + 3;
+    }
+
+    /** Liste à puces (carrés rouges) ou numérotée ; le texte est coupé automatiquement. Renvoie le Y suivant. */
+    protected function bullet_list($x, $y, $w, array $items, $numbered = false)
+    {
+        foreach ($items as $i => $text) {
+            $this->SetXY($x + 7, $y);
+            $this->SetFont('Arial', '', 8.5);
+            $this->color('text', self::INK);
+            $this->MultiCell($w - 8, 4.6, $this->tx($text), 0, 'L');
+            $end = $this->GetY();
+
+            if ($numbered) {
+                $this->SetXY($x + 1, $y);
+                $this->SetFont('Arial', 'B', 8.5);
+                $this->color('text', self::RED);
+                $this->Cell(5, 4.6, ($i + 1) . '.', 0, 0, 'L');
+            } else {
+                $this->color('fill', self::RED);
+                $this->Rect($x + 2, $y + 1.6, 1.4, 1.4, 'F');
+            }
+            $y = $end + 1.6;
+        }
+        return $y + 2;
+    }
+
+    /* ==================================================================== */
+    /* PAGE 1 : QUESTIONNAIRE DE CHANTIER                                   */
+    /* ==================================================================== */
+
+    protected function add_site_header_page($project, $delivery_info)
+    {
+        $y = $this->start_page(__('Welding site sheet', 'creation-reservoir'));
+
+        // Titre : projet, avec le numéro de commande ; date de retour souhaitée (J+7) à droite
+        $y = $this->page_title($project->ObjetCommande ?? '', __('Order No.', 'creation-reservoir') . ' : ' . ($project->NumCommande ?? ''));
+
+        $return_text = __('Please return by:', 'creation-reservoir') . ' ' . date('d.m.Y', strtotime('+7 days'));
+        $this->SetFont('Arial', 'B', 8.5);
+        $pill_w = $this->GetStringWidth($this->tx($return_text)) + 10;
+        $px = $this->margin + 186 - $pill_w;
+        $this->roundedBox($px, 32.5, $pill_w, 7, self::RED, null, 1.8);
+        $this->SetXY($px, 32.5);
+        $this->color('text', self::WHITE);
+        $this->Cell($pill_w, 7, $this->tx($return_text), 0, 0, 'C');
+
+        $x1 = $this->margin;
+        $x2 = $this->margin + 95;
+        $half = 91;
+        $d = $delivery_info;
+
+        // Adresse et contact
+        $y = $this->sectionTitle($x1, $y, 186, __('Site address & contact', 'creation-reservoir'));
+        $city_line = trim(($d->NIP ?? '') . ' ' . ($d->City ?? ''));
+        $address = implode("\n", array_filter([$d->AdresseDeLivraison ?? '', $d->DeliveryAdresse2 ?? '', $city_line]));
+        $lines = max(1, substr_count($address, "\n") + 1);
+        $y = $this->form_field($x1, $y, 186, __('Address', 'creation-reservoir'), $address, [], 8 + ($lines - 1) * 4.4);
+        $this->form_field($x1, $y, $half, __('Contact', 'creation-reservoir'), $d->PersonneContact ?? null);
+        $y = $this->form_field($x2, $y, $half, __('Phone', 'creation-reservoir'), $d->num_tel_contact ?? null);
+
+        // Accessibilité
+        $y = $this->sectionTitle($x1, $y + 1, 186, __('Accessibility & internal path', 'creation-reservoir'));
+        $this->form_field($x1, $y, $half, __('Corridor width:', 'creation-reservoir') . ' (cm)', $d->corridor_width ?? null);
+        $y = $this->form_field($x2, $y, $half, __('Smallest door width:', 'creation-reservoir') . ' (cm)', $d->door_width ?? null);
+        $this->form_field($x1, $y, $half, __('Number of doors:', 'creation-reservoir'), $d->number_doors ?? null);
+        $y = $this->form_field($x2, $y, $half, __('Other obstacles:', 'creation-reservoir'), $d->other_obstacles ?? null);
+
+        // Local technique / chaufferie
+        $y = $this->sectionTitle($x1, $y + 1, 186, __('Heater room / Technical room', 'creation-reservoir'));
+        $this->form_field($x1, $y, $half, __('Room size (LxW):', 'creation-reservoir') . ' (cm)', $d->room_size ?? null);
+        $y = $this->form_field($x2, $y, $half, __('Room height:', 'creation-reservoir') . ' (cm)', $d->room_height ?? null);
+        $this->form_field($x1, $y, $half, __('Ceiling type:', 'creation-reservoir'), $d->ceiling_type ?? null,
+            [__('concrete', 'creation-reservoir'), __('wood beam', 'creation-reservoir')]);
+        $y = $this->form_field($x2, $y, $half, __('Hoist allowed on ceiling:', 'creation-reservoir'), $d->hoist_allowed ?? null,
+            [__('Yes', 'creation-reservoir'), __('No', 'creation-reservoir')]);
+        $this->form_field($x1, $y, $half, __('Floor covering:', 'creation-reservoir'), $d->floor_covering ?? null,
+            [__('poured cement', 'creation-reservoir'), __('tiles', 'creation-reservoir')]);
+        $y = $this->form_field($x2, $y, $half, __('Ventilation available:', 'creation-reservoir'), $d->ventilation ?? null,
+            [__('No', 'creation-reservoir'), __('Natural', 'creation-reservoir'), __('Mechanical', 'creation-reservoir')]);
+
+        // Infrastructure
+        $y = $this->sectionTitle($x1, $y + 1, 186, __('Infrastructure', 'creation-reservoir'));
+        $y = $this->form_field($x1, $y, 186, __('Electricity available:', 'creation-reservoir'), $d->electricity_available ?? null,
+            [__('Yes', 'creation-reservoir'), __('No', 'creation-reservoir')], 8, '3x400V min. 10A   ');
+
+        // Parking et observations
+        $y = $this->sectionTitle($x1, $y + 1, 186, __('Parking / Unloading address', 'creation-reservoir'));
+        $y = $this->form_field($x1, $y, 186, __('Parking address / Unloading location:', 'creation-reservoir'), $d->parking_address ?? null);
+        $this->form_field($x1, $y, 186, __('Observations:', 'creation-reservoir'), $d->observations ?? null, [], 22);
+    }
+
+    /* ==================================================================== */
+    /* UNE PAGE PAR CUVE + PLAN VALIDÉ                                      */
+    /* ==================================================================== */
 
     protected function add_tank_detail_page($article, $tank_datas)
     {
@@ -703,37 +820,28 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         }
         $nb_pieces = $nb_welding + 1;
 
-        $this->AddPage();
-        $this->draw_header(sprintf(__('Tank %d / %d', 'creation-reservoir'), $this->tank_index, $this->tank_total));
+        $y = $this->start_page(sprintf(__('Tank %d / %d', 'creation-reservoir'), $this->tank_index, $this->tank_total));
+        $y = $this->page_title($article->Article ?? '');
 
-        $this->SetFont('Arial', 'B', 12);
-        $this->SetTextColor(0);
-        $this->Cell(0, 8, $this->tx($article->Article ?? ''), 0, 1);
-        $this->Ln(2);
+        $y = $this->kpi_row([
+            [__('Diameter', 'creation-reservoir'),        $dim['Diametre_mm'] ?? null,      'mm'],
+            [__('Total height', 'creation-reservoir'),    $dim['Hauteur_mm'] ?? null,       'mm'],
+            [__('Design pressure', 'creation-reservoir'), $dim['Pression_Max_bar'] ?? null, 'bar'],
+            [__('Number of welds', 'creation-reservoir'), (string) $nb_welding,             ''],
+        ], $y);
 
-        $rows = [
-            __('Material', 'creation-reservoir')                 => $this->val($dim['Matiere'] ?? null),
-            __('Diameter', 'creation-reservoir')                  => $this->val($dim['Diametre_mm'] ?? null, ' mm'),
-            __('Total height', 'creation-reservoir')              => $this->val($dim['Hauteur_mm'] ?? null, ' mm'),
-            __('Design pressure', 'creation-reservoir')           => $this->val($dim['Pression_Max_bar'] ?? null, ' bar'),
-            __('Test pressure', 'creation-reservoir')             => $this->val($dim['Pression_Test_bar'] ?? null, ' bar'),
-            __('Number of welds', 'creation-reservoir')           => (string) $nb_welding,
-            __('Delivered in pieces', 'creation-reservoir')       => (string) $nb_pieces,
-            __('Expected delivery date', 'creation-reservoir')    => !empty($article->TimestampDateLivraisonConfirme) ? date('d.m.Y', $article->TimestampDateLivraisonConfirme) : $this->dots(),
-        ];
+        $y = $this->sectionTitle($this->margin, $y, 186, __('Specifications', 'creation-reservoir'));
+        $y = $this->keyValueRows($this->margin, $y, 186, [
+            __('Material', 'creation-reservoir')              => $dim['Matiere'] ?? null,
+            __('Test pressure', 'creation-reservoir')         => isset($dim['Pression_Test_bar']) && $dim['Pression_Test_bar'] !== '' ? $dim['Pression_Test_bar'] . ' bar' : null,
+            __('Delivered in pieces', 'creation-reservoir')   => (string) $nb_pieces,
+            __('Expected delivery date', 'creation-reservoir') => !empty($article->TimestampDateLivraisonConfirme) ? date('d.m.Y', $article->TimestampDateLivraisonConfirme) : null,
+        ]);
 
-        $this->SetFont('Arial', '', 9);
-        foreach ($rows as $label => $value) {
-            $this->SetTextColor(90);
-            $this->Cell(60, 6, $this->tx($label . ' :'), 0, 0);
-            $this->SetTextColor(0);
-            $this->Cell(0, 6, $this->tx($value), 0, 1);
-        }
-
-        $this->Ln(4);
+        $this->SetXY($this->margin, $y + 3);
         $this->SetFont('Arial', 'I', 8);
-        $this->SetTextColor(100);
-        $this->Cell(0, 5, $this->tx(__('The manufacturing plan for this tank follows on the next page, if available.', 'creation-reservoir')), 0, 1);
+        $this->color('text', self::MUTED);
+        $this->MultiCell(186, 4.5, $this->tx(__('The manufacturing plan for this tank follows on the next page, if available.', 'creation-reservoir')), 0, 'L');
     }
 
     protected function append_last_validated_drawing($article_id)
@@ -741,11 +849,7 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         $source_path = $this->get_last_validated_drawing_path($article_id);
 
         if (!$source_path || !file_exists($source_path)) {
-            $this->AddPage();
-            $this->draw_header(__('Manufacturing plan', 'creation-reservoir'));
-            $this->SetFont('Arial', 'I', 10);
-            $this->SetTextColor(150);
-            $this->Cell(0, 20, $this->tx(__('No validated plan available for this tank yet.', 'creation-reservoir')), 0, 1, 'C');
+            $this->plan_message(__('No validated plan available for this tank yet.', 'creation-reservoir'));
             return;
         }
 
@@ -757,15 +861,23 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
                 $tpl  = $this->importPage($i);
                 $size = $this->getTemplateSize($tpl);
                 $this->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $this->footer_on = false; // la page du plan reste telle qu'elle a été validée
                 $this->useTemplate($tpl);
             }
         } catch (\Exception $e) {
-            $this->AddPage();
-            $this->draw_header(__('Manufacturing plan', 'creation-reservoir'));
-            $this->SetFont('Arial', 'I', 10);
-            $this->SetTextColor(150);
-            $this->Cell(0, 20, $this->tx(__('The plan could not be merged automatically. Please attach it manually.', 'creation-reservoir')), 0, 1, 'C');
+            $this->plan_message(__('The plan could not be merged automatically. Please attach it manually.', 'creation-reservoir'));
         }
+    }
+
+    /** Page de plan absent : message centré dans un cadre. */
+    protected function plan_message($message)
+    {
+        $y = $this->start_page(__('Manufacturing plan', 'creation-reservoir'));
+        $this->roundedBox($this->margin, $y + 20, 186, 40, self::PANEL);
+        $this->SetXY($this->margin, $y + 36);
+        $this->SetFont('Arial', 'I', 10);
+        $this->color('text', self::MUTED);
+        $this->Cell(186, 8, $this->tx($message), 0, 1, 'C');
     }
 
     /* ==================================================================== */
@@ -774,29 +886,31 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
 
     protected function add_access_diagram_page()
     {
-        $this->AddPage();
-        $this->draw_header(__('Tank introduction & critical turning points', 'creation-reservoir'));
+        $y = $this->start_page(__('Tank introduction & critical turning points', 'creation-reservoir'));
+        $y = $this->page_title(__('Path analysis for tank parts introduction', 'creation-reservoir'));
 
-        $this->SetFont('Arial', 'B', 10);
-        $this->SetTextColor(180, 0, 0);
-        $this->Cell(0, 6, $this->tx(__('Path analysis for tank parts introduction', 'creation-reservoir')), 0, 1);
-
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(50);
-        $this->MultiCell(0, 4, $this->tx(
+        $this->SetXY($this->margin, $y - 2);
+        $this->SetFont('Arial', '', 8.5);
+        $this->color('text', self::INK);
+        $this->MultiCell(186, 4.6, $this->tx(
             __('Please note: Since the introduction and positioning of the tank parts are your responsibility, please pay special attention to critical passages (doors, corridors, staircases, tight turns) and sketch them below.', 'creation-reservoir')
-        ), 0, 1);
-        $this->Ln(4);
+        ), 0, 'L');
+        $y = $this->GetY() + 5;
 
-        $rendered = $this->render_schema_image($this->schema_path, $this->margin, $this->GetY(), 140);
+        // Cadre de croquis, rempli par le schéma s'il existe
+        $box_h = 150;
+        $this->roundedBox($this->margin, $y, 186, $box_h, self::WHITE, self::LINE);
+        // Schéma centré dans le cadre, proportions conservées
+        $size = @getimagesize((string) $this->schema_path);
+        $ratio = ($size && $size[1] > 0) ? $size[0] / $size[1] : 1;
+        $img_w = min(176, ($box_h - 10) * $ratio);
+        $rendered = $this->render_schema_image($this->schema_path, $this->margin + (186 - $img_w) / 2, $y + 5, $img_w);
 
         if (!$rendered) {
-            $this->SetDrawColor(200, 200, 200);
-            $this->Rect($this->margin, $this->GetY(), 186, 140);
-            $this->SetXY($this->margin + 10, $this->GetY() + 60);
+            $this->SetXY($this->margin, $y + $box_h / 2 - 4);
             $this->SetFont('Arial', 'I', 9);
-            $this->SetTextColor(150);
-            $this->Cell(166, 10, $this->tx(__('[Schema of critical turning points & staircase introduction]', 'creation-reservoir')), 0, 1, 'C');
+            $this->color('text', self::MUTED);
+            $this->Cell(186, 8, $this->tx(__('[Schema of critical turning points & staircase introduction]', 'creation-reservoir')), 0, 1, 'C');
         }
     }
 
@@ -864,50 +978,43 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
 
     protected function add_general_conditions_page()
     {
-        $this->AddPage();
-        $this->draw_header(__('General assembly conditions', 'creation-reservoir'));
+        $y = $this->start_page(__('General assembly conditions', 'creation-reservoir'));
+        $y = $this->page_title(__('General assembly conditions', 'creation-reservoir'));
 
-        $this->SetFont('Arial', 'B', 9);
-        $this->SetTextColor(180, 0, 0);
-        $this->Cell(0, 5, $this->tx(__('A. Services provided by ISPAG', 'creation-reservoir')), 0, 1);
-        
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(50);
-        $this->MultiCell(0, 4, $this->tx(
-            "- " . __('The intervention of the lead welder and assistant', 'creation-reservoir') . "\n" .
-            "- " . __('Travel expenses and accommodation', 'creation-reservoir') . "\n" .
-            "- " . __('Welding and assembly tools', 'creation-reservoir') . "\n" .
-            "- " . __('Weld inspection by penetrant testing (dye penetrant test)', 'creation-reservoir')
-        ), 0, 1);
-        $this->Ln(2);
+        $y = $this->sectionTitle($this->margin, $y, 186, __('A. Services provided by ISPAG', 'creation-reservoir'));
+        $y = $this->bullet_list($this->margin, $y, 186, [
+            __('The intervention of the lead welder and assistant', 'creation-reservoir'),
+            __('Travel expenses and accommodation', 'creation-reservoir'),
+            __('Welding and assembly tools', 'creation-reservoir'),
+            __('Weld inspection by penetrant testing (dye penetrant test)', 'creation-reservoir'),
+        ]);
 
-        $this->SetFont('Arial', 'B', 9);
-        $this->SetTextColor(180, 0, 0);
-        $this->Cell(0, 5, $this->tx(__('B. Services provided by the client', 'creation-reservoir')), 0, 1);
-
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(50);
-        $this->MultiCell(0, 4, $this->tx(
-            "1. " . __('Material introduction: Tank parts must be brought in before work begins.', 'creation-reservoir') . "\n" .
-            "2. " . __('Site preparation: Clean, well-lit, ventilated, and cleared of any foreign debris.', 'creation-reservoir') . "\n" .
-            "3. " . __('Equipment: Anchor point above the location and high-flow water supply for pressure testing.', 'creation-reservoir') . "\n" .
-            "4. " . __('Welding power supply: An electrical socket (3 x 400V / min. 10A) must be installed by a certified electrician at client expense.', 'creation-reservoir')
-        ), 0, 1);
-        $this->Ln(6);
+        $y = $this->sectionTitle($this->margin, $y + 3, 186, __('B. Services provided by the client', 'creation-reservoir'));
+        $y = $this->bullet_list($this->margin, $y, 186, [
+            __('Material introduction: Tank parts must be brought in before work begins.', 'creation-reservoir'),
+            __('Site preparation: Clean, well-lit, ventilated, and cleared of any foreign debris.', 'creation-reservoir'),
+            __('Equipment: Anchor point above the location and high-flow water supply for pressure testing.', 'creation-reservoir'),
+            __('Welding power supply: An electrical socket (3 x 400V / min. 10A) must be installed by a certified electrician at client expense.', 'creation-reservoir'),
+        ], true);
 
         // Cadre de signature client
-        $this->SetDrawColor(180, 180, 180);
-        $this->Rect($this->margin, $this->GetY(), $this->GetPageWidth() - (2 * $this->margin), 32);
-        
-        $this->SetXY($this->margin + 4, $this->GetY() + 4);
+        $y += 6;
+        $this->roundedBox($this->margin, $y, 186, 38, self::PANEL);
+        $this->SetXY($this->margin + 6, $y + 6);
         $this->SetFont('Arial', 'B', 9);
-        $this->SetTextColor(0);
+        $this->color('text', self::INK);
         $this->Cell(0, 5, $this->tx(__('Date and signature of client (or representative):', 'creation-reservoir')), 0, 1);
-        
-        $this->SetXY($this->margin + 4, $this->GetY() + 18);
+
+        $this->color('draw', self::MUTED);
+        $this->SetLineWidth(0.25);
         $this->SetFont('Arial', '', 8);
-        $this->Cell(90, 5, $this->tx(__('Date:', 'creation-reservoir') . ' ............................................'), 0, 0);
-        $this->Cell(0, 5, $this->tx(__('Signature:', 'creation-reservoir')), 0, 1);
+        $this->color('text', self::MUTED);
+        $this->SetXY($this->margin + 6, $y + 28);
+        $this->Cell(14, 5, $this->tx(__('Date:', 'creation-reservoir')), 0, 0);
+        $this->Line($this->margin + 20, $y + 32, $this->margin + 80, $y + 32);
+        $this->SetXY($this->margin + 96, $y + 28);
+        $this->Cell(20, 5, $this->tx(__('Signature:', 'creation-reservoir')), 0, 0);
+        $this->Line($this->margin + 116, $y + 32, $this->margin + 180, $y + 32);
     }
 
     protected function get_last_validated_drawing_path($article_id)
@@ -951,26 +1058,37 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         return $source_pdf;
     }
 
+    /** Bandeau : logo, titre du document, date et filet rouge. */
     protected function draw_header($title)
     {
+        $drawn = false;
         if (file_exists($this->logo_path)) {
-            [$logo_w, $logo_h] = class_exists('ISPAG_Site_Logo') ? ISPAG_Site_Logo::fit($this->logo_path, 25, 14) : [25, 0];
-            $this->Image($this->logo_path, $this->margin, $this->margin, $logo_w, $logo_h);
+            [$logo_w, $logo_h] = class_exists('ISPAG_Site_Logo') ? ISPAG_Site_Logo::fit($this->logo_path, 38, 12) : [38, 0];
+            try {
+                $this->Image($this->logo_path, $this->margin, 9, $logo_w, $logo_h);
+                $drawn = true;
+            } catch (\Throwable $e) {
+                // logo illisible : le nom ISPAG le remplace
+            }
+        }
+        if (!$drawn) {
+            $this->SetXY($this->margin, 11);
+            $this->SetFont('Arial', 'B', 16);
+            $this->color('text', self::RED);
+            $this->Cell(60, 8, 'ISPAG', 0, 0, 'L');
         }
 
-        $this->SetFont('Arial', 'B', 9);
-        $this->SetTextColor(180, 0, 0);
-        $this->SetXY(0, $this->margin);
-        $this->Cell($this->GetPageWidth() - $this->margin, 5, $this->tx($title), 0, 1, 'R');
+        $this->SetXY(70, 11);
+        $this->SetFont('Arial', 'B', 13);
+        $this->color('text', self::INK);
+        $this->Cell(128, 7, $this->tx($title), 0, 2, 'R');
+        $this->SetFont('Arial', '', 8.5);
+        $this->color('text', self::MUTED);
+        $this->Cell(128, 5, $this->tx(date('d.m.Y')), 0, 0, 'R');
 
-        $this->SetFont('Arial', '', 8);
-        $this->SetTextColor(120);
-        $this->Cell($this->GetPageWidth() - 2 * $this->margin, 4, $this->tx(date('d.m.Y')), 0, 1, 'R');
-
-        $this->SetY($this->margin + 18);
-        $this->SetDrawColor(180, 0, 0);
-        $this->Line($this->margin, $this->GetY(), $this->GetPageWidth() - $this->margin, $this->GetY());
-        $this->Ln(4);
+        $this->color('fill', self::RED);
+        $this->Rect($this->margin, 24, 186, 0.9, 'F');
+        $this->SetXY($this->margin, 31);
     }
 
     protected function download_logo()
@@ -991,36 +1109,69 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         return iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) $text);
     }
 
-    protected function val($value, $suffix = '')
+    /** Pied de page : coordonnées de la société et pagination (absent des pages de plan importées). */
+    public function Footer()
     {
-        if ($value === null || $value === '') {
-            return $this->dots();
-        }
-        return $value . $suffix;
+        if (!$this->footer_on) return;
+
+        $this->SetY(-17);
+        $this->color('draw', self::LINE);
+        $this->SetLineWidth(0.3);
+        $this->Line($this->margin, $this->GetY(), 210 - $this->margin, $this->GetY());
+        $this->Ln(2);
+
+        $company = array_filter([
+            get_option('wpcb_companyName'),
+            get_option('wpcb_companyAdress'),
+            trim(get_option('wpcb_companyNIP') . ' ' . get_option('wpcb_companyCity')),
+            get_option('wpcb_companyMail'),
+            get_option('wpcb_companyPhone'),
+            get_option('wpcb_companyWebsite'),
+        ]);
+
+        $this->SetFont('Arial', '', 7.5);
+        $this->color('text', self::MUTED);
+        $this->SetX($this->margin);
+        $this->Cell(160, 4, $this->tx(implode('  -  ', $company)), 0, 0, 'L');
+        $this->Cell(26, 4, $this->tx(sprintf(__('Page %s / %s', 'creation-reservoir'), $this->PageNo(), '{nb}')), 0, 0, 'R');
     }
 
-    /**
-     * Pour les champs "choix" (oui/non, béton/bois, etc.) : si la donnée est
-     * connue en DB, on l'affiche telle quelle ; sinon on affiche les cases à
-     * cocher pour que le client les remplisse à la main.
-     */
-    protected function checkbox_or_value($value, array $options, $prefix = '')
+    /** Rectangle à coins arrondis. */
+    protected function RoundedRect($x, $y, $w, $h, $r = 2, $style = '')
     {
-        if ($value !== null && $value !== '') {
-            return $prefix . $value;
-        }
+        $k = $this->k;
+        $hp = $this->h;
+        $op = ($style == 'F') ? 'f' : (($style == 'FD' || $style == 'DF') ? 'B' : 'S');
+        $arc = 4 / 3 * (sqrt(2) - 1);
 
-        $boxes = array_map(function ($opt) {
-            return '[  ] ' . $opt;
-        }, $options);
-
-        return $prefix . implode('    ', $boxes);
+        $this->_out(sprintf('%.2F %.2F m', ($x + $r) * $k, ($hp - $y) * $k));
+        $xc = $x + $w - $r;
+        $yc = $y + $r;
+        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - $y) * $k));
+        $this->arc_curve($xc + $r * $arc, $yc - $r, $xc + $r, $yc - $r * $arc, $xc + $r, $yc);
+        $xc = $x + $w - $r;
+        $yc = $y + $h - $r;
+        $this->_out(sprintf('%.2F %.2F l', ($x + $w) * $k, ($hp - $yc) * $k));
+        $this->arc_curve($xc + $r, $yc + $r * $arc, $xc + $r * $arc, $yc + $r, $xc, $yc + $r);
+        $xc = $x + $r;
+        $yc = $y + $h - $r;
+        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - ($y + $h)) * $k));
+        $this->arc_curve($xc - $r * $arc, $yc + $r, $xc - $r, $yc + $r * $arc, $xc - $r, $yc);
+        $xc = $x + $r;
+        $yc = $y + $r;
+        $this->_out(sprintf('%.2F %.2F l', $x * $k, ($hp - $yc) * $k));
+        $this->arc_curve($xc - $r, $yc - $r * $arc, $xc - $r * $arc, $yc - $r, $xc, $yc - $r);
+        $this->_out($op);
     }
 
-    protected function dots()
+    protected function arc_curve($x1, $y1, $x2, $y2, $x3, $y3)
     {
-        return str_repeat('.', 22);
+        $h = $this->h;
+        $this->_out(sprintf(
+            '%.2F %.2F %.2F %.2F %.2F %.2F c ',
+            $x1 * $this->k, ($h - $y1) * $this->k,
+            $x2 * $this->k, ($h - $y2) * $this->k,
+            $x3 * $this->k, ($h - $y3) * $this->k
+        ));
     }
-
-    public function Footer() {}
 }
