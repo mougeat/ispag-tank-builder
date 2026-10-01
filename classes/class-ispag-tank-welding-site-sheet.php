@@ -538,14 +538,16 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         // 1. Page générale et questionnaire technique de chantier
         $this->add_site_header_page($project, $delivery_info);
 
-        // 2. Pages de détails par cuve + plan validé
+        // 2. Les cuves à la suite les unes des autres, puis le plan validé de chacune
+        $tanks = [];
         foreach ($tank_article_ids as $article_id) {
-            $this->tank_index++;
-
-            $article    = apply_filters('ispag_get_article_by_id', null, $article_id);
-            $tank_datas = ISPAG_Tank_Repository::get_tank_details($article_id);
-
-            $this->add_tank_detail_page($article, $tank_datas);
+            $tanks[$article_id] = [
+                apply_filters('ispag_get_article_by_id', null, $article_id),
+                ISPAG_Tank_Repository::get_tank_details($article_id),
+            ];
+        }
+        $this->add_tanks_pages($tanks);
+        foreach (array_keys($tanks) as $article_id) {
             $this->append_last_validated_drawing($article_id);
         }
 
@@ -808,7 +810,23 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
     /* UNE PAGE PAR CUVE + PLAN VALIDÉ                                      */
     /* ==================================================================== */
 
-    protected function add_tank_detail_page($article, $tank_datas)
+    /** Fiches des cuves, l'une sous l'autre ; une nouvelle page est ouverte quand la suivante ne tient plus. */
+    protected function add_tanks_pages(array $tanks)
+    {
+        $y = $this->start_page(__('Welding site sheet', 'creation-reservoir'));
+        $y = $this->page_title(_n('Tank', 'Tanks', max(1, count($tanks)), 'creation-reservoir'));
+
+        foreach ($tanks as $article_id => [$article, $tank_datas]) {
+            $this->tank_index++;
+            if ($y + 56 > 297 - 22) {
+                $y = $this->start_page(__('Welding site sheet', 'creation-reservoir'));
+            }
+            $y = $this->tank_card($article, $tank_datas, $y);
+        }
+    }
+
+    /** Fiche d'une cuve : titre, quatre indicateurs, caractéristiques. Renvoie le Y suivant. */
+    protected function tank_card($article, $tank_datas, $y)
     {
         $dim = $tank_datas['dimensions_principales'] ?? [];
         $article_id = $article->IdCommandeClient ?? ($article->Id ?? 0);
@@ -820,28 +838,48 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         }
         $nb_pieces = $nb_welding + 1;
 
-        $y = $this->start_page(sprintf(__('Tank %d / %d', 'creation-reservoir'), $this->tank_index, $this->tank_total));
-        $y = $this->page_title($article->Article ?? '');
+        // Titre du réservoir, numéro à droite
+        $y = $this->sectionTitle($this->margin, $y, 186, $article->Article ?? '');
+        $this->SetXY($this->margin, $y - 8);
+        $this->SetFont('Arial', 'B', 8);
+        $this->color('text', self::MUTED);
+        $this->Cell(186, 5, $this->tx(sprintf(__('Tank %d / %d', 'creation-reservoir'), $this->tank_index, $this->tank_total)), 0, 0, 'R');
 
-        $y = $this->kpi_row([
+        // Indicateurs clés, en petit
+        $items = [
             [__('Diameter', 'creation-reservoir'),        $dim['Diametre_mm'] ?? null,      'mm'],
             [__('Total height', 'creation-reservoir'),    $dim['Hauteur_mm'] ?? null,       'mm'],
             [__('Design pressure', 'creation-reservoir'), $dim['Pression_Max_bar'] ?? null, 'bar'],
             [__('Number of welds', 'creation-reservoir'), (string) $nb_welding,             ''],
-        ], $y);
+        ];
+        $gap = 4;
+        $w = (186 - 3 * $gap) / 4;
+        foreach ($items as $i => [$label, $value, $unit]) {
+            $x = $this->margin + $i * ($w + $gap);
+            $this->roundedBox($x, $y, $w, 14, self::PANEL, null, 2);
+            $this->SetXY($x, $y + 2);
+            $this->SetFont('Arial', '', 7);
+            $this->color('text', self::MUTED);
+            $this->Cell($w, 3.5, $this->tx(mb_strtoupper($label)), 0, 2, 'C');
+            $this->SetFont('Arial', 'B', 11);
+            $this->color('text', self::INK);
+            $has = ($value !== null && $value !== '');
+            $this->Cell($w, 6, $this->tx($has ? $value . ($unit !== '' ? ' ' . $unit : '') : '-'), 0, 0, 'C');
+        }
+        $y += 18;
 
-        $y = $this->sectionTitle($this->margin, $y, 186, __('Specifications', 'creation-reservoir'));
-        $y = $this->keyValueRows($this->margin, $y, 186, [
-            __('Material', 'creation-reservoir')              => $dim['Matiere'] ?? null,
-            __('Test pressure', 'creation-reservoir')         => isset($dim['Pression_Test_bar']) && $dim['Pression_Test_bar'] !== '' ? $dim['Pression_Test_bar'] . ' bar' : null,
-            __('Delivered in pieces', 'creation-reservoir')   => (string) $nb_pieces,
+        // Caractéristiques sur deux colonnes
+        $half = 91;
+        $left = $this->keyValueRows($this->margin, $y, $half, [
+            __('Material', 'creation-reservoir')      => $dim['Matiere'] ?? null,
+            __('Test pressure', 'creation-reservoir') => isset($dim['Pression_Test_bar']) && $dim['Pression_Test_bar'] !== '' ? $dim['Pression_Test_bar'] . ' bar' : null,
+        ], 34);
+        $right = $this->keyValueRows($this->margin + 95, $y, $half, [
+            __('Delivered in pieces', 'creation-reservoir')    => (string) $nb_pieces,
             __('Expected delivery date', 'creation-reservoir') => !empty($article->TimestampDateLivraisonConfirme) ? date('d.m.Y', $article->TimestampDateLivraisonConfirme) : null,
-        ]);
+        ], 40);
 
-        $this->SetXY($this->margin, $y + 3);
-        $this->SetFont('Arial', 'I', 8);
-        $this->color('text', self::MUTED);
-        $this->MultiCell(186, 4.5, $this->tx(__('The manufacturing plan for this tank follows on the next page, if available.', 'creation-reservoir')), 0, 'L');
+        return max($left, $right) + 5;
     }
 
     protected function append_last_validated_drawing($article_id)
