@@ -1,42 +1,45 @@
 <?php
+/**
+ * Class ISPAG_Notice_PDF_Generator
+ *
+ * Notice d'installation et d'utilisation d'un réservoir ISPAG (A4 portrait, FR + DE + EN dans un seul PDF).
+ * Même charte que la fiche technique (ISPAG_Tank_TechSheet_Generator) ; les textes viennent de templates/notice_{lang}.json.
+ *
+ * Mise en page de chaque langue :
+ *   1. bandeau : logo, titre de la notice, date, langue
+ *   2. titre du réservoir, sous-titre (projet · groupe), quatre indicateurs clés
+ *   3. première page, deux colonnes : généralités, description, caractéristiques | dessin du réservoir
+ *   4. suite pleine largeur : bride, piquages, sécurité, installation, mise en service, maintenance, garantie
+ *   5. pied de page : mention légale, langue et pagination
+ */
 defined('ABSPATH') || exit;
 
 require_once ispag_project_manager_dir() . 'libs/fpdf/fpdf.php';
+require_once ispag_project_manager_dir() . 'classes/class-ispag-pdf-generator.php';
+require_once __DIR__ . '/class-ispag-tank-pdf-generator.php';
 
-class ISPAG_Notice_PDF_Generator extends FPDF
+class ISPAG_Notice_PDF_Generator extends ISPAG_Tank_TechSheet_Generator
 {
-    protected static $wpdb;
-    protected static $templates_path;
-    protected static $logo_url = 'https://app.ispag-asp.ch/wp-content/uploads/2024/06/Logo_ISPAG_CMYK_F_web.png';
-    protected static $logo_path;
+    const LANGUAGES = ['fr', 'de', 'en'];
+    const WARN_BG   = [253, 240, 242];
 
-    // --- CONFIGURATION DES POLICES ---
-    protected static $base_font_size = 10; // Taille standard de référence
-    protected static $font_size_title;     // Titres principaux (+2)
-    protected static $font_size_header;    // En-têtes de tableau / sections (Base)
-    protected static $font_size_body;      // Corps de texte (-2)
-    protected static $font_size_small;     // Mentions légales / footer (-4)
+    /** @var array Gabarit de la langue en cours. */
+    protected $tpl = [];
+    /** @var array Libellés de la langue en cours. */
+    protected $labels = [];
+    /** @var string Langue en cours (pour le pied de page). */
+    protected $lang = 'fr';
+    /** @var array Valeurs des champs dynamiques ({{...}} => valeur). */
+    protected $values = [];
+    /** @var int Première page de la langue en cours. */
+    protected $lang_start_page = 1;
+    /** @var string|null PNG du réservoir, converti une seule fois pour les trois langues. */
+    protected $png;
 
-    public $footer_template; // Template du pied de page (pour Footer())
-    private $current_lang;   // Langue actuelle pour le pied de page
+    // ------------------------------------------------------------------ WordPress : scripts et AJAX
 
     public static function init()
     {
-        global $wpdb;
-        self::$wpdb = $wpdb;
-        self::$templates_path = ISPAG_PLUGIN_PATH . 'templates/';
-        self::$logo_path = ISPAG_PLUGIN_PATH . 'assets/logo_ispag.png';
-
-        // Calcul dynamique des tailles de polices
-        self::$font_size_title  = self::$base_font_size + 2; // 14
-        self::$font_size_header = self::$base_font_size;     // 12
-        self::$font_size_body   = self::$base_font_size - 2; // 10
-        self::$font_size_small  = self::$base_font_size - 4; // 8
-
-        if (!file_exists(self::$logo_path)) {
-            self::download_logo();
-        }
-
         add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_scripts']);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_scripts']);
         add_action('wp_ajax_generate_notice_pdf', [__CLASS__, 'handle_ajax_request']);
@@ -45,9 +48,7 @@ class ISPAG_Notice_PDF_Generator extends FPDF
     public static function enqueue_scripts()
     {
         $js_path = ISPAG_PLUGIN_PATH . 'assets/js/ispag-notice-pdf.js';
-
         if (!file_exists($js_path)) {
-            // error_log("Fichier JS manquant : " . $js_path);
             return;
         }
 
@@ -58,31 +59,14 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             filemtime($js_path),
             true
         );
-
         wp_add_inline_script(
             'ispag-notice-pdf',
             'var ispagNoticePdf = ' . json_encode([
                 'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('ispag_nonce')
+                'nonce'    => wp_create_nonce('ispag_nonce'),
             ]) . ';'
         );
-
         wp_enqueue_script('ispag-notice-pdf');
-    }
-
-    protected static function download_logo()
-    {
-        $assets_dir = dirname(self::$logo_path);
-        if (!file_exists($assets_dir)) {
-            wp_mkdir_p($assets_dir);
-        }
-
-        $response = wp_remote_get(self::$logo_url);
-        if (!is_wp_error($response) && $response['response']['code'] === 200) {
-            file_put_contents(self::$logo_path, $response['body']);
-        } else {
-            // error_log("Impossible de télécharger le logo ISPAG : " . ($response->get_error_message() ?? 'Unknown error'));
-        }
     }
 
     public static function handle_ajax_request()
@@ -91,442 +75,488 @@ class ISPAG_Notice_PDF_Generator extends FPDF
             check_ajax_referer('ispag_nonce', 'nonce');
 
             $article_id = isset($_POST['article_id']) ? intval($_POST['article_id']) : 0;
-
             if (!$article_id) {
                 wp_send_json_error('ID de l\'article manquant.', 400);
             }
 
-            // Générer un PDF avec les 3 langues (FR, DE, EN)
-            $result = self::generate_multilingual_notice_pdf($article_id);
-            wp_send_json_success($result);
-
+            wp_send_json_success(self::generate_multilingual_notice_pdf($article_id));
         } catch (Exception $e) {
-            // error_log("AJAX error: " . $e->getMessage());
             wp_send_json_error('Error: ' . $e->getMessage(), 500);
         }
     }
 
-    /**
-     * Génère un PDF multilingue (FR, DE, EN) dans l'ordre.
-     */
+    /** Génère le PDF (FR, DE, EN), l'enregistre dans les téléversements et renvoie son URL. */
     public static function generate_multilingual_notice_pdf($article_id)
     {
         while (ob_get_level()) {
             ob_end_clean();
         }
 
-        // Langues dans l'ordre : FR, DE, EN
-        $languages = ['fr', 'de', 'en'];
-        $pdf = new self('P', 'mm', 'A5');
-        $pdf->AliasNbPages();
-        $pdf->SetAutoPageBreak(true, 20);
+        $pdf = new self();
+        $article = $pdf->generate_notice($article_id);
 
-        // Générer chaque section de langue
-        foreach ($languages as $lang) {
-            $data = self::load_tank_datas($article_id);
-            $template = self::load_template($lang);
-
-            // Stocker la langue actuelle pour le pied de page
-            $pdf->current_lang = $lang;
-            $pdf->footer_template = $template['footer'];
-
-            // CORRECTION : Ajouter une nouvelle page au début de CHAQUE langue
-            $pdf->AddPage();
-
-            // Ajouter l'en-tête et le contenu
-            self::add_ispag_header($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
-            self::add_content_from_template($pdf, $template, $data['article'], $data['project'], $data['tank_datas']);
-        }
-
-        // Save le PDF
         $upload_dir = wp_upload_dir();
-        $filename = "Notice_Reservoir_" . self::sanitize_filename($data['article']->Article) . "_Multilingue_" . time() . ".pdf";
-        $pdf_path = $upload_dir['path'] . '/' . $filename;
-        $pdf_url = $upload_dir['url'] . '/' . $filename;
-
-        $pdf->Output('F', $pdf_path);
+        $filename = 'Notice_Reservoir_' . self::sanitize_filename($article->Article) . '_Multilingue_' . time() . '.pdf';
+        $pdf->Output('F', $upload_dir['path'] . '/' . $filename);
 
         return [
-            'pdf_url' => $pdf_url,
-            'filename' => $filename
+            'pdf_url'  => $upload_dir['url'] . '/' . $filename,
+            'filename' => $filename,
         ];
     }
 
-    /**
-     * Méthode Footer() appelée automatiquement par FPDF pour chaque page.
-     * Ajoute le pied de page avec le numéro de page (X/X) et la langue.
-     */
-    public function Footer()
+    protected static function sanitize_filename($filename)
     {
-        $this->SetY(-20);
-        $this->SetFont('Arial', 'I', self::$font_size_small);
-        $this->SetTextColor(100, 100, 100);
-
-        // Ligne de séparation
-        $this->SetDrawColor(200, 200, 200);
-        $this->Line(10, $this->GetY(), $this->GetPageWidth() - 10, $this->GetY());
-
-        $this->Ln(5);
-
-        // Texte du pied de page (avec langue)
-        $lang_text = '';
-        switch ($this->current_lang) {
-            case 'fr':
-                $lang_text = 'French';
-                break;
-            case 'de':
-                $lang_text = 'Deutsch';
-                break;
-            case 'en':
-                $lang_text = 'English';
-                break;
-        }
-
-        $footer_text = str_replace('{{year}}', date('Y'), $this->footer_template['text']);
-        $this->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $footer_text . ' - ' . $lang_text), 0, 0, 'C');
-        $this->Ln(5);
-        $this->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', 'Page ' . $this->PageNo() . ' / {nb}'), 0, 0, 'C');
+        $filename = iconv('UTF-8', 'ASCII//TRANSLIT', (string) $filename);
+        return preg_replace('/[^a-zA-Z0-9_\-]/', '_', $filename);
     }
 
-    protected static function sanitize_filename($filename) {
-        $filename = iconv('UTF-8', 'ASCII//TRANSLIT', $filename);
-        $filename = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $filename);
-        return $filename;
-    }
-
-    protected static function load_tank_datas($article_id)
-    {
-        $tank_designer = new ISPAG_Tank_Designer();
-        $tank_datas = $tank_designer->get_tank_data(null, $article_id);
-
-        $fittings_designer = new ISPAG_Tank_Fittings();
-        $tank_datas['piquages'] = $fittings_designer->get_all_fittings($article_id, false);
-
-        $welding = new ISPAG_Tank_Welding();
-        $tank_datas['weldings'] = $welding->get_all_welding_drilled_plate(null, $article_id, false);
-
-        $article = apply_filters('ispag_get_article_by_id', null, $article_id);
-        $project = apply_filters('ispag_get_project_by_deal_id', null, apply_filters('ispag_get_article_deal_id', null, $article_id));
-
-        if (empty($article->Article)) {
-            $article->Article = $article->ID ?? $article_id;
-        }
-
-        return [
-            'article' => $article,
-            'project' => $project,
-            'tank_datas' => $tank_datas
-        ];
-    }
+    // ------------------------------------------------------------------ Données
 
     protected static function load_template($lang)
     {
-        $file = self::$templates_path . "notice_{$lang}.json";
-
+        $dir = ISPAG_PLUGIN_PATH . 'templates/';
+        $file = $dir . "notice_{$lang}.json";
         if (!file_exists($file)) {
-            // error_log("Template manquant : " . $file);
-            $file = self::$templates_path . "notice_fr.json";
-            if (!file_exists($file)) {
-                throw new Exception("Default template not found.");
-            }
+            $file = $dir . 'notice_fr.json';
+        }
+        if (!file_exists($file)) {
+            throw new Exception('Default template not found.');
         }
 
-        $template_content = file_get_contents($file);
-        $template = json_decode($template_content, true);
-
+        $template = json_decode(file_get_contents($file), true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception("Error JSON dans le template : " . json_last_error_msg());
+            throw new Exception('Error JSON dans le template : ' . json_last_error_msg());
         }
-
         return $template;
     }
 
-    protected static function add_ispag_header($pdf, $template, $article, $project, $tank_datas)
+    protected function load_tank_datas($article_id)
     {
-        if (file_exists(self::$logo_path)) {
-            $pdf->Image(self::$logo_path, 10, 10, 30);
-        }
+        $designer = new ISPAG_Tank_Designer();
+        $tank_datas = $designer->get_tank_data(null, $article_id);
 
-        $pdf->SetFont('Arial', 'B', self::$font_size_title);
-        $pdf->SetTextColor(180, 0, 0);
-        $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $template['header']['company']), 0, 1, 'R');
+        $fittings = new ISPAG_Tank_Fittings();
+        $tank_datas['piquages'] = $fittings->get_all_fittings($article_id, false);
 
-        $pdf->SetFont('Arial', '', self::$font_size_body);
-        $pdf->SetTextColor(0, 0, 0);
-        $slogan = self::replace_placeholders($template['header']['slogan'], $article, $project, $tank_datas);
-        $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $slogan), 0, 1, 'R');
-        $pdf->Ln(5);
-
-        $pdf->SetFont('Arial', 'I', self::$font_size_small);
-        $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $template['header']['date_label'] . ' : ' . date('d.m.Y')), 0, 1, 'R');
-        $pdf->Ln(10);
+        return $tank_datas;
     }
 
-    protected static function add_content_from_template($pdf, $template, $article, $project, $tank_datas)
+    /** Valeurs des champs {{...}}, vides si la donnée n'existe pas. */
+    protected function build_values($article, $project, $tank_datas)
     {
-        foreach ($template['sections'] as $section) {
-            if (!is_array($section)) {
-                continue;
-            }
-
-            // Saut de page si demandé
-            if (!empty($section['page_break'])) {
-                $pdf->AddPage();
-            }
-
-            // Titre de la section
-            $pdf->SetFont('Arial', 'B', self::$font_size_header);
-            $pdf->SetTextColor(180, 0, 0);
-            $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $section['title']), 0, 1);
-
-            $pdf->SetFont('Arial', '', self::$font_size_body);
-            $pdf->SetTextColor(0, 0, 0);
-
-            // Save la position Y actuelle
-            $start_y = $pdf->GetY();
-
-            // 1. Afficher le texte SI il existe
-            if (isset($section['content']['text'])) {
-                $text = self::replace_placeholders($section['content']['text'], $article, $project, $tank_datas);
-                $pdf->MultiCell(0, 7, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text));
-                $pdf->Ln(5);
-            }
-            elseif (is_string($section['content'])) {
-                $content = self::replace_placeholders($section['content'], $article, $project, $tank_datas);
-                $pdf->MultiCell(0, 7, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $content));
-                $pdf->Ln(5);
-            }
-
-            // Afficher l'image si présente dans le JSON
-            if (isset($section['image'])) {
-                $image_data = $section['image'];
-                $image_url = self::replace_placeholders($image_data['url'], $article, $project, $tank_datas);
-
-                // Position par défaut
-                $x = null;
-                $y = $start_y;
-
-                // Calculer la position X en fonction de la position demandée
-                if (isset($image_data['position'])) {
-                    switch ($image_data['position']) {
-                        case 'left':
-                            $x = 10;
-                            break;
-                        case 'center':
-                            $x = ($pdf->GetPageWidth() - ($image_data['width'] ?? 40)) / 2;
-                            break;
-                        case 'right':
-                        default:
-                            $x = 110; // Position à droite du texte
-                            break;
-                    }
-                } else {
-                    $x = 110;
-                }
-
-                // Afficher l'image
-                $image_height = self::add_tank_image(
-                    $pdf,
-                    $image_url,
-                    $x,
-                    $y,
-                    $image_data['width'] ?? 0,
-                    $image_data['height'] ?? 40
-                );
-
-                // Repositionner Y après l'image
-                $current_y = $pdf->GetY();
-                if ($start_y + $image_height > $current_y) {
-                    $pdf->SetY($start_y + $image_height);
-                }
-                $pdf->Ln(5);
-            }
-
-            // 2. Afficher le tableau SI il existe
-            if (isset($section['content']['table_headers']) && isset($section['content']['table_rows'])) {
-                $table_rows = $section['content']['table_rows'];
-                $widths = $section['content']['column_widths'] ?? array_fill(0, count($section['content']['table_headers']), (self::get_page_width($pdf) - 20) / count($section['content']['table_headers']));
-
-                // Remplacer les placeholders comme {{piquages}} ou {{weldings}}
-                if (is_string($table_rows)) {
-                    if (strpos($table_rows, '{{piquages}}') !== false) {
-                        $table_rows = self::format_piquages_table($tank_datas['piquages']);
-                    } elseif (strpos($table_rows, '{{weldings}}') !== false) {
-                        $table_rows = self::format_weldings_table($tank_datas['weldings']);
-                    }
-                }
-
-                self::add_table($pdf, $section['content']['table_headers'], $table_rows, $article, $project, $tank_datas, $widths);
-            }
-        }
-    }
-
-    protected static function add_tank_image($pdf, $svg_url, $x = null, $y = null, $w = 0, $h = 40)
-    {
-        if (empty($svg_url)) {
-            return 0;
-        }
-
-        // Convertir l'URL en chemin local
-        $svg_path = str_replace(
-            [site_url(), WP_CONTENT_URL],
-            [ABSPATH, WP_CONTENT_DIR],
-            $svg_url
-        );
-
-        if (!file_exists($svg_path)) {
-            // error_log("Fichier SVG introuvable : " . $svg_path);
-            return 0;
-        }
-
-        // Chemin pour le PNG généré
-        $png_path = str_replace('.svg', '.png', $svg_path);
-
-        // Convertir SVG en PNG si nécessaire
-        if (!file_exists($png_path) || filemtime($png_path) < filemtime($svg_path)) {
-            self::convert_svg_to_png($svg_path, $png_path);
-        }
-
-        if (!file_exists($png_path)) {
-            // error_log("Échec de la conversion SVG → PNG : " . $png_path);
-            return 0;
-        }
-
-        // Position par défaut
-        if ($x === null) {
-            $x = $pdf->GetX();
-        }
-        if ($y === null) {
-            $y = $pdf->GetY();
-        }
-
-        // Ajouter l'image au PDF
-        $pdf->Image($png_path, $x, $y, $w, $h);
-        return $h;
-    }
-
-    protected static function convert_svg_to_png($svg_path, $png_path)
-    {
-        if (class_exists('Imagick')) {
-            try {
-                $imagick = new Imagick();
-                $imagick->setBackgroundColor(new ImagickPixel('white'));
-                $imagick->readImage($svg_path);
-                $imagick->setImageFormat('png');
-                $imagick->writeImage($png_path);
-                $imagick->clear();
-                $imagick->destroy();
-                return true;
-            } catch (Exception $e) {
-                // error_log("Error Imagick : " . $e->getMessage());
-                return false;
-            }
-        }
-        else {
-            // error_log("Imagick n'est pas installé. Impossible de convertir le SVG en PNG.");
-            return false;
-        }
-    }
-
-    protected static function add_table($pdf, $headers, $rows, $article, $project, $tank_datas, $widths = [])
-    {
-        if (!is_array($headers) || !is_array($rows)) {
-            return;
-        }
-
-        $pdf->SetFont('Arial', 'B', self::$font_size_header);
-        $pdf->SetFillColor(230, 230, 230);
-        $pdf->SetTextColor(0, 0, 0);
-
-        if (empty($widths)) {
-            $widths = array_fill(0, count($headers), (self::get_page_width($pdf) - 20) / count($headers));
-        }
-
-        // En-têtes : Traduire + convertir en ISO-8859-1
-        foreach ($headers as $i => $header) {
-            $translated_header = iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', __($header, 'creation-reservoir'));
-            $pdf->Cell($widths[$i], 10, $translated_header, 1, 0, 'C', true);
-        }
-        $pdf->Ln();
-
-        $pdf->SetFont('Arial', '', self::$font_size_body);
-        foreach ($rows as $row) {
-            foreach ($row as $i => $cell) {
-                $cell = self::replace_placeholders($cell, $article, $project, $tank_datas);
-                $pdf->Cell($widths[$i], 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $cell), 1);
-            }
-            $pdf->Ln();
-        }
-        $pdf->Ln(5);
-    }
-
-    protected static function get_page_width($pdf) {
-        return $pdf->w;
-    }
-
-    protected static function replace_placeholders($content, $article, $project, $tank_datas)
-    {
-        if (is_array($content)) {
-            return array_map(function($item) use ($article, $project, $tank_datas) {
-                return self::replace_placeholders($item, $article, $project, $tank_datas);
-            }, $content);
-        }
-
-        $tank_designer = new ISPAG_Tank_Designer();
+        $designer = new ISPAG_Tank_Designer();
         $insulation = new ISPAG_Tank_Insulation();
-        $svg_url = apply_filters('ispag_get_tank_svg_url', null, $article->Id ?? 0);
+        $c = $tank_datas['conception'] ?? null;
+        $d = $tank_datas['dimensions'] ?? null;
 
-        $placeholders = [
-            '{{article.Article}}' => $article->Article ?? ($article->ID ?? 'N/A'),
-            '{{project.ObjetCommande}}' => $project->ObjetCommande ?? 'N/A',
-            '{{tank_datas.conception.TankType}}' => $tank_designer->get_tank_text_data($tank_datas['conception']->TankType ?? '') ?? 'N/A',
-            '{{tank_datas.conception.material_text}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['conception']->material_text ?? 'N/A'),
-            '{{tank_datas.conception.Finition}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['conception']->Finition ?? 'N/A'),
-            '{{tank_datas.dimensions.Volume}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->Volume ?? 'N/A'),
-            '{{tank_datas.dimensions.Diameter}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->Diameter ?? 'N/A'),
-            '{{tank_datas.dimensions.Height}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->Height ?? 'N/A'),
-            '{{tank_datas.dimensions.MaxPressure}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->MaxPressure ?? 'N/A'),
-            '{{tank_datas.dimensions.TestPressure}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->TestPressure ?? 'N/A'),
-            '{{tank_datas.dimensions.usingTemperature}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $tank_datas['dimensions']->usingTemperature ?? 'N/A'),
-            '{{tank_datas.insulation.insulationCover}}' => iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $insulation->get_conception_value($tank_datas['insulation']->insulationCover ?? '') ?? 'N/A'),
-            '{{tank_svg_url}}' => $svg_url ?? '',
-            '{{year}}' => date('Y')
+        return [
+            '{{article.Article}}'                       => (string) ($article->Article ?? ''),
+            '{{project.ObjetCommande}}'                 => (string) ($project->ObjetCommande ?? ''),
+            '{{tank_datas.conception.TankType}}'        => (string) $designer->get_tank_text_data($c->TankType ?? ''),
+            '{{tank_datas.conception.material_text}}'   => (string) ($c->material_text ?? ''),
+            '{{tank_datas.conception.Finition}}'        => (string) ($c->Finition ?? ''),
+            '{{tank_datas.dimensions.Volume}}'          => (string) ($d->Volume ?? ''),
+            '{{tank_datas.dimensions.Diameter}}'        => (string) ($d->Diameter ?? ''),
+            '{{tank_datas.dimensions.Height}}'          => (string) ($d->Height ?? ''),
+            '{{tank_datas.dimensions.MaxPressure}}'     => (string) ($d->MaxPressure ?? ''),
+            '{{tank_datas.dimensions.TestPressure}}'    => (string) ($d->TestPressure ?? ''),
+            '{{tank_datas.dimensions.usingTemperature}}' => (string) ($d->usingTemperature ?? ''),
+            '{{tank_datas.insulation.insulationCover}}' => (string) $insulation->get_conception_value($tank_datas['insulation']->insulationCover ?? ''),
+            '{{year}}'                                  => date('Y'),
         ];
-
-        return str_replace(array_keys($placeholders), array_values($placeholders), $content);
     }
 
-    protected static function format_piquages_table($piquages)
+    /** Remplace les champs {{...}} ; une donnée absente devient « - ». */
+    protected function fill($text)
     {
-        $rows = [];
-        foreach ($piquages as $piquage) {
-            if (!is_object($piquage)) {
+        $map = array_map(function ($v) { return $v === '' ? '-' : $v; }, $this->values);
+        return str_replace(array_keys($map), array_values($map), (string) $text);
+    }
+
+    /** Vrai si le texte contient un champ {{...}} dont la donnée est vide. */
+    protected function hasEmptyField($text)
+    {
+        foreach ($this->values as $key => $value) {
+            if ($value === '' && strpos((string) $text, $key) !== false) return true;
+        }
+        return false;
+    }
+
+    // ------------------------------------------------------------------ Point d'entrée
+
+    /** Dessine la notice dans les trois langues et renvoie l'article. */
+    public function generate_notice($article_id)
+    {
+        $tank_datas = $this->load_tank_datas($article_id);
+        $article = apply_filters('ispag_get_article_by_id', null, $article_id);
+        if (!$article) {
+            throw new Exception('Article not found.');
+        }
+        $project = apply_filters('ispag_get_project_by_deal_id', null, apply_filters('ispag_get_article_deal_id', null, $article_id));
+        if (empty($article->Article)) {
+            $article->Article = $article->ID ?? $article_id;
+        }
+        $svg_url = apply_filters('ispag_get_tank_svg', null, $article_id, false);
+        $this->values = $this->build_values($article, $project, $tank_datas);
+
+        $this->title = 'Notice';
+        $this->AliasNbPages('{nb}');
+        $this->SetTitle($this->cleanStr('Notice - ' . $article->Article), true);
+        $this->SetAutoPageBreak(false);
+
+        foreach (self::LANGUAGES as $lang) {
+            $template = self::load_template($lang);
+
+            // Gabarit et langue changent après AddPage : FPDF dessine d'abord le pied de la page précédente
+            $this->AddPage();
+            $this->lang = $lang;
+            $this->tpl = $template;
+            $this->labels = $template['labels'] ?? [];
+
+            $this->drawBand($project, $article);
+            $y = $this->drawTitle($project, $article);
+            $y = $this->drawKpis($tank_datas, $y);
+
+            $right_end = $this->drawDrawingColumn($svg_url, $y);
+            $left_end = $this->drawIntroColumn($y);
+            $y = $this->PageNo() === $this->lang_start_page ? max($left_end, $right_end) : $left_end;
+
+            $this->drawFlowSections($y + 4, $tank_datas);
+        }
+        return $article;
+    }
+
+    // ------------------------------------------------------------------ Bandeau, indicateurs, pied de page
+
+    protected function docTitle()
+    {
+        return $this->labels['doc_title'] ?? 'Notice';
+    }
+
+    protected function drawBand($project, $article)
+    {
+        $this->lang_start_page = $this->PageNo();
+        parent::drawBand($project, $article);
+
+        // Pastille de langue, à droite du titre du réservoir
+        $code = $this->labels['code'] ?? strtoupper($this->lang);
+        $this->roundedBox(self::MARGIN + 186 - 14, 32.5, 14, 6, self::RED, null, 1.5);
+        $this->SetXY(self::MARGIN + 186 - 14, 33.4);
+        $this->SetFont('Arial', 'B', 8.5);
+        $this->color('text', self::WHITE);
+        $this->Cell(14, 4, $this->t($code), 0, 0, 'C');
+    }
+
+    protected function kpiItems($tank_datas)
+    {
+        $d = $tank_datas['dimensions'] ?? null;
+        $l = $this->labels;
+        return [
+            [$l['volume'] ?? 'Volume',     $d->Volume ?? null,      'L'],
+            [$l['diameter'] ?? 'Diameter', $d->Diameter ?? null,    'mm'],
+            [$l['height'] ?? 'Height',     $d->Height ?? null,      'mm'],
+            [$l['pressure'] ?? 'Pressure', $d->MaxPressure ?? null, 'bar'],
+        ];
+    }
+
+    public function Footer()
+    {
+        $this->SetY(-17);
+        $this->color('draw', self::LINE);
+        $this->SetLineWidth(0.3);
+        $this->Line(self::MARGIN, $this->GetY(), 198, $this->GetY());
+        $this->Ln(2);
+
+        $footer = $this->tpl['footer'] ?? [];
+        $text = trim($this->fill($footer['text'] ?? '') . '   -   ' . ($footer['disclaimer'] ?? ''), ' -');
+
+        $this->SetFont('Arial', '', 7.5);
+        $this->color('text', self::MUTED);
+        $this->Cell(150, 4, $this->t($text), 0, 0, 'L');
+        $this->Cell(36, 4, $this->t(strtoupper($this->lang) . '  -  ' . ($this->labels['page'] ?? 'Page') . ' ' . $this->PageNo() . ' / {nb}'), 0, 0, 'R');
+    }
+
+    // ------------------------------------------------------------------ Première page : deux colonnes
+
+    /** Colonne de droite : dessin du réservoir dans un cadre. Renvoie le Y suivant. */
+    protected function drawDrawingColumn($svg_url, $y)
+    {
+        $x = $this->right_x;
+        $w = $this->right_w;
+
+        $y = $this->sectionTitle($x, $y, $w, $this->labels['drawing'] ?? 'Drawing');
+        $box_h = 150;
+        $this->roundedBox($x, $y, $w, $box_h, self::WHITE, self::LINE);
+        $this->placeDrawing($svg_url, $x + 3, $y + 3, $w - 6, $box_h - 6);
+        return $y + $box_h + 4;
+    }
+
+    protected function drawingPng($svgUrl)
+    {
+        // Conversion SVG -> PNG une seule fois pour les trois langues
+        if ($this->png === null) {
+            $this->png = parent::drawingPng($svgUrl) ?: '';
+        }
+        return $this->png ?: null;
+    }
+
+    /** Colonne de gauche : généralités, description et caractéristiques. Renvoie le Y suivant. */
+    protected function drawIntroColumn($y)
+    {
+        $x = self::MARGIN;
+        $w = self::LEFT_W;
+        $sections = $this->tpl['sections'] ?? [];
+
+        foreach (['generalites', 'description_appareil'] as $key) {
+            if (empty($sections[$key]['content']) || !is_string($sections[$key]['content'])) continue;
+            $y = $this->drawTextBlock($x, $y, $w, $sections[$key]['title'], $this->fill($sections[$key]['content']));
+            $y += 3;
+        }
+
+        $model = $sections['model'] ?? null;
+        if ($model && !empty($model['content']['table_rows'])) {
+            $rows = [];
+            foreach ($model['content']['table_rows'] as $row) {
+                if (count($row) < 2 || $this->hasEmptyField($row[1])) continue;
+                $rows[$row[0]] = $this->fill($row[1]);
+            }
+            if ($rows) {
+                $y = $this->sectionTitle($x, $y, $w, $model['title']);
+                $y = $this->keyValueRows($x, $y, $w, $rows, 50);
+            }
+        }
+        return $y;
+    }
+
+    // ------------------------------------------------------------------ Suite : sections pleine largeur
+
+    protected function drawFlowSections($y, $tank_datas)
+    {
+        $skip = ['generalites', 'description_appareil', 'model'];
+        $x = self::MARGIN;
+        $w = 186;
+
+        foreach ($this->tpl['sections'] ?? [] as $key => $section) {
+            if (!is_array($section) || in_array($key, $skip, true)) continue;
+
+            $content = $section['content'] ?? null;
+            $text = is_string($content) ? $content : ($content['text'] ?? '');
+
+            // Piquages : tableau issu de la base
+            $rows = null;
+            if (is_array($content) && isset($content['table_headers'], $content['table_rows'])) {
+                $rows = $content['table_rows'];
+                if ($rows === '{{piquages}}') {
+                    $rows = $this->fittingRows($tank_datas['piquages'] ?? []);
+                    if (!$rows) continue;
+                }
+            }
+
+            // Titre de groupe sans contenu : il s'affiche avec la première sous-section, jamais seul
+            if ($text === '' && $rows === null) {
+                $pending = $section['title'];
                 continue;
             }
+
+            // Un titre ne reste jamais seul en bas de page : on réserve la place de ce qui le suit
+            $need = $rows !== null ? 38 : 28;
+            if (isset($pending)) {
+                $y = $this->flowHeading($x, $y, $w, $pending, $need + 8);
+                unset($pending);
+            }
+            $y = $this->flowHeading($x, $y, $w, $section['title'], $need);
+
+            if ($text !== '') {
+                $y = $key === 'secu'
+                    ? $this->flowCallout($x, $y, $w, $this->fill($text))
+                    : $this->flowParagraphs($x, $y, $w, $this->fill($text));
+            }
+            if ($rows !== null) {
+                $y = $this->flowTable($x, $y, $w, $content['table_headers'], $rows, $content['column_widths'] ?? []);
+            }
+            $y += 3;
+        }
+    }
+
+    protected function fittingRows($piquages)
+    {
+        $rows = [];
+        foreach ((array) $piquages as $p) {
+            if (!is_object($p)) continue;
             $rows[] = [
-                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', __($piquage->Type ?? '', 'creation-reservoir')),
-                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', __($piquage->Accessories ?? '', 'creation-reservoir')),
-                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($piquage->Pouces ?? '')),
-                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($piquage->Height ?? ''))
+                __($p->Type ?? '', 'creation-reservoir'),
+                __($p->Accessories ?? '', 'creation-reservoir'),
+                (string) ($p->Pouces ?? ''),
+                (string) ($p->Height ?? ''),
             ];
         }
         return $rows;
     }
 
-    protected static function format_weldings_table($weldings)
+    /** Titre : « 3. Sécurité » (pastille rouge numérotée, filet) ou « 2.1. Description » (sous-titre). */
+    protected function flowHeading($x, $y, $w, $title, $need = 28)
     {
-        $rows = [];
-        foreach ($weldings as $welding) {
-            if (!is_object($welding)) {
+        preg_match('/^(\d+(?:\.\d+)*)\.?\s*(.*)$/u', trim($title), $m);
+        $number = $m[1] ?? '';
+        $label = $m[2] ?? $title;
+        $is_sub = strpos($number, '.') !== false;
+
+        if ($is_sub) {
+            $y = $this->ensure($y, $need);
+            $this->color('fill', self::RED);
+            $this->Rect($x, $y + 0.8, 1.4, 4, 'F');
+            $this->SetXY($x + 4, $y);
+            $this->SetFont('Arial', 'B', 9.5);
+            $this->color('text', self::INK);
+            $this->Cell($w - 4, 5.6, $this->t($number . '  ' . $label), 0, 0, 'L');
+            return $y + 8;
+        }
+
+        $y = $this->ensure($y + 3, $need);
+        $this->roundedBox($x, $y, 7, 7, self::RED, null, 1.6);
+        $this->SetXY($x, $y + 0.9);
+        $this->SetFont('Arial', 'B', 9);
+        $this->color('text', self::WHITE);
+        $this->Cell(7, 5.2, $this->t($number), 0, 0, 'C');
+        $this->SetXY($x + 10, $y + 0.4);
+        $this->SetFont('Arial', 'B', 12);
+        $this->color('text', self::INK);
+        $this->Cell($w - 10, 6.4, $this->t($label), 0, 0, 'L');
+        $this->color('draw', self::LINE);
+        $this->SetLineWidth(0.3);
+        $this->Line($x, $y + 9, $x + $w, $y + 9);
+        return $y + 12;
+    }
+
+    /** Paragraphes ; une ligne commençant par « * » devient une puce. */
+    protected function flowParagraphs($x, $y, $w, $text)
+    {
+        $lead = 4.6;
+        foreach (preg_split('/\n/', str_replace("\r", '', $text)) as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                $y += 1.5;
                 continue;
             }
-            $rows[] = [
-                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($welding->Type ?? '')),
-                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($welding->Pouces ?? '')),
-                iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', (string) ($welding->Height ?? ''))
-            ];
+            $bullet = $line[0] === '*';
+            if ($bullet) $line = ltrim($line, "* \t");
+            $indent = $bullet ? 6 : 0;
+
+            $this->SetFont('Arial', '', 9);
+            $lines = $this->wrapLines($this->t($line), $w - $indent - 1);
+            foreach ($lines as $i => $l) {
+                $y = $this->ensure($y, $lead);
+                if ($bullet && $i === 0) {
+                    $this->color('fill', self::RED);
+                    $this->Rect($x + 1.5, $y + 1.7, 1.4, 1.4, 'F');
+                }
+                $this->SetXY($x + $indent, $y);
+                $this->SetFont('Arial', '', 9);
+                $this->color('text', self::INK);
+                $this->Cell($w - $indent, $lead, $l, 0, 0, 'L');
+                $y += $lead;
+            }
+            $y += 1.2;
         }
-        return $rows;
+        return $y;
+    }
+
+    /** Consignes importantes : fond rosé et barre rouge (le bloc n'est jamais coupé entre deux pages). */
+    protected function flowCallout($x, $y, $w, $text)
+    {
+        $lead = 4.6;
+        $this->SetFont('Arial', '', 9);
+        $wrapped = [];
+        foreach (preg_split('/\n/', str_replace("\r", '', $text)) as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+            foreach ($this->wrapLines($this->t($line), $w - 14) as $l) $wrapped[] = $l;
+            $wrapped[] = null; // espace entre paragraphes
+        }
+        array_pop($wrapped);
+        $h = 0;
+        foreach ($wrapped as $l) $h += $l === null ? 1.5 : $lead;
+        $h += 7;
+
+        $y = $this->ensure($y, $h);
+        $this->roundedBox($x, $y, $w, $h, self::WARN_BG);
+        $this->color('fill', self::RED);
+        $this->Rect($x, $y + 1, 1.4, $h - 2, 'F');
+
+        $ly = $y + 3.5;
+        foreach ($wrapped as $l) {
+            if ($l === null) {
+                $ly += 1.5;
+                continue;
+            }
+            $this->SetXY($x + 6, $ly);
+            $this->SetFont('Arial', '', 9);
+            $this->color('text', self::INK);
+            $this->Cell($w - 10, $lead, $l, 0, 0, 'L');
+            $ly += $lead;
+        }
+        return $y + $h + 2;
+    }
+
+    /** Tableau : en-tête grisé, lignes alternées ; largeurs proportionnelles à $widths. */
+    protected function flowTable($x, $y, $w, array $headers, array $rows, array $widths)
+    {
+        $n = count($headers);
+        $sum = array_sum($widths) ?: 0;
+        $cols = [];
+        for ($i = 0; $i < $n; $i++) {
+            $cols[] = $sum > 0 ? $w * ($widths[$i] ?? 0) / $sum : $w / $n;
+        }
+        // Un tableau court ne s'étire pas sur toute la largeur
+        if ($n <= 3) {
+            $max = 62 * $n;
+            if (array_sum($cols) > $max) {
+                $f = $max / array_sum($cols);
+                $cols = array_map(function ($c) use ($f) { return $c * $f; }, $cols);
+            }
+        }
+
+        // Chaque colonne garde la place de son en-tête ; le manque est repris sur la colonne la plus large
+        $this->SetFont('Arial', 'B', 8);
+        foreach ($headers as $i => $head) {
+            $min = $this->GetStringWidth($this->t(mb_strtoupper($head))) + 5;
+            if ($cols[$i] < $min) {
+                $widest = array_search(max($cols), $cols);
+                $cols[$widest] -= $min - $cols[$i];
+                $cols[$i] = $min;
+            }
+        }
+
+        $y = $this->ensure($y, 7 + 6 * min(count($rows), 3));
+        $this->color('fill', self::PANEL);
+        $this->Rect($x, $y, array_sum($cols), 6.2, 'F');
+        $cx = $x;
+        $this->SetFont('Arial', 'B', 8);
+        $this->color('text', self::MUTED);
+        foreach ($headers as $i => $head) {
+            $this->SetXY($cx + 2, $y + 0.6);
+            $this->Cell($cols[$i] - 3, 5, $this->t(mb_strtoupper($head)), 0, 0, 'L');
+            $cx += $cols[$i];
+        }
+        $y += 6.2;
+
+        foreach ($rows as $r => $row) {
+            $y = $this->ensure($y, 6);
+            $this->color('draw', self::LINE);
+            $this->SetLineWidth(0.2);
+            $this->Line($x, $y + 6, $x + array_sum($cols), $y + 6);
+            $cx = $x;
+            $this->SetFont('Arial', '', 8.5);
+            $this->color('text', self::INK);
+            foreach ($row as $i => $cell) {
+                $this->SetXY($cx + 2, $y + 0.6);
+                $this->Cell($cols[$i] - 3, 5, $this->t($this->fill($cell)), 0, 0, 'L');
+                $cx += $cols[$i];
+            }
+            $y += 6;
+        }
+        return $y + 2;
     }
 }
 

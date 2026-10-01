@@ -8,7 +8,7 @@ jQuery(document).ready(function($) {
 
         // 2. Désactivation du bouton et ajout du spinner
         $btn.prop('disabled', true).html(
-            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + ispag_texts.generating + '...'
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + ((window.ispag_texts && ispag_texts.generating) || 'Generating') + '...'
         );
 
         $.ajax({

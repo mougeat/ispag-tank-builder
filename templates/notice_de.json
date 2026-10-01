@@ -1,5 +1,15 @@
 {
   "title": "Technische Mitteilung – ISPAG Behälter",
+  "labels": {
+    "doc_title": "Montage- und Betriebsanleitung",
+    "volume": "Volumen",
+    "diameter": "Durchmesser",
+    "height": "Höhe",
+    "pressure": "Betriebsdruck",
+    "drawing": "Behälterzeichnung",
+    "page": "Seite",
+    "code": "DE"
+  },
   "header": {
     "company": "ISPAG",
     "slogan": "{{project.ObjetCommande}}",
@@ -26,19 +36,52 @@
     "model": {
       "title": "2.2. Modell",
       "content": {
-        "table_headers": ["Eigenschaft", "Wert"],
-        "table_rows": [
-          ["Typ", "{{tank_datas.conception.TankType}}"],
-          ["Material", "{{tank_datas.conception.material_text}}"],
-          ["Oberfläche", "{{tank_datas.conception.Finition}}"],
-          ["Volumen", "{{tank_datas.dimensions.Volume}} L"],
-          ["Durchmesser", "{{tank_datas.dimensions.Diameter}} mm"],
-          ["Höhe", "{{tank_datas.dimensions.Height}} mm"],
-          ["Betriebsdruck", "{{tank_datas.dimensions.MaxPressure}} bar"],
-          ["Prüfdruck", "{{tank_datas.dimensions.TestPressure}} bar"],
-          ["Betriebstemperatur", "{{tank_datas.dimensions.usingTemperature}}°C"]
+        "table_headers": [
+          "Eigenschaft",
+          "Wert"
         ],
-        "column_widths": [60, 70]
+        "table_rows": [
+          [
+            "Typ",
+            "{{tank_datas.conception.TankType}}"
+          ],
+          [
+            "Material",
+            "{{tank_datas.conception.material_text}}"
+          ],
+          [
+            "Oberfläche",
+            "{{tank_datas.conception.Finition}}"
+          ],
+          [
+            "Volumen",
+            "{{tank_datas.dimensions.Volume}} L"
+          ],
+          [
+            "Durchmesser",
+            "{{tank_datas.dimensions.Diameter}} mm"
+          ],
+          [
+            "Höhe",
+            "{{tank_datas.dimensions.Height}} mm"
+          ],
+          [
+            "Betriebsdruck",
+            "{{tank_datas.dimensions.MaxPressure}} bar"
+          ],
+          [
+            "Prüfdruck",
+            "{{tank_datas.dimensions.TestPressure}} bar"
+          ],
+          [
+            "Betriebstemperatur",
+            "{{tank_datas.dimensions.usingTemperature}}°C"
+          ]
+        ],
+        "column_widths": [
+          60,
+          70
+        ]
       },
       "page_break": true
     },
@@ -46,21 +89,47 @@
       "title": "2.3. Flansch",
       "content": {
         "text": "Nach dem Erwärmen des Behälters ist es erforderlich, die Dichtheit aller Flansch- und Schraubverbindungen zu überprüfen. Alle Schrauben müssen bei warmem Behälter nachgezogen werden.\nAnziehdrehmomente:",
-        "table_headers": ["Schraubentyp", "Dichtung (Nm)", "Klingerit (Nm)"],
-        "table_rows": [
-          ["M12-Schraube", "30", "93"],
-          ["M14-Schraube", "55", "148"]
+        "table_headers": [
+          "Schraubentyp",
+          "Dichtung (Nm)",
+          "Klingerit (Nm)"
         ],
-        "column_widths": [40, 40, 40]
+        "table_rows": [
+          [
+            "M12-Schraube",
+            "30",
+            "93"
+          ],
+          [
+            "M14-Schraube",
+            "55",
+            "148"
+          ]
+        ],
+        "column_widths": [
+          40,
+          40,
+          40
+        ]
       },
       "page_break": true
     },
     "piquages": {
       "title": "2.4. Liste der Anschlüsse",
       "content": {
-        "table_headers": ["Typ", "Zubehör", "Ø (mm)", "Höhe (mm)"],
+        "table_headers": [
+          "Typ",
+          "Zubehör",
+          "Ø (mm)",
+          "Höhe (mm)"
+        ],
         "table_rows": "{{piquages}}",
-        "column_widths": [25, 65, 15, 15]
+        "column_widths": [
+          25,
+          65,
+          15,
+          15
+        ]
       },
       "page_break": true
     },

@@ -1,5 +1,15 @@
 {
   "title": "Notice Technique – Réservoir ISPAG",
+  "labels": {
+    "doc_title": "Notice d'installation et d'utilisation",
+    "volume": "Volume",
+    "diameter": "Diamètre",
+    "height": "Hauteur",
+    "pressure": "Pression de service",
+    "drawing": "Dessin du réservoir",
+    "page": "Page",
+    "code": "FR"
+  },
   "header": {
     "company": "ISPAG",
     "slogan": "{{project.ObjetCommande}}",
@@ -26,19 +36,52 @@
     "model": {
       "title": "2.2. Modèle",
       "content": {
-        "table_headers": ["Caractéristique", "Valeur"],
-        "table_rows": [
-          ["Type", "{{tank_datas.conception.TankType}}"],
-          ["Matériau", "{{tank_datas.conception.material_text}}"],
-          ["Finition", "{{tank_datas.conception.Finition}}"],
-          ["Volume", "{{tank_datas.dimensions.Volume}} L"],
-          ["Diamètre", "{{tank_datas.dimensions.Diameter}} mm"],
-          ["Hauteur", "{{tank_datas.dimensions.Height}} mm"],
-          ["Pression de service", "{{tank_datas.dimensions.MaxPressure}} bar"],
-          ["Pression d'essai", "{{tank_datas.dimensions.TestPressure}} bar"],
-          ["Température d'utilisation", "{{tank_datas.dimensions.usingTemperature}}°C"]
+        "table_headers": [
+          "Caractéristique",
+          "Valeur"
         ],
-        "column_widths": [60, 70]
+        "table_rows": [
+          [
+            "Type",
+            "{{tank_datas.conception.TankType}}"
+          ],
+          [
+            "Matériau",
+            "{{tank_datas.conception.material_text}}"
+          ],
+          [
+            "Finition",
+            "{{tank_datas.conception.Finition}}"
+          ],
+          [
+            "Volume",
+            "{{tank_datas.dimensions.Volume}} L"
+          ],
+          [
+            "Diamètre",
+            "{{tank_datas.dimensions.Diameter}} mm"
+          ],
+          [
+            "Hauteur",
+            "{{tank_datas.dimensions.Height}} mm"
+          ],
+          [
+            "Pression de service",
+            "{{tank_datas.dimensions.MaxPressure}} bar"
+          ],
+          [
+            "Pression d'essai",
+            "{{tank_datas.dimensions.TestPressure}} bar"
+          ],
+          [
+            "Température d'utilisation",
+            "{{tank_datas.dimensions.usingTemperature}}°C"
+          ]
+        ],
+        "column_widths": [
+          60,
+          70
+        ]
       },
       "page_break": true
     },
@@ -46,21 +89,47 @@
       "title": "2.3. Bride",
       "content": {
         "text": "Après échauffement du réservoir, il est nécessaire de contrôler l'étanchéité de tous les raccords à bride et à vis. Resserrer toutes les vis lorsque le réservoir est chaud.\nCouples de serrage :",
-        "table_headers": ["Type de vis", "Joint (Nm)", "Klingerit (Nm)"],
-        "table_rows": [
-          ["Vis M12", "30", "93"],
-          ["Vis M14", "55", "148"]
+        "table_headers": [
+          "Type de vis",
+          "Joint (Nm)",
+          "Klingerit (Nm)"
         ],
-        "column_widths": [40, 40, 40]
+        "table_rows": [
+          [
+            "Vis M12",
+            "30",
+            "93"
+          ],
+          [
+            "Vis M14",
+            "55",
+            "148"
+          ]
+        ],
+        "column_widths": [
+          40,
+          40,
+          40
+        ]
       },
       "page_break": true
     },
     "piquages": {
       "title": "2.4. Liste des Piquages",
       "content": {
-        "table_headers": ["Type", "Accessoires", "Ø (mm)", "Hauteur (mm)"],
+        "table_headers": [
+          "Type",
+          "Accessoires",
+          "Ø (mm)",
+          "Hauteur (mm)"
+        ],
         "table_rows": "{{piquages}}",
-        "column_widths": [25, 65, 15, 15]
+        "column_widths": [
+          25,
+          65,
+          15,
+          15
+        ]
       },
       "page_break": true
     },

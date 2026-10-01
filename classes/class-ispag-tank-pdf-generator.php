@@ -136,6 +136,12 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
 
     // ------------------------------------------------------------------ Bandeau et titre
 
+    /** Titre du document affiché dans le bandeau. */
+    protected function docTitle()
+    {
+        return __('Technical data sheet', 'creation-reservoir');
+    }
+
     protected function drawBand($project, $article)
     {
         try {
@@ -150,7 +156,7 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         $this->SetXY(100, 11);
         $this->SetFont('Arial', 'B', 15);
         $this->color('text', self::INK);
-        $this->Cell(98, 7, $this->t(__('Technical data sheet', 'creation-reservoir')), 0, 2, 'R');
+        $this->Cell(98, 7, $this->t($this->docTitle()), 0, 2, 'R');
         $this->SetFont('Arial', '', 8.5);
         $this->color('text', self::MUTED);
         $this->Cell(98, 5, $this->t(date('d.m.Y')), 0, 0, 'R');
@@ -168,7 +174,7 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         $this->Cell(60, 5, 'ISPAG', 0, 0, 'L');
         $this->SetFont('Arial', '', 8.5);
         $this->color('text', self::MUTED);
-        $this->Cell(126, 5, $this->t(__('Technical data sheet', 'creation-reservoir')), 0, 0, 'R');
+        $this->Cell(126, 5, $this->t($this->docTitle()), 0, 0, 'R');
         $this->color('draw', self::LINE);
         $this->Line(self::MARGIN, 16, 198, 16);
     }
@@ -199,15 +205,21 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
 
     // ------------------------------------------------------------------ Indicateurs clés
 
-    protected function drawKpis($tank_datas, $y)
+    /** Les quatre indicateurs clés : [libellé, valeur, unité]. */
+    protected function kpiItems($tank_datas)
     {
         $d = $tank_datas['dimensions'] ?? null;
-        $kpis = [
+        return [
             [__('Volume', 'creation-reservoir'),         $d->Volume ?? null,      'L'],
             [__('Diameter', 'creation-reservoir'),       $d->Diameter ?? null,    'mm'],
             [__('Height', 'creation-reservoir'),         $d->Height ?? null,      'mm'],
             [__('Design pressure', 'creation-reservoir'), $d->MaxPressure ?? null, 'bar'],
         ];
+    }
+
+    protected function drawKpis($tank_datas, $y)
+    {
+        $kpis = $this->kpiItems($tank_datas);
 
         $gap = 4;
         $w = (186 - 3 * $gap) / 4;
@@ -517,20 +529,9 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
     /** Dessin du réservoir centré dans le cadre, proportions conservées. */
     protected function placeDrawing($svgUrl, $x, $y, $max_w, $max_h)
     {
-        $svgPath = $this->get_local_path_from_url($svgUrl);
-        $png = null;
+        $png = $this->drawingPng($svgUrl);
 
-        if ($svgUrl && file_exists($svgPath)) {
-            $png = str_replace('.svg', '.png', $svgPath);
-            if (file_exists($png)) @unlink($png);
-            try {
-                $this->convert_svg_to_png($svgPath, $png);
-            } catch (Exception $e) {
-                $png = null;
-            }
-        }
-
-        if (!$png || !file_exists($png)) {
+        if (!$png) {
             $this->SetXY($x, $y + $max_h / 2 - 3);
             $this->SetFont('Arial', 'I', 8.5);
             $this->color('text', self::MUTED);
@@ -544,6 +545,22 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         $w = $h * $ratio;
         if ($w > $max_w) { $w = $max_w; $h = $w / $ratio; }
         $this->Image($png, $x + ($max_w - $w) / 2, $y + ($max_h - $h) / 2, $w, $h);
+    }
+
+    /** Chemin du PNG généré à partir du SVG du réservoir, ou null s'il n'est pas disponible. */
+    protected function drawingPng($svgUrl)
+    {
+        $svgPath = $this->get_local_path_from_url($svgUrl);
+        if (!$svgUrl || !file_exists($svgPath)) return null;
+
+        $png = str_replace('.svg', '.png', $svgPath);
+        if (file_exists($png)) @unlink($png);
+        try {
+            $this->convert_svg_to_png($svgPath, $png);
+        } catch (Exception $e) {
+            return null;
+        }
+        return file_exists($png) ? $png : null;
     }
 
     /** Convertit un fichier SVG en PNG (proportions conservées). */

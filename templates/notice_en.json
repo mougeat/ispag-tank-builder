@@ -1,5 +1,15 @@
 {
   "title": "Technical Notice – ISPAG Tank",
+  "labels": {
+    "doc_title": "Installation and operating instructions",
+    "volume": "Volume",
+    "diameter": "Diameter",
+    "height": "Height",
+    "pressure": "Design pressure",
+    "drawing": "Tank drawing",
+    "page": "Page",
+    "code": "EN"
+  },
   "header": {
     "company": "ISPAG",
     "slogan": "{{project.ObjetCommande}}",
@@ -26,19 +36,52 @@
     "model": {
       "title": "2.2. Model",
       "content": {
-        "table_headers": ["Feature", "Value"],
-        "table_rows": [
-          ["Type", "{{tank_datas.conception.TankType}}"],
-          ["Material", "{{tank_datas.conception.material_text}}"],
-          ["Finish", "{{tank_datas.conception.Finition}}"],
-          ["Volume", "{{tank_datas.dimensions.Volume}} L"],
-          ["Diameter", "{{tank_datas.dimensions.Diameter}} mm"],
-          ["Height", "{{tank_datas.dimensions.Height}} mm"],
-          ["Operating Pressure", "{{tank_datas.dimensions.MaxPressure}} bar"],
-          ["Test Pressure", "{{tank_datas.dimensions.TestPressure}} bar"],
-          ["Operating Temperature", "{{tank_datas.dimensions.usingTemperature}}°C"]
+        "table_headers": [
+          "Feature",
+          "Value"
         ],
-        "column_widths": [60, 70]
+        "table_rows": [
+          [
+            "Type",
+            "{{tank_datas.conception.TankType}}"
+          ],
+          [
+            "Material",
+            "{{tank_datas.conception.material_text}}"
+          ],
+          [
+            "Finish",
+            "{{tank_datas.conception.Finition}}"
+          ],
+          [
+            "Volume",
+            "{{tank_datas.dimensions.Volume}} L"
+          ],
+          [
+            "Diameter",
+            "{{tank_datas.dimensions.Diameter}} mm"
+          ],
+          [
+            "Height",
+            "{{tank_datas.dimensions.Height}} mm"
+          ],
+          [
+            "Operating Pressure",
+            "{{tank_datas.dimensions.MaxPressure}} bar"
+          ],
+          [
+            "Test Pressure",
+            "{{tank_datas.dimensions.TestPressure}} bar"
+          ],
+          [
+            "Operating Temperature",
+            "{{tank_datas.dimensions.usingTemperature}}°C"
+          ]
+        ],
+        "column_widths": [
+          60,
+          70
+        ]
       },
       "page_break": true
     },
@@ -46,21 +89,47 @@
       "title": "2.3. Flange",
       "content": {
         "text": "After heating the tank, it is necessary to check the tightness of all flange and screw connections. Tighten all screws when the tank is hot.\nTightening torques:",
-        "table_headers": ["Screw Type", "Gasket (Nm)", "Klingerit (Nm)"],
-        "table_rows": [
-          ["M12 Screw", "30", "93"],
-          ["M14 Screw", "55", "148"]
+        "table_headers": [
+          "Screw Type",
+          "Gasket (Nm)",
+          "Klingerit (Nm)"
         ],
-        "column_widths": [40, 40, 40]
+        "table_rows": [
+          [
+            "M12 Screw",
+            "30",
+            "93"
+          ],
+          [
+            "M14 Screw",
+            "55",
+            "148"
+          ]
+        ],
+        "column_widths": [
+          40,
+          40,
+          40
+        ]
       },
       "page_break": true
     },
     "piquages": {
       "title": "2.4. List of Fittings",
       "content": {
-        "table_headers": ["Type", "Accessories", "Ø (mm)", "Height (mm)"],
+        "table_headers": [
+          "Type",
+          "Accessories",
+          "Ø (mm)",
+          "Height (mm)"
+        ],
         "table_rows": "{{piquages}}",
-        "column_widths": [25, 65, 15, 15]
+        "column_widths": [
+          25,
+          65,
+          15,
+          15
+        ]
       },
       "page_break": true
     },
