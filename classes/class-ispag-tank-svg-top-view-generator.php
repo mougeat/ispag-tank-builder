@@ -11,6 +11,7 @@ class ISPAG_Tank_SVG_Top_View_Generator
     private $logger;
 
     protected $fittings = [];
+    protected $coils = [];
     protected $diameter;
     protected $height;
     protected $insulation;
@@ -95,6 +96,8 @@ class ISPAG_Tank_SVG_Top_View_Generator
         $this->logger->log_user_action('tank_svg_top_view_generator', 'tank_dimensions_retrieved', ['diameter' => $d->Diameter, 'height' => $d->Height], $user_id);
 
         $generator = new ISPAG_Tank_SVG_Top_View_Generator($d->Diameter, 160, $this->fittings, $d->Height);
+        $generator->tank_data = $this->tank_data;
+        $generator->coils = (array) apply_filters('ispag_get_heat_exchanger_datas', null, $article_id);
         $this->logger->log_user_action('tank_svg_top_view_generator', 'generator_instance_created', ['diameter' => $d->Diameter, 'height' => $d->Height, 'fittings_count' => count($this->fittings)], $user_id);
 
         $svg = $generator->render_svg();
@@ -300,6 +303,14 @@ class ISPAG_Tank_SVG_Top_View_Generator
 
                 // Accessoires internes (tube plongeant, tube diffuseur, tôle de déflexion)
                 echo ISPAG_Tank_Accessories_SVG::top($this->fittings, $cx, $cy, $diam, $height);
+                echo ISPAG_Tank_Accessories_SVG::coils_top(
+                    ISPAG_Tank_Accessories_SVG::coil_geometry(
+                        $this->coils, $diam, $height,
+                        floatval($this->tank_data['dimensions']->GroundClearance ?? 0),
+                        ISPAG_Tank_Accessories_SVG::bottom_height($this->tank_data)
+                    ),
+                    $cx, $cy, $diam
+                );
                 ?>
             </g>
         </svg>

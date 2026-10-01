@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/class-ispag-tank-accessories-svg.php';
 
 /**
  * Plan (sketch) PDF d'un réservoir : A3 paysage, vue de face cotée, vue de dessus avec angles,
@@ -127,9 +128,11 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
             $this->bom[] = ['desc' => __('Support ring', 'creation-reservoir'), 'qty' => 1, 'material' => $material];
         }
 
-        $exchangers = intval(apply_filters('ispag_get_heat_exchanger_nb', 0, $article->Id));
-        if ($exchangers > 0) {
-            $this->bom[] = ['desc' => __('Heat exchanger', 'creation-reservoir'), 'qty' => $exchangers, 'material' => $material];
+        $coils = (array) apply_filters('ispag_get_heat_exchanger_datas', null, $article->Id);
+        foreach (array_values($coils) as $i => $coil) {
+            $surface = $coil['coilSurface'] ?? '?';
+            $label = (($coil['spiraflex'] ?? '') == '1') ? __('Spiraflex coil', 'creation-reservoir') : __('Heat exchanger', 'creation-reservoir');
+            $this->bom[] = ['desc' => $label . ' ' . ($i + 1) . ' - ' . $surface . ' m²', 'qty' => 1, 'material' => $material];
         }
 
         // Réindexe à partir de 1
@@ -410,6 +413,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $this->SetLineWidth(0.15);
 
         $this->drawFrontAccessories($fittings, $diam, $height, $X, $Y, $s);
+        $this->drawFrontCoils($article, $tank_datas, $diam, $height, $gc, $bh_dome, $X, $Y, $s);
 
         // Cote du diamètre
         $yd = $iy + 4;
@@ -517,6 +521,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $this->SetFillColor(255);
         $this->circle($cx, $cy, $r, 'FD');
         $this->drawTopAccessories($fittings, $cx, $cy, $r, $diam, $tank_h, $s);
+        $this->drawTopCoils($article, $tank_datas, $cx, $cy, $diam, $s);
         // piquages verticaux (au-dessus de la cuve) par-dessus la calotte
         $this->SetFillColor(255);
         foreach ($fittings as $f) {
@@ -647,6 +652,44 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $nx = -$dy / $l * $r;
         $ny = $dx / $l * $r;
         $this->Line($last[0] + $nx, $last[1] + $ny, $last[0] - $nx, $last[1] - $ny);
+    }
+
+    protected function coil_geo($article, $tank_datas, $diam, $height, $gc) {
+        $coils = (array) apply_filters('ispag_get_heat_exchanger_datas', null, $article->Id);
+        return ISPAG_Tank_Accessories_SVG::coil_geometry($coils, $diam, $height, $gc, ISPAG_Tank_Accessories_SVG::bottom_height($tank_datas));
+    }
+
+    /** Serpentins en vue de face : spires inclinées (traits fins). */
+    protected function drawFrontCoils($article, $tank_datas, $diam, $height, $gc, $bh, $X, $Y, $s) {
+        $this->SetDrawColor(90);
+        $this->SetLineWidth(0.12);
+        foreach ($this->coil_geo($article, $tank_datas, $diam, $height, $gc) as $g) {
+            foreach ($g['layers'] as $l) {
+                $r = $l['dc'] / 2;
+                $count = max(2, min(80, (int) round($l['turns'])));
+                $pitch = $g['h'] / $count;
+                $xl = $X($g['cx'] - $r);
+                $xr = $X($g['cx'] + $r);
+                for ($t = 0; $t < $count; $t++) {
+                    $z = $g['z0'] + $t * $pitch;
+                    $this->Line($xl, $Y($z), $xr, $Y($z + $pitch / 2));
+                }
+                $this->Line($xl, $Y($g['z0']), $xl, $Y($g['z0'] + $g['h']));
+                $this->Line($xr, $Y($g['z0']), $xr, $Y($g['z0'] + $g['h']));
+            }
+        }
+    }
+
+    /** Serpentins en vue de dessus : un cercle par couche. */
+    protected function drawTopCoils($article, $tank_datas, $cx, $cy, $diam, $s) {
+        $this->SetDrawColor(90);
+        $this->SetLineWidth(0.12);
+        $dim = $tank_datas['dimensions'];
+        foreach ($this->coil_geo($article, $tank_datas, $diam, floatval($dim->Height), floatval($dim->GroundClearance ?? 0)) as $g) {
+            foreach ($g['layers'] as $l) {
+                $this->circle($cx + ($g['cx'] - $diam / 2) * $s, $cy, $l['dc'] / 2 * $s, 'D');
+            }
+        }
     }
 
     /** Accessoires internes en vue de face (traits interrompus) : tube plongeant, tube diffuseur, tôle de déflexion. */
@@ -832,7 +875,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $svg = preg_replace('/<svg\b[^>]*>/', $tag, $svg, 1);
         $svg = preg_replace('/<\?xml[^>]*\?>/', '', $svg);
         // Plan : cuve sans remplissage (dégradés -> blanc) et sans accessoires SVG (redessinés en vectoriel)
-        $svg = preg_replace('#<g id=[\'"]internal-accessories[\'"].*?</g>#s', '', $svg);
+        $svg = preg_replace('#<g id=[\'"]internal-(?:accessories|coils)[\'"].*?</g>#s', '', $svg);
         $svg = preg_replace('/url\(#[A-Za-z0-9_-]+\)/', '#fff', $svg);
 
         $upload_dir = wp_upload_dir();

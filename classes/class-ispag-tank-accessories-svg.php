@@ -156,4 +156,99 @@ class ISPAG_Tank_Accessories_SVG
         }
         return self::wrap($svg);
     }
+
+    /** Hauteur du fond bombé selon matière/diamètre (assets/json/tank_data.json). */
+    public static function bottom_height($tank_data)
+    {
+        $file = __DIR__ . '/../assets/json/tank_data.json';
+        $data = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
+        $material = is_array($tank_data) ? ($tank_data['conception']->Material ?? null) : null;
+        $diam = is_array($tank_data) ? ($tank_data['dimensions']->Diameter ?? null) : null;
+        return intval($data['arrayBottomHeight'][$material][$diam] ?? 0);
+    }
+
+    /**
+     * Géométrie schématique des serpentins (échangeurs) d'après leur surface.
+     * Le tube (DN25, ou DN32 pour un Spiraflex) est enroulé en spires ; plusieurs échangeurs se partagent la largeur de la cuve ;
+     * si une seule couche serait trop haute, le tube est réparti sur 2 ou 3 couches concentriques.
+     * Retourne une liste de ['cx' (mm depuis le bord gauche), 'z0' (hauteur du bas depuis le sol), 'h', 'd', 'layers' => [['dc', 'turns']]].
+     */
+    public static function coil_geometry($coils, $diam, $height, $gc, $bh)
+    {
+        $coils = array_values((array) $coils);
+        $n = count($coils);
+        if (!$n) {
+            return [];
+        }
+        $body = $height - $gc - 2 * $bh;
+        $max_h = max(300, $body * 0.7);
+        $slot = ($diam - 200) / $n;
+        $out = [];
+        foreach ($coils as $i => $c) {
+            $surface = floatval($c['coilSurface'] ?? 0);
+            if ($surface <= 0) {
+                continue;
+            }
+            $d = (($c['spiraflex'] ?? '') == '1') ? 42.4 : 33.7;
+            $len = $surface * 1e6 / (M_PI * $d);
+            $pitch = $d * 1.6;
+            $dc0 = max(150, $slot - 2 * $d);
+            $layers = [];
+            $h = 0;
+            for ($k = 1; $k <= 3; $k++) {
+                $layers = [];
+                $h = 0;
+                for ($j = 0; $j < $k; $j++) {
+                    $dc = max(100, $dc0 - 2 * $j * $pitch);
+                    $turns = ($len / $k) / (M_PI * $dc);
+                    $layers[] = ['dc' => $dc, 'turns' => $turns];
+                    $h = max($h, $turns * $pitch);
+                }
+                if ($h <= $max_h) {
+                    break;
+                }
+            }
+            $h = min($h, $max_h);
+            $out[] = [
+                'cx' => 100 + $slot * ($i + 0.5),
+                'z0' => $gc + $bh + 120,
+                'h' => $h,
+                'd' => $d,
+                'layers' => $layers,
+            ];
+        }
+        return $out;
+    }
+
+    /** Serpentins en vue de face (spires inclinées, traits fins continus). */
+    public static function coils_front($geo, $height)
+    {
+        $svg = '';
+        foreach ($geo as $g) {
+            foreach ($g['layers'] as $l) {
+                $r = $l['dc'] / 2;
+                $count = max(2, min(80, (int) round($l['turns'])));
+                $pitch = $g['h'] / $count;
+                for ($t = 0; $t < $count; $t++) {
+                    $y = $height - ($g['z0'] + $t * $pitch);
+                    $svg .= self::line($g['cx'] - $r, $y, $g['cx'] + $r, $y - $pitch / 2);
+                }
+                $svg .= self::line($g['cx'] - $r, $height - $g['z0'], $g['cx'] - $r, $height - $g['z0'] - $g['h']);
+                $svg .= self::line($g['cx'] + $r, $height - $g['z0'], $g['cx'] + $r, $height - $g['z0'] - $g['h']);
+            }
+        }
+        return $svg === '' ? '' : "<g id='internal-coils' style='fill:none;stroke:#666;stroke-width:1.5'>" . $svg . '</g>';
+    }
+
+    /** Serpentins en vue de dessus : un cercle par couche. */
+    public static function coils_top($geo, $cx, $cy, $diam)
+    {
+        $svg = '';
+        foreach ($geo as $g) {
+            foreach ($g['layers'] as $l) {
+                $svg .= "<circle cx='" . round($cx + $g['cx'] - $diam / 2, 1) . "' cy='" . round($cy, 1) . "' r='" . round($l['dc'] / 2, 1) . "' />";
+            }
+        }
+        return $svg === '' ? '' : "<g id='internal-coils' style='fill:none;stroke:#666;stroke-width:1.5'>" . $svg . '</g>';
+    }
 }
