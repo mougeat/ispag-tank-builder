@@ -169,9 +169,9 @@ class ISPAG_Tank_Accessories_SVG
 
     /**
      * Géométrie schématique des serpentins (échangeurs) d'après leur surface.
-     * Le tube (DN25, ou DN32 pour un Spiraflex) est enroulé en spires ; plusieurs échangeurs se partagent la largeur de la cuve ;
+     * Le tube (DN25, ou DN32 pour un Spiraflex) est enroulé en spires ; plusieurs échangeurs sont empilés les uns au-dessus des autres (même axe) ;
      * si une seule couche serait trop haute, le tube est réparti sur 2 ou 3 couches concentriques.
-     * Retourne une liste de ['cx' (mm depuis le bord gauche), 'z0' (hauteur du bas depuis le sol), 'h', 'd', 'layers' => [['dc', 'turns']]].
+     * Retourne une liste de ['cx' (mm depuis le bord gauche, axe de la cuve), 'z0' (hauteur du bas depuis le sol), 'h', 'd', 'layers' => [['dc', 'turns']]].
      */
     public static function coil_geometry($coils, $diam, $height, $gc, $bh)
     {
@@ -181,8 +181,10 @@ class ISPAG_Tank_Accessories_SVG
             return [];
         }
         $body = $height - $gc - 2 * $bh;
-        $max_h = max(300, $body * 0.7);
-        $slot = ($diam - 200) / $n;
+        $gap = 80;
+        $max_h = max(150, ($body - 240 - $gap * ($n - 1)) / $n);
+        $slot = $diam - 200;
+        $z = $gc + $bh + 120;
         $out = [];
         foreach ($coils as $i => $c) {
             $surface = floatval($c['coilSurface'] ?? 0);
@@ -210,12 +212,13 @@ class ISPAG_Tank_Accessories_SVG
             }
             $h = min($h, $max_h);
             $out[] = [
-                'cx' => 100 + $slot * ($i + 0.5),
-                'z0' => $gc + $bh + 120,
+                'cx' => $diam / 2,
+                'z0' => $z,
                 'h' => $h,
                 'd' => $d,
                 'layers' => $layers,
             ];
+            $z += $h + $gap;
         }
         return $out;
     }
