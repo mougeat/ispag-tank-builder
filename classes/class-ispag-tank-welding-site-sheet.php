@@ -246,11 +246,11 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
             const modal = document.getElementById('ispag-welding-modal');
             if (modal && modal.parentNode !== document.body) document.body.appendChild(modal);
         })();
-        // Articles cochés ; la case « tout sélectionner » n'a pas d'identifiant d'article
+        // Articles cochés ; si aucun ne l'est, tous les articles du projet (la case « tout sélectionner » n'a pas d'identifiant d'article)
         function selectedArticleIds() {
-            return [...document.querySelectorAll('.ispag-article-checkbox:checked')]
-                .map(cb => cb.dataset.articleId)
-                .filter(Boolean);
+            const ids = selector => [...document.querySelectorAll(selector)].map(cb => cb.dataset.articleId).filter(Boolean);
+            const checked = ids('.ispag-article-checkbox:checked');
+            return checked.length ? checked : ids('.ispag-article-checkbox');
         }
         document.getElementById('generate-welding-site-sheet').addEventListener('click', function () {
             const ids = selectedArticleIds();
