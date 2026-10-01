@@ -231,6 +231,11 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         </div>
 
         <script>
+        // La modale est déplacée dans <body> : dans un bloc article (transform, overflow, z-index) elle passerait derrière les autres blocs
+        (function () {
+            const modal = document.getElementById('ispag-welding-modal');
+            if (modal && modal.parentNode !== document.body) document.body.appendChild(modal);
+        })();
         document.getElementById('generate-welding-site-sheet').addEventListener('click', function () {
             const ids = [...document.querySelectorAll('.ispag-article-checkbox:checked')]
                 .map(cb => cb.dataset.articleId);
