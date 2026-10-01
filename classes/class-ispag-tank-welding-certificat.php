@@ -224,13 +224,40 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_Tank_TechSheet_Generator
         $this->color('text', self::INK);
         $this->Cell(70, 6, $this->t('Cyril Barthel'), 0, 0, 'C');
 
-        $signature_path = ISPAG_PLUGIN_PATH . 'assets/img/signature_cyril_barthel.png'; // PNG à fond transparent
-        try {
-            $this->Image($signature_path, $sx + 10, $y + 17, 50, 0);
-        } catch (Exception $e) {
-            // signature indisponible : le cadre reste vierge pour une signature manuscrite
+        // Signature lue sur le serveur (jamais dans le dépôt Git ni accessible par URL) ; absente : cadre vierge
+        $signature_path = self::get_signature_path();
+        if ($signature_path) {
+            try {
+                $this->Image($signature_path, $sx + 10, $y + 17, 50, 0);
+            } catch (Exception $e) {
+                // signature illisible : le cadre reste vierge pour une signature manuscrite
+            }
         }
         return $y + 40;
+    }
+
+    /**
+     * Chemin du PNG de signature (fond transparent), ou '' s'il n'existe pas.
+     * Ordre : constante ISPAG_WELDING_SIGNATURE_PATH (idéalement hors du dossier web), filtre
+     * 'ispag_welding_signature_path', puis dossier protégé wp-content/uploads/ispag-private/signature_controleur.png.
+     */
+    protected static function get_signature_path()
+    {
+        $dir = trailingslashit(wp_upload_dir()['basedir']) . 'ispag-private';
+        $path = defined('ISPAG_WELDING_SIGNATURE_PATH') ? ISPAG_WELDING_SIGNATURE_PATH : $dir . '/signature_controleur.png';
+        $path = apply_filters('ispag_welding_signature_path', $path);
+
+        // Dossier par défaut : interdit l'accès direct par URL (Apache ; sur Nginx, bloquer /uploads/ispag-private/)
+        if (is_dir($dir)) {
+            if (!file_exists($dir . '/.htaccess')) {
+                @file_put_contents($dir . '/.htaccess', "Require all denied\nDeny from all\n");
+            }
+            if (!file_exists($dir . '/index.php')) {
+                @file_put_contents($dir . '/index.php', "<?php // Silence is golden.\n");
+            }
+        }
+
+        return ($path && is_readable($path)) ? $path : '';
     }
 
     // === Méthodes pour le bouton et le script ===
