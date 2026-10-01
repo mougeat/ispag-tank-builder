@@ -9,7 +9,7 @@
  *   2. titre du réservoir, sous-titre (projet · groupe · quantité)
  *   3. quatre indicateurs clés (volume, diamètre, hauteur, pression de service)
  *   4. deux colonnes : dimensions et résultats du contrôle | dessin du réservoir
- *   5. conclusion, date du contrôle et signature de l'inspecteur
+ *   5. conclusion, date du contrôle et signature du contrôleur
  *   6. pied de page : coordonnées de la société, pagination
  */
 require_once __DIR__ . '/class-ispag-tank-pdf-generator.php';
@@ -214,22 +214,12 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_Tank_TechSheet_Generator
         $this->color('text', self::INK);
         $this->Cell(80, 8, $this->t($control_date), 0, 0, 'L');
 
-        // Inspecteur qualifié et signature
+        // Contrôleur (cadre laissé vierge pour la signature manuscrite)
         $sx = self::MARGIN + 186 - 76;
         $this->SetXY($sx, $y + 6);
         $this->SetFont('Arial', '', 7.5);
         $this->color('text', self::MUTED);
-        $this->Cell(70, 4, $this->t(mb_strtoupper(__('Qualified Inspector', 'creation-reservoir'))), 0, 2, 'C');
-        $this->SetFont('Arial', 'B', 10);
-        $this->color('text', self::INK);
-        $this->Cell(70, 6, $this->t('Cyril Barthel'), 0, 0, 'C');
-
-        $signature_url = 'https://app.ispag-asp.ch/wp-content/uploads/2024/05/Signature_Cyril-Barthel.jpg';
-        try {
-            $this->Image($signature_url, $sx + 10, $y + 17, 50, 0);
-        } catch (Exception $e) {
-            // signature indisponible : le cadre reste vierge pour une signature manuscrite
-        }
+        $this->Cell(70, 4, $this->t(mb_strtoupper(__('Controller', 'creation-reservoir'))), 0, 2, 'C');
         return $y + 40;
     }
 
