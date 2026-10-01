@@ -940,53 +940,33 @@ document.addEventListener('click', function (e) {
 //     window.open(url.toString(), '_blank');
 // });
 
+// Boutons PDF des blocs articles (fiche technique, certificat de soudure) :
+// un seul gestionnaire délégué sur document, valable aussi pour les blocs rechargés dynamiquement.
 document.addEventListener('click', function (event) {
-    // Vérifie si l'élément cliqué est un bouton avec l'ID spécifique ou une classe pertinente
-    if (event.target.matches('#technical-sheet-pdf') || event.target.closest('#technical-sheet-pdf')) {
-        const button = event.target.closest('#technical-sheet-pdf'); // Trouve le bouton parent s'il y a un enfant cliqué
+    const pdfButtons = {
+        '#technical-sheet-pdf': 'ispag_generate_technical_sheet_pdf',
+        '#welding-certificat-pdf': 'ispag_generate_welding_certificat_pdf'
+    };
+
+    for (const selector in pdfButtons) {
+        const button = event.target.closest(selector);
+        if (!button) continue;
+
         const articleId = button.dataset.articleId;
         const dealId = button.dataset.dealId;
-
-        if (articleId) {
-            const url = new URL(admin_url('admin-ajax.php') );
-            url.searchParams.set('action', 'ispag_generate_technical_sheet_pdf');
-            if (dealId) { // Ajoute deal_id seulement s'il est présent
-                url.searchParams.set('deal_id', dealId);
-            }
-            url.searchParams.set('article_id', articleId);
-
-            window.open(url.toString(), '_blank');
-        } else {
+        if (!articleId) {
             console.error('Article ID non trouvé sur le bouton.');
+            return;
         }
+
+        const url = new URL(ISPAG_TANK.ajax_url, window.location.origin);
+        url.searchParams.set('action', pdfButtons[selector]);
+        if (dealId) {
+            url.searchParams.set('deal_id', dealId);
+        }
+        url.searchParams.set('article_id', articleId);
+
+        window.open(url.toString(), '_blank');
+        return;
     }
 });
-
-document.addEventListener('click', function (event) {
-    // Vérifie si l'élément cliqué est un bouton avec l'ID spécifique ou une classe pertinente
-    if (event.target.matches('#welding-certificat-pdf') || event.target.closest('#welding-certificat-pdf')) {
-        const button = event.target.closest('#welding-certificat-pdf'); // Trouve le bouton parent s'il y a un enfant cliqué
-        const articleId = button.dataset.articleId;
-        const dealId = button.dataset.dealId;
-
-        if (articleId) {
-            
-            const url = new URL(admin_url('admin-ajax.php') );
-            url.searchParams.set('action', 'ispag_generate_welding_certificat_pdf');
-            if (dealId) { // Ajoute deal_id seulement s'il est présent
-                url.searchParams.set('deal_id', dealId);
-            }
-            url.searchParams.set('article_id', articleId);
-
-            window.open(url.toString(), '_blank');
-        } else {
-            console.error('Article ID non trouvé sur le bouton.');
-        }
-    }
-});
-
-// // Fonction getUrlParam si elle est toujours nécessaire pour d'autres contextes, sinon elle peut être retirée si ce script est le seul usage de deal_id
-// function getUrlParam(paramName) {
-//     const urlParams = new URLSearchParams(window.location.search);
-//     return urlParams.get(paramName);
-// }
