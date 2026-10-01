@@ -534,15 +534,12 @@ class ISPAG_Tank_Designer
 
         $this->apply_default_supplier($article_id, $newData['TankType'] ?? 0, $newData['Material'] ?? 0);
 
-        $nb_welding = $data_received['nbWelding'] ?? 0;
-        $welding_by_client = $newData['weldingByClient'] ?? 0;
-        if($welding_by_client != 1){
-            apply_filters('ispag_auto_welding_saver', '', $deal_id, $article_id, $nb_welding);
-            $this->logger->log_user_action(self::LOG_NAME, 'welding_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'nb_welding' => $nb_welding], $user_id);
-        }
-        else{
-            do_action('ispag_delete_welding_article', $deal_id, $article_id);
-        }
+        // Nombre de soudures : toujours enregistré (piquages de type soudure) ; l'article de soudure n'est créé
+        // que si la soudure n'est pas faite par le client. Champ absent = on ne touche à rien.
+        $nb_welding = array_key_exists('nbWelding', $data_received) ? $data_received['nbWelding'] : null;
+        $welding_by_client = ($newData['weldingByClient'] ?? 0) == 1;
+        apply_filters('ispag_auto_welding_saver', '', $deal_id, $article_id, $nb_welding, $welding_by_client);
+        $this->logger->log_user_action(self::LOG_NAME, 'welding_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'nb_welding' => $nb_welding, 'by_client' => $welding_by_client], $user_id);
 
         $debug['insulation'] = apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '', $newData['insulationCover'] ?? '');
         $debug['insulation_status'] = apply_filters('ispag_insulation_last_status', '');

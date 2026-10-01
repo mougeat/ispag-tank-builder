@@ -33,23 +33,29 @@ class ISPAG_Tank_Welding_Auto_Saver
             // $logger->log_user_action(self::LOG_NAME, 'instance_initialized', [], $user_id);
         }
 
-        add_filter('ispag_auto_welding_saver', [self::$instance, 'maybe_add_welding_article'], 10, 4);
+        add_filter('ispag_auto_welding_saver', [self::$instance, 'maybe_add_welding_article'], 10, 5);
         // $logger->log_user_action(self::LOG_NAME, 'filter_registered', ['filter' => 'ispag_auto_welding_saver'], $user_id);
 
         add_action('ispag_delete_welding_article', [self::$instance, 'delete_welding_article'], 10, 2);
         // $logger->log_user_action(self::LOG_NAME, 'filter_registered', ['filter' => 'ispag_delete_welding_article'], $user_id);
     }
 
-    public function maybe_add_welding_article($html, $deal_id, $article_id, $nb_welding)
+    /**
+     * @param mixed $nb_welding  Nombre de soudures saisi ; null ou '' = champ absent, on ne touche à rien.
+     * @param bool  $by_client   Soudure réalisée par le client : le nombre de soudures est enregistré (piquages),
+     *                           mais aucun article de soudure n'est créé (et celui qui existe est retiré).
+     */
+    public function maybe_add_welding_article($html, $deal_id, $article_id, $nb_welding, $by_client = false)
     {
         $user_id = get_current_user_id();
-        $this->logger->log_user_action(self::LOG_NAME, 'maybe_add_welding_article_start', ['deal_id' => $deal_id, 'article_id' => $article_id, 'nb_welding' => $nb_welding], $user_id);
+        $this->logger->log_user_action(self::LOG_NAME, 'maybe_add_welding_article_start', ['deal_id' => $deal_id, 'article_id' => $article_id, 'nb_welding' => $nb_welding, 'by_client' => $by_client], $user_id);
 
-        if (empty($nb_welding) || $nb_welding == 0)
+        if ($nb_welding === null || $nb_welding === '')
         {
-            $this->logger->log_user_action(self::LOG_NAME, 'no_welding_to_add', [], $user_id);
+            $this->logger->log_user_action(self::LOG_NAME, 'welding_field_absent', [], $user_id);
             return;
         }
+        $nb_welding = max(0, (int) $nb_welding);
 
         ob_start();
         $tank = apply_filters('ispag_get_tank_datas', null, $article_id);
@@ -61,25 +67,35 @@ class ISPAG_Tank_Welding_Auto_Saver
             return ob_get_clean();
         }
 
-        $matching_article = $this->find_matching_welding_article(
-            floatval($tank['dimensions']->Diameter),
-            $tank['conception']->Material,
-            intval($nb_welding)
-        ); 
-
-        $this->logger->log_user_action(self::LOG_NAME, 'matching_article_searched', ['diameter' => $tank['dimensions']->Diameter, 'material' => $tank['conception']->Material, 'nb_welding' => $nb_welding], $user_id);
-
-        if ($matching_article)
+        if ($by_client || $nb_welding === 0)
         {
-            $this->logger->log_db_change(self::LOG_NAME, 'achats_articles', 'MATCHING_ARTICLE_FOUND', ['article_id' => $matching_article->Id, 'title' => $matching_article->TitreArticle], $user_id);
-            $result = $this->insert_welding_article($deal_id, $article_id, $matching_article);
-            $this->logger->log_user_action(self::LOG_NAME, 'welding_article_inserted', ['result' => $result], $user_id);
+            // Pas d'article de soudure : soudure faite par le client, ou aucune soudure
+            $this->delete_welding_article($deal_id, $article_id);
+            $this->logger->log_user_action(self::LOG_NAME, 'welding_article_not_needed', ['by_client' => $by_client, 'nb_welding' => $nb_welding], $user_id);
         }
         else
         {
-            $this->logger->log(self::LOG_NAME, 'ERROR: No matching welding article found', $user_id);
+            $matching_article = $this->find_matching_welding_article(
+                floatval($tank['dimensions']->Diameter),
+                $tank['conception']->Material,
+                $nb_welding
+            );
+
+            $this->logger->log_user_action(self::LOG_NAME, 'matching_article_searched', ['diameter' => $tank['dimensions']->Diameter, 'material' => $tank['conception']->Material, 'nb_welding' => $nb_welding], $user_id);
+
+            if ($matching_article)
+            {
+                $this->logger->log_db_change(self::LOG_NAME, 'achats_articles', 'MATCHING_ARTICLE_FOUND', ['article_id' => $matching_article->Id, 'title' => $matching_article->TitreArticle], $user_id);
+                $result = $this->insert_welding_article($deal_id, $article_id, $matching_article);
+                $this->logger->log_user_action(self::LOG_NAME, 'welding_article_inserted', ['result' => $result], $user_id);
+            }
+            else
+            {
+                $this->logger->log(self::LOG_NAME, 'ERROR: No matching welding article found', $user_id);
+            }
         }
 
+        // Le nombre de soudures est toujours enregistré (piquages de type soudure), même si la soudure est faite par le client
         $sync_result = $this->sync_welding_connections_by_article($article_id, $nb_welding);
         $this->logger->log_user_action(self::LOG_NAME, 'welding_connections_synced', ['result' => $sync_result], $user_id);
 
