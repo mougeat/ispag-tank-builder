@@ -121,13 +121,6 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
             $this->fitting_item[$f->fitting_id ?? spl_object_id($f)] = $id;
         }
 
-        $support = intval($tank_datas['conception']->Support ?? 0);
-        if ($support === 10) {
-            $this->bom[] = ['desc' => __('Feet', 'creation-reservoir'), 'qty' => 3, 'material' => $material];
-        } elseif ($support === 11) {
-            $this->bom[] = ['desc' => __('Support ring', 'creation-reservoir'), 'qty' => 1, 'material' => $material];
-        }
-
         $coils = (array) apply_filters('ispag_get_heat_exchanger_datas', null, $article->Id);
         foreach (array_values($coils) as $i => $coil) {
             $surface = $coil['coilSurface'] ?? '?';
