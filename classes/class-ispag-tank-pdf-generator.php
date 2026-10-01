@@ -262,12 +262,65 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         // Isolation
         $y = $this->drawTextBlock($x, $y + 3, $w, __('Insulation', 'creation-reservoir'), $this->insulationText($article));
 
-        // Soudure sur site
-        if (!empty($article->tank_on_site_welded)) {
+        // Soudure : réalisée par le client (réservoir livré en morceaux, sans garantie) ou par ISPAG sur site
+        $welding = $this->weldingInfo($article);
+        if ($welding['by_client'] && $welding['pieces'] > 1) {
+            $y = $this->drawWarningBlock($x, $y + 3, $w, __('Welding', 'creation-reservoir'), [
+                str_replace('%NB_PIECES%', $welding['pieces'], __('Tank delivered to site in %NB_PIECES% pieces', 'creation-reservoir')) . '.',
+                __('Welding carried out by the customer.', 'creation-reservoir'),
+                __('No warranty can be granted for this tank, as the welding is not carried out by us.', 'creation-reservoir'),
+            ]);
+        } elseif (!empty($article->tank_on_site_welded)) {
             $text = apply_filters('ispag_get_warranty_information', null, $article->Id ?? 0);
             $y = $this->drawTextBlock($x, $y + 3, $w, __('Welding', 'creation-reservoir'), $text);
         }
         return $y;
+    }
+
+    /** Nombre de morceaux (soudures + 1) et soudure faite par le client, lus en base. */
+    protected function weldingInfo($article)
+    {
+        global $wpdb;
+        $dim = $wpdb->get_row($wpdb->prepare(
+            "SELECT Id, weldingByClient FROM {$wpdb->prefix}achats_tank_dimensions WHERE customerTankId = %d LIMIT 1",
+            (int) ($article->Id ?? 0)
+        ));
+        if (!$dim) return ['by_client' => false, 'pieces' => 1];
+
+        $nb = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}achats_tank_connection WHERE TankId = %d AND Type = 23", (int) $dim->Id
+        ));
+        return ['by_client' => (int) $dim->weldingByClient === 1, 'pieces' => $nb + 1];
+    }
+
+    /** Bloc d'avertissement : fond rosé, barre rouge à gauche, première ligne en gras. */
+    protected function drawWarningBlock($x, $y, $w, $title, array $lines)
+    {
+        $this->SetFont('Arial', '', 8.5);
+        $inner = $w - 12 - 2 * $this->cMargin - 0.5;
+        $wrapped = [];
+        foreach ($lines as $i => $line) {
+            $this->SetFont('Arial', $i !== 1 ? 'B' : '', 8.5);
+            foreach ($this->wrapLines($this->t($line), $inner) as $l) $wrapped[] = [$l, $i !== 1];
+        }
+        $h = count($wrapped) * 4.4 + 7;
+
+        $y = $this->ensure($y, $h + 10);
+        $y = $this->sectionTitle($x, $y, $w, $title);
+
+        $this->roundedBox($x, $y, $w, $h, [253, 240, 242]);
+        $this->color('fill', self::RED);
+        $this->Rect($x, $y + 1, 1.4, $h - 2, 'F');
+
+        $ly = $y + 3.5;
+        foreach ($wrapped as [$line, $bold]) {
+            $this->SetXY($x + 6, $ly);
+            $this->SetFont('Arial', $bold ? 'B' : '', 8.5);
+            $this->color('text', $bold ? self::INK : [120, 20, 40]);
+            $this->Cell($w - 10, 4.4, $line, 0, 0, 'L');
+            $ly += 4.4;
+        }
+        return $y + $h + 2;
     }
 
     protected function drawExchangers($article, $x, $y, $w)
