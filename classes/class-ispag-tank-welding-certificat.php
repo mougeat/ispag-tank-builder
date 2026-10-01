@@ -224,9 +224,9 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_Tank_TechSheet_Generator
         $this->color('text', self::INK);
         $this->Cell(70, 6, $this->t('Cyril Barthel'), 0, 0, 'C');
 
-        $signature_url = 'https://app.ispag-asp.ch/wp-content/uploads/2024/05/Signature_Cyril-Barthel.jpg';
+        $signature_path = ISPAG_PLUGIN_PATH . 'assets/img/signature_cyril_barthel.png'; // PNG à fond transparent
         try {
-            $this->Image($signature_url, $sx + 10, $y + 17, 50, 0);
+            $this->Image($signature_path, $sx + 10, $y + 17, 50, 0);
         } catch (Exception $e) {
             // signature indisponible : le cadre reste vierge pour une signature manuscrite
         }
