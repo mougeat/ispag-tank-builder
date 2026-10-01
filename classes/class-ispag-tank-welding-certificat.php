@@ -243,33 +243,9 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_Tank_TechSheet_Generator
                         data-deal-id="' . $deal_id . '">
                             <span class="dashicons dashicons-awards"></span>
                             ' . __('Welding certificat', 'creation-reservoir') . '
-                    </button>' . self::getScript();
+                    </button>';
         }
         return $html;
     }
 
-    private static function getScript() {
-        return '<script>
-                document.addEventListener(\'click\', function (event) {
-                    if (event.target.matches(\'#welding-certificat-pdf\') || event.target.closest(\'#welding-certificat-pdf\')) {
-                        const button = event.target.closest(\'#welding-certificat-pdf\');
-                        const articleId = button.dataset.articleId;
-                        const dealId = button.dataset.dealId;
-
-                        if (articleId) {
-                            const url = new URL(\'' . admin_url('admin-ajax.php') . '\');
-                            url.searchParams.set(\'action\', \'ispag_generate_welding_certificat_pdf\');
-                            if (dealId) {
-                                url.searchParams.set(\'deal_id\', dealId);
-                            }
-                            url.searchParams.set(\'article_id\', articleId);
-
-                            window.open(url.toString(), \'_blank\');
-                        } else {
-                            console.error(\'Article ID non trouvé sur le bouton.\');
-                        }
-                    }
-                });
-                </script>';
-    }
 }

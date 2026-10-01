@@ -252,7 +252,7 @@ class ISPAG_Tank_Manager {
                         data-deal-id="' . $deal_id . '">
                             <span class="dashicons dashicons-list-view"></span>
                             ' . __('Technical sheet', 'creation-reservoir') . '
-                    </button>' . self::getScript();
+                    </button>';
             // return '        <script>
             //         document.getElementById(\'technical-sheet-pdf\').addEventListener(\'click\', function () {
             //             // alert(\'yes\');
@@ -267,32 +267,6 @@ class ISPAG_Tank_Manager {
         }
     }
 
-    private static function getScript(){
-        return '<script>
-                // Votre script JavaScript existant devrait maintenant fonctionner avec les data-attributs
-                // Assurez-vous que ce script est chargé après que le bouton soit présent dans le DOM
-                document.addEventListener(\'click\', function (event) {
-                    if (event.target.matches(\'#technical-sheet-pdf\') || event.target.closest(\'#technical-sheet-pdf\')) {
-                        const button = event.target.closest(\'#technical-sheet-pdf\');
-                        const articleId = button.dataset.articleId;
-                        const dealId = button.dataset.dealId;
-
-                        if (articleId) {
-                            const url = new URL(\'' . admin_url('admin-ajax.php') . '\');
-                            url.searchParams.set(\'action\', \'ispag_generate_technical_sheet_pdf\');
-                            if (dealId) {
-                                url.searchParams.set(\'deal_id\', dealId);
-                            }
-                            url.searchParams.set(\'article_id\', articleId);
-
-                            window.open(url.toString(), \'_blank\');
-                        } else {
-                            console.error(\'Article ID non trouvé sur le bouton.\');
-                        }
-                    }
-                });
-                </script>';
-    }
 
 
     public static function ispag_ajax_generate_technical_sheet() {
