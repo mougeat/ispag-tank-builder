@@ -26,6 +26,10 @@ class ISPAG_Notice_PDF_Generator extends FPDF
         self::$wpdb = $wpdb;
         self::$templates_path = ISPAG_PLUGIN_PATH . 'templates/';
         self::$logo_path = ISPAG_PLUGIN_PATH . 'assets/logo_ispag.png';
+        // Logo du site s'il existe (sinon fichier d'origine, téléchargé au besoin)
+        if (class_exists('ISPAG_Site_Logo') && ($site_logo = ISPAG_Site_Logo::path())) {
+            self::$logo_path = $site_logo;
+        }
 
         // Calcul dynamique des tailles de polices
         self::$font_size_title  = self::$base_font_size + 2; // 14
@@ -244,7 +248,8 @@ class ISPAG_Notice_PDF_Generator extends FPDF
     protected static function add_ispag_header($pdf, $template, $article, $project, $tank_datas)
     {
         if (file_exists(self::$logo_path)) {
-            $pdf->Image(self::$logo_path, 10, 10, 30);
+            [$logo_w, $logo_h] = class_exists('ISPAG_Site_Logo') ? ISPAG_Site_Logo::fit(self::$logo_path, 30, 15) : [30, 0];
+            $pdf->Image(self::$logo_path, 10, 10, $logo_w, $logo_h);
         }
 
         $pdf->SetFont('Arial', 'B', self::$font_size_title);

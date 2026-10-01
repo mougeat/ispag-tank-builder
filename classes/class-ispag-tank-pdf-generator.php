@@ -138,9 +138,7 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
 
     protected function drawBand($project, $article)
     {
-        try {
-            $this->Image($this->logo_url, self::MARGIN, 10, 34);
-        } catch (Exception $e) {
+        if (!$this->drawLogo(self::MARGIN, 9, 38, 12)) {
             $this->SetXY(self::MARGIN, 11);
             $this->SetFont('Arial', 'B', 16);
             $this->color('text', self::RED);
