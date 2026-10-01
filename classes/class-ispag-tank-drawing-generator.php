@@ -681,10 +681,11 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
             } elseif ($kind === 'spray') {
                 $x1 = $x0 + $dir * 0.7 * $diam * $p * $s;
                 $this->drawTube([[$x0, $y0], [$x1, $y0]], $r);
-                for ($i = 1; $i <= 8; $i++) { // perçages
-                    $hx = $x0 + ($x1 - $x0) * ($i / 9);
-                    $this->Line($hx, $y0 + $r, $hx, $y0 + $r + 1.2);
+                $this->SetDash();
+                for ($i = 1; $i <= 8; $i++) { // perçages horizontaux, vus de face
+                    $this->circle($x0 + ($x1 - $x0) * ($i / 9), $y0, 0.35, 'D');
                 }
+                $this->SetDash(1.4, 0.9);
             } else { // baffle
                 $xp = $x0 + $dir * 70 * $p * $s;
                 $half = 1.1 * $dn * $s;
@@ -712,6 +713,18 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
                 $this->radialRect($cx, $cy, $ux, $uy, $r - (120 + 200 * cos(M_PI_4)) * $s, $r, $w, 'S');
             } elseif ($kind === 'spray') {
                 $this->radialRect($cx, $cy, $ux, $uy, $r - 0.7 * $diam * $s, $r, $w, 'S');
+                $this->SetDash();
+                for ($i = 1; $i <= 8; $i++) { // jets horizontaux de chaque côté du tube
+                    $d = $r - 0.7 * $diam * $s * ($i / 9) - 0.0;
+                    $px = $cx + $ux * $d;
+                    $py = $cy + $uy * $d;
+                    $nx = -$uy;
+                    $ny = $ux;
+                    foreach ([1, -1] as $sg) {
+                        $this->Line($px + $sg * $nx * $w / 2, $py + $sg * $ny * $w / 2, $px + $sg * $nx * ($w / 2 + 1.6), $py + $sg * $ny * ($w / 2 + 1.6));
+                    }
+                }
+                $this->SetDash(1.4, 0.9);
             } else {
                 $this->radialRect($cx, $cy, $ux, $uy, $r - 80 * $s, $r - 70 * $s, 2.2 * $dn * $s, 'S');
             }

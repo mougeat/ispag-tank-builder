@@ -114,9 +114,8 @@ class ISPAG_Tank_Accessories_SVG
             } elseif ($kind === 'spray') {
                 $x1 = $x0 + $dir * 0.7 * $diam * $p;
                 $svg .= self::tube([[$x0, $y0], [$x1, $y0]], $r);
-                for ($i = 1; $i <= 8; $i++) {
-                    $hx = $x0 + ($x1 - $x0) * ($i / 9);
-                    $svg .= self::line($hx, $y0 + $r, $hx, $y0 + $r + 25);
+                for ($i = 1; $i <= 8; $i++) { // perçages horizontaux, vus de face
+                    $svg .= "<circle cx='" . round($x0 + ($x1 - $x0) * ($i / 9), 1) . "' cy='" . round($y0, 1) . "' r='6' style='stroke-dasharray:none' />";
                 }
             } else {
                 $xp = $x0 + $dir * 70 * $p;
@@ -145,6 +144,12 @@ class ISPAG_Tank_Accessories_SVG
                 $svg .= self::radial_rect($cx, $cy, $ux, $uy, $r - (120 + 200 * M_SQRT1_2), $r, $dn);
             } elseif ($kind === 'spray') {
                 $svg .= self::radial_rect($cx, $cy, $ux, $uy, $r - 0.7 * $diam, $r, $dn);
+                for ($i = 1; $i <= 8; $i++) { // jets horizontaux de chaque côté du tube
+                    $d = $r - 0.7 * $diam * ($i / 9);
+                    foreach ([1, -1] as $sg) {
+                        $svg .= self::line($cx + $ux * $d - $sg * $uy * $dn / 2, $cy + $uy * $d + $sg * $ux * $dn / 2, $cx + $ux * $d - $sg * $uy * ($dn / 2 + 30), $cy + $uy * $d + $sg * $ux * ($dn / 2 + 30));
+                    }
+                }
             } else {
                 $svg .= self::radial_rect($cx, $cy, $ux, $uy, $r - 80, $r - 70, 2.2 * $dn);
             }
