@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/class-ispag-tank-accessories-svg.php';
 /**
  * Class ISPAG_Tank_SVG_Generator
  * Génère des représentations SVG des cuves ISPAG avec leurs piquages, soudures et tôles perforées.
@@ -20,6 +21,7 @@ class ISPAG_Tank_SVG_Generator
     protected $fittings = [];
     protected $tank_cotations = [];
     protected $bent_tubes = [];
+    protected $coils = [];
 
     protected $margin_left;  // marge gauche en mm
     protected $margin_right; // marge droite en mm
@@ -106,6 +108,8 @@ class ISPAG_Tank_SVG_Generator
 
         $this->loadPlate($article_id);
         $this->logger->log_user_action('tank_svg_generator', 'plates_loaded', ['article_id' => $article_id], $user_id);
+
+        $this->coils = (array) apply_filters('ispag_get_heat_exchanger_datas', null, $article_id);
 
         $this->loadBentTubes($article_id);
         $this->logger->log_user_action('tank_svg_generator', 'bent_tubes_loaded', ['article_id' => $article_id, 'count' => count($this->bent_tubes)], $user_id);
@@ -1200,6 +1204,13 @@ class ISPAG_Tank_SVG_Generator
 
                 $plates_svg = $this->render_drilled_plate_svg($diam, $height);
                 echo $plates_svg;
+
+                // Accessoires internes (tube plongeant, tube diffuseur, tôle de déflexion)
+                echo ISPAG_Tank_Accessories_SVG::front($this->fittings, $diam, $height);
+                echo ISPAG_Tank_Accessories_SVG::coils_front(
+                    ISPAG_Tank_Accessories_SVG::coil_geometry($this->coils, $diam, $height, $d->GroundClearance, $bottom_height),
+                    $height
+                );
                 $this->logger->log_user_action('tank_svg_generator', 'drilled_plates_rendered', [], $user_id);
 
                 if ($with_cotation)
