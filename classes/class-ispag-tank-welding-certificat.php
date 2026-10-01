@@ -214,12 +214,22 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_Tank_TechSheet_Generator
         $this->color('text', self::INK);
         $this->Cell(80, 8, $this->t($control_date), 0, 0, 'L');
 
-        // Contrôleur (cadre laissé vierge pour la signature manuscrite)
+        // Contrôleur et signature
         $sx = self::MARGIN + 186 - 76;
         $this->SetXY($sx, $y + 6);
         $this->SetFont('Arial', '', 7.5);
         $this->color('text', self::MUTED);
         $this->Cell(70, 4, $this->t(mb_strtoupper(__('Controller', 'creation-reservoir'))), 0, 2, 'C');
+        $this->SetFont('Arial', 'B', 10);
+        $this->color('text', self::INK);
+        $this->Cell(70, 6, $this->t('Cyril Barthel'), 0, 0, 'C');
+
+        $signature_path = ISPAG_PLUGIN_PATH . 'assets/img/signature_cyril_barthel.png'; // PNG à fond transparent
+        try {
+            $this->Image($signature_path, $sx + 10, $y + 17, 50, 0);
+        } catch (Exception $e) {
+            // signature indisponible : le cadre reste vierge pour une signature manuscrite
+        }
         return $y + 40;
     }
 
