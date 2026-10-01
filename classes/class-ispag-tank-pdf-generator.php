@@ -2,204 +2,476 @@
 /**
  * Class ISPAG_Tank_TechSheet_Generator
  *
- * Génère une fiche technique PDF pour les réservoirs ISPAG.
- * Étend la classe ISPAG_PDF_Generator pour ajouter des fonctionnalités spécifiques.
+ * Fiche technique PDF d'un réservoir ISPAG (A4 portrait).
+ *
+ * Mise en page :
+ *   1. bandeau : logo, titre du document, référence projet
+ *   2. titre du réservoir, sous-titre (projet · groupe)
+ *   3. quatre indicateurs clés (volume, diamètre, hauteur, pression de service)
+ *   4. deux colonnes : caractéristiques, échangeurs, isolation, soudure | dessin et piquages
+ *   5. pied de page : coordonnées de la société, pagination
+ *
+ * Même point d'entrée qu'avant : generate_tech_sheet($project, $article, $tank_datas, $svg_path, $raccords).
  */
 class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
 {
-    /**
-     * Position Y après l'image de la cuve.
-     * @var float
-     */
-    protected $y_image_bottom;
+    // Palette
+    const RED    = [210, 16, 52];
+    const INK    = [30, 41, 59];
+    const MUTED  = [100, 116, 139];
+    const LINE   = [226, 232, 240];
+    const PANEL  = [244, 246, 249];
+    const WHITE  = [255, 255, 255];
 
-    /**
-     * Constructeur : Initialise la classe et charge le domaine de traduction.
-     */
+    // Grille de la page (mm)
+    const MARGIN   = 12;
+    const COL_GAP  = 8;
+    const LEFT_W   = 112;
+    const TOP_NEXT = 22;   // début du contenu sur les pages suivantes
+
+    /** @var float Largeur de la colonne de droite. */
+    protected $right_w;
+    /** @var float Position X de la colonne de droite. */
+    protected $right_x;
+
     public function __construct()
     {
         parent::__construct();
-        // Charge le domaine de traduction pour éviter les erreurs "too early"
-        // load_plugin_textdomain(
-        //     'creation-reservoir',
-        //     false,
-        //     dirname(plugin_basename(__FILE__)) . '/languages/'
-        // );
+        $this->SetMargins(self::MARGIN, self::MARGIN, self::MARGIN);
+        $this->right_x = self::MARGIN + self::LEFT_W + self::COL_GAP;
+        $this->right_w = 210 - self::MARGIN - $this->right_x;
     }
 
-    /**
-     * Génère la fiche technique PDF.
-     *
-     * @param object $project    Données du projet.
-     * @param object $article   Données de l'article.
-     * @param array  $tank_datas Données techniques du réservoir.
-     * @param string $svg_path   Chemin vers le fichier SVG de la cuve.
-     * @param array  $raccords   Liste des raccords (optionnel).
-     */
+    // ------------------------------------------------------------------ Point d'entrée
+
     public function generate_tech_sheet($project, $article, $tank_datas, $svg_path, $raccords = [])
     {
         $this->title = __('Technical specifications', 'creation-reservoir');
+        $this->AliasNbPages('{nb}');
+        $this->SetTitle($this->cleanStr($this->title . ' - ' . ($article->Article ?? '')), true);
+        $this->SetAutoPageBreak(false);
         $this->AddPage();
-        $this->SetTitle(mb_convert_encoding($this->title, 'ISO-8859-1', 'UTF-8'));
-        $this->SetAutoPageBreak(true, 20);
-        $this->addHeader();
 
-        $this->addModernHeader($project, $article);
-        $this->addArticleTitle($article);
-        $this->addLayoutBlocks($article, $tank_datas, $svg_path, $raccords);
+        $this->drawBand($project, $article);
+        $y = $this->drawTitle($project, $article);
+        $y = $this->drawKpis($tank_datas, $y);
+
+        // Colonne de droite d'abord : elle reste sur la première page ; celle de gauche peut continuer sur la suivante
+        $right_end = $this->drawRightColumn($article, $svg_path, $y);
+        $left_end  = $this->drawLeftColumn($project, $article, $tank_datas, $y);
+
+        $this->drawNotes(max($left_end, $right_end));
     }
 
-    // ========== MÉTHODES POUR L'EN-TÊTE ET LE TITRE ==========
+    // ------------------------------------------------------------------ Outils de dessin
 
-    /**
-     * Ajoute un en-tête moderne avec les informations du projet.
-     *
-     * @param object $project Données du projet.
-     * @param object $article Données de l'article.
-     */
-    protected function addModernHeader($project, $article)
+    protected function color($type, array $rgb)
     {
-        $this->SetTextColor(65, 76, 82);
-        $this->SetFont('Arial', '', 8);
-        $this->SetDrawColor(222, 226, 230);
-        $this->SetLineWidth(0.5);
-
-        $width = $this->GetPageWidth() / 2;
-        $this->SetXY($width - 10, 20);
-        $this->Cell($width, 5, mb_convert_encoding($project->ObjetCommande ?? '', 'ISO-8859-1', 'UTF-8'), 0, 2, 'R');
-        $this->Cell($width, 5, mb_convert_encoding($article->Groupe ?? '', 'ISO-8859-1', 'UTF-8'), 0, 2, 'R');
-        $this->Cell($width, 5, date('d.m.Y'), 0, 1, 'R');
-        $this->Ln(5);
-
-        $x1 = 10;
-        $y1 = $this->GetY();
-        $x2 = $this->GetPageWidth() - $x1;
-        $this->Line($x1, $y1, $x2, $y1);
-        $this->Ln(5);
+        if ($type === 'fill') $this->SetFillColor($rgb[0], $rgb[1], $rgb[2]);
+        elseif ($type === 'draw') $this->SetDrawColor($rgb[0], $rgb[1], $rgb[2]);
+        else $this->SetTextColor($rgb[0], $rgb[1], $rgb[2]);
     }
 
-    /**
-     * Ajoute le titre de l'article.
-     *
-     * @param object $article Données de l'article.
-     */
-    protected function addArticleTitle($article)
+    /** Texte converti pour FPDF (Windows-1252). */
+    protected function t($text)
     {
-        $this->SetFont('Arial', 'B', 16);
-        $this->SetTextColor(0);
-        $this->Cell(0, 12, mb_convert_encoding($article->Article ?? '', 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
-        $this->Ln(5);
+        return $this->cleanStr(html_entity_decode(wp_strip_all_tags((string) $text), ENT_QUOTES, 'UTF-8'));
     }
 
-    // ========== MÉTHODES POUR LA MISE EN PAGE ==========
-
-    /**
-     * Ajoute les blocs de contenu (dimensions, échangeur, soudure, isolation, image, raccords).
-     *
-     * @param object $article    Données de l'article.
-     * @param array  $tank_datas Données techniques du réservoir.
-     * @param string $svg_path   Chemin vers le fichier SVG.
-     * @param array  $raccords   Liste des raccords.
-     */
-    protected function addLayoutBlocks($article, $tank_datas, $svg_path, $raccords)
+    /** Saute à la page suivante si $h ne tient plus ; renvoie le Y à utiliser. */
+    protected function ensure($y, $h)
     {
-        $startY = $this->GetY();
-
-        // Bloc gauche
-        $this->SetXY(10, $startY);
-        $this->addBlocDimensions($tank_datas);
-        $this->addBlocEchangeur($article);
-        $this->addBlocSoudure($article);
-        $this->addBlocIsolation($article);
-
-        // Bloc droit (image SVG convertie en PNG et raccords)
-        $this->SetXY(130, $startY);
-        $this->addCuveImage($svg_path);
-        $this->addRaccordsList($article);
+        if ($y + $h <= 297 - 22) return $y;
+        $this->AddPage();
+        $this->drawMiniBand();
+        return self::TOP_NEXT;
     }
 
-    // ========== MÉTHODES POUR LES BLOCS DE DONNÉES ==========
-
-    /**
-     * Ajoute le bloc des dimensions.
-     *
-     * @param array $tank_datas Données techniques du réservoir.
-     */
-    protected function addBlocDimensions($tank_datas)
+    protected function roundedBox($x, $y, $w, $h, $fill, $border = null, $r = 2.5)
     {
-        $x = $this->GetX();
-        $y = $this->GetY();
+        $this->color('fill', $fill);
+        if ($border) {
+            $this->color('draw', $border);
+            $this->SetLineWidth(0.25);
+        }
+        $this->RoundedRect($x, $y, $w, $h, $r, $border ? 'DF' : 'F');
+    }
 
-        $this->SetFillColor(255, 255, 255);
-        $this->SetDrawColor(218, 124, 81);
+    /** Titre de section : petites capitales rouges et filet. Renvoie le Y suivant. */
+    protected function sectionTitle($x, $y, $w, $label)
+    {
+        $this->SetXY($x, $y);
+        $this->SetFont('Arial', 'B', 8);
+        $this->color('text', self::RED);
+        $this->Cell($w, 5, $this->t(mb_strtoupper($label)), 0, 1, 'L');
+        $this->color('draw', self::LINE);
+        $this->SetLineWidth(0.3);
+        $this->Line($x, $y + 5.5, $x + $w, $y + 5.5);
+        return $y + 8;
+    }
 
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(0, 10, mb_convert_encoding(__('Dimensions', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
+    /** Lignes « libellé : valeur » sur fond alterné. Renvoie le Y suivant. */
+    protected function keyValueRows($x, $y, $w, array $rows, $label_w = 44)
+    {
+        $i = 0;
+        foreach ($rows as $label => $value) {
+            if ($value === null || $value === '') continue;
+            $y = $this->ensure($y, 6);
+            if ($i % 2 === 0) {
+                $this->color('fill', self::PANEL);
+                $this->Rect($x, $y, $w, 5.8, 'F');
+            }
+            $this->SetXY($x + 2, $y + 0.4);
+            $this->SetFont('Arial', '', 8.5);
+            $this->color('text', self::MUTED);
+            $this->Cell($label_w, 5, $this->t($label), 0, 0, 'L');
+            $this->SetFont('Arial', 'B', 8.5);
+            $this->color('text', self::INK);
+            $this->Cell($w - $label_w - 4, 5, $this->t($value), 0, 0, 'L');
+            $y += 5.8;
+            $i++;
+        }
+        return $y + 2;
+    }
 
-        $this->SetFont('Arial', '', 8);
-        $dims = [
-            __('Diameter', 'creation-reservoir') => isset($tank_datas['dimensions']->Diameter) ? $tank_datas['dimensions']->Diameter . ' mm' : '-',
-            __('Volume', 'creation-reservoir') => isset($tank_datas['dimensions']->Volume) ? $tank_datas['dimensions']->Volume . ' L' : '-',
-            __('Height', 'creation-reservoir') => isset($tank_datas['dimensions']->Height) ? $tank_datas['dimensions']->Height . ' mm' : '-',
-            __('Tipping height', 'creation-reservoir') => isset($tank_datas['dimensions']->TippingHeight) ? $tank_datas['dimensions']->TippingHeight . ' mm' : '-',
-            __('Materials', 'creation-reservoir') => isset($tank_datas['conception']->material_text) ? __($tank_datas['conception']->material_text, 'creation-reservoir') : '-',
-            __('Temperature', 'creation-reservoir') => isset($tank_datas['dimensions']->usingTemperature) ? $tank_datas['dimensions']->usingTemperature . ' °C' : '-',
-            __('Design pressure', 'creation-reservoir') => isset($tank_datas['dimensions']->MaxPressure) ? $tank_datas['dimensions']->MaxPressure . ' bar' : '-',
-            __('Test pressure', 'creation-reservoir') => isset($tank_datas['dimensions']->TestPressure) ? $tank_datas['dimensions']->TestPressure . ' bar' : '-'
-        ];
+    // ------------------------------------------------------------------ Bandeau et titre
 
-        foreach ($dims as $label => $value) {
-            $this->Cell(60, 5, mb_convert_encoding($label, 'ISO-8859-1', 'UTF-8'), 0, 0);
-            $this->Cell(0, 5, ': ' . $value, 0, 1);
+    protected function drawBand($project, $article)
+    {
+        try {
+            $this->Image($this->logo_url, self::MARGIN, 10, 34);
+        } catch (Exception $e) {
+            $this->SetXY(self::MARGIN, 11);
+            $this->SetFont('Arial', 'B', 16);
+            $this->color('text', self::RED);
+            $this->Cell(60, 8, 'ISPAG', 0, 0, 'L');
         }
 
-        $this->Ln(3);
-        $height = $this->GetY() - $y;
-        $this->RoundedRect($x, $y, 110, $height, 3, 'D');
-        $this->Ln(3);
+        $this->SetXY(100, 11);
+        $this->SetFont('Arial', 'B', 15);
+        $this->color('text', self::INK);
+        $this->Cell(98, 7, $this->t(__('Technical data sheet', 'creation-reservoir')), 0, 2, 'R');
+        $this->SetFont('Arial', '', 8.5);
+        $this->color('text', self::MUTED);
+        $this->Cell(98, 5, $this->t(date('d.m.Y')), 0, 0, 'R');
+
+        $this->color('fill', self::RED);
+        $this->Rect(self::MARGIN, 24, 186, 0.9, 'F');
     }
 
-    /**
-     * Ajoute l'image de la cuve (conversion SVG vers PNG).
-     *
-     * @param string $svgUrl URL du fichier SVG.
-     */
-    protected function addCuveImage($svgUrl)
+    /** Bandeau réduit des pages suivantes. */
+    protected function drawMiniBand()
+    {
+        $this->SetXY(self::MARGIN, 10);
+        $this->SetFont('Arial', 'B', 9);
+        $this->color('text', self::RED);
+        $this->Cell(60, 5, 'ISPAG', 0, 0, 'L');
+        $this->SetFont('Arial', '', 8.5);
+        $this->color('text', self::MUTED);
+        $this->Cell(126, 5, $this->t(__('Technical data sheet', 'creation-reservoir')), 0, 0, 'R');
+        $this->color('draw', self::LINE);
+        $this->Line(self::MARGIN, 16, 198, 16);
+    }
+
+    protected function drawTitle($project, $article)
+    {
+        $y = 31;
+        $this->SetXY(self::MARGIN, $y);
+        $this->SetFont('Arial', 'B', 19);
+        $this->color('text', self::INK);
+        $this->MultiCell(186, 8, $this->t($article->Article ?? ''), 0, 'L');
+        $y = $this->GetY() + 1;
+
+        // Sous-titre : projet · groupe
+        $sub = array_filter([
+            $project->ObjetCommande ?? ($project->project_name ?? ''),
+            $article->Groupe ?? '',
+        ], function ($v) { return trim((string) $v) !== ''; });
+        if ($sub) {
+            $this->SetXY(self::MARGIN, $y);
+            $this->SetFont('Arial', '', 10);
+            $this->color('text', self::MUTED);
+            $this->Cell(186, 6, $this->t(implode('   |   ', $sub)), 0, 1, 'L');
+            $y = $this->GetY();
+        }
+        return $y + 5;
+    }
+
+    // ------------------------------------------------------------------ Indicateurs clés
+
+    protected function drawKpis($tank_datas, $y)
+    {
+        $d = $tank_datas['dimensions'] ?? null;
+        $kpis = [
+            [__('Volume', 'creation-reservoir'),         $d->Volume ?? null,      'L'],
+            [__('Diameter', 'creation-reservoir'),       $d->Diameter ?? null,    'mm'],
+            [__('Height', 'creation-reservoir'),         $d->Height ?? null,      'mm'],
+            [__('Design pressure', 'creation-reservoir'), $d->MaxPressure ?? null, 'bar'],
+        ];
+
+        $gap = 4;
+        $w = (186 - 3 * $gap) / 4;
+        $h = 20;
+        foreach ($kpis as $i => [$label, $value, $unit]) {
+            $x = self::MARGIN + $i * ($w + $gap);
+            $this->roundedBox($x, $y, $w, $h, self::PANEL);
+
+            $this->SetXY($x, $y + 3);
+            $this->SetFont('Arial', '', 7.5);
+            $this->color('text', self::MUTED);
+            $this->Cell($w, 4, $this->t(mb_strtoupper($label)), 0, 2, 'C');
+
+            $this->SetFont('Arial', 'B', 15);
+            $this->color('text', self::INK);
+            $text = ($value === null || $value === '') ? '-' : rtrim(rtrim(number_format((float) $value, 1, '.', "'"), '0'), '.');
+            $this->Cell($w, 8, $this->t($text . ($value === null || $value === '' ? '' : ' ')), 0, 0, 'C');
+            if ($value !== null && $value !== '') {
+                // unité en petit, juste après la valeur
+                $this->SetXY($x + $w / 2 + $this->GetStringWidth($text) / 2 + 0.6, $y + 9.2);
+                $this->SetFont('Arial', '', 8);
+                $this->color('text', self::MUTED);
+                $this->Cell(10, 6, $this->t($unit), 0, 0, 'L');
+            }
+        }
+        return $y + $h + 8;
+    }
+
+    // ------------------------------------------------------------------ Colonne de gauche
+
+    protected function drawLeftColumn($project, $article, $tank_datas, $y)
+    {
+        $x = self::MARGIN;
+        $w = self::LEFT_W;
+        $d = $tank_datas['dimensions'] ?? null;
+        $c = $tank_datas['conception'] ?? null;
+
+        // Caractéristiques
+        $y = $this->sectionTitle($x, $y, $w, __('Specifications', 'creation-reservoir'));
+        $y = $this->keyValueRows($x, $y, $w, [
+            __('Materials', 'creation-reservoir')        => !empty($c->material_text) ? __($c->material_text, 'creation-reservoir') : null,
+            __('Temperature', 'creation-reservoir')      => isset($d->usingTemperature) && $d->usingTemperature !== '' ? $d->usingTemperature . ' °C' : null,
+            __('Design pressure', 'creation-reservoir')  => isset($d->MaxPressure) && $d->MaxPressure !== '' ? $d->MaxPressure . ' bar' : null,
+            __('Test pressure', 'creation-reservoir')    => isset($d->TestPressure) && $d->TestPressure !== '' ? $d->TestPressure . ' bar' : null,
+            __('Tipping height', 'creation-reservoir')   => !empty($d->TippingHeight) ? $d->TippingHeight . ' mm' : null,
+            __('Ground clearance', 'creation-reservoir') => !empty($d->GroundClearance) ? $d->GroundClearance . ' mm' : null,
+        ]);
+
+        // Échangeurs
+        $y = $this->drawExchangers($article, $x, $y + 3, $w);
+
+        // Isolation
+        $y = $this->drawTextBlock($x, $y + 3, $w, __('Insulation', 'creation-reservoir'), $this->insulationText($article));
+
+        // Soudure sur site
+        if (!empty($article->tank_on_site_welded)) {
+            $text = apply_filters('ispag_get_warranty_information', null, $article->Id ?? 0);
+            $y = $this->drawTextBlock($x, $y + 3, $w, __('Welding', 'creation-reservoir'), $text);
+        }
+        return $y;
+    }
+
+    protected function drawExchangers($article, $x, $y, $w)
+    {
+        $coils = apply_filters('ispag_get_heat_exchanger_datas', null, $article->Id ?? 0);
+        if (empty($coils) || !is_array($coils)) return $y;
+
+        $cards = [];
+        foreach ($coils as $key => $coil) {
+            $num = str_ireplace('coil', '', $key);
+            $rows = [
+                __('Surface', 'creation-reservoir')       => !empty($coil['coilSurface']) ? $coil['coilSurface'] . ' m²' : null,
+                __('Power', 'creation-reservoir')         => !empty($coil['exchangerPower']) ? $coil['exchangerPower'] . ' kW' : null,
+                __('Primary', 'creation-reservoir')       => (!empty($coil['loadInputTemperature']) || !empty($coil['loadOutputTemperature']))
+                                                              ? ($coil['loadInputTemperature'] ?? '-') . ' / ' . ($coil['loadOutputTemperature'] ?? '-') . ' °C' : null,
+                __('Water', 'creation-reservoir')         => (!empty($coil['coldWaterInputTemperature']) || !empty($coil['hotWaterOutputTemperature']))
+                                                              ? ($coil['coldWaterInputTemperature'] ?? '-') . ' / ' . ($coil['hotWaterOutputTemperature'] ?? '-') . ' °C' : null,
+                __('Pressure', 'creation-reservoir')      => !empty($coil['exchangerPression']) ? $coil['exchangerPression'] . ' bar' : null,
+                __('Comment', 'creation-reservoir')       => !empty($coil['comment']) ? $coil['comment'] : null,
+            ];
+            if (!empty($coil['spiraflex']) && (string) $coil['spiraflex'] === '1') {
+                $rows = [__('Type', 'creation-reservoir') => 'Spiraflex DN32'] + $rows;
+            }
+            if (array_filter($rows, function ($v) { return $v !== null; })) {
+                $cards[] = [sprintf(__('Coil %s', 'creation-reservoir'), $num), $rows];
+            }
+        }
+        if (!$cards) return $y;
+
+        $y = $this->sectionTitle($x, $y, $w, _n('Heat exchanger', 'Heat exchangers', count($cards), 'creation-reservoir'));
+
+        // Un échangeur : pleine largeur ; plusieurs : deux cartes côte à côte
+        $per_row = count($cards) === 1 ? 1 : 2;
+        $gap = 4;
+        $card_w = ($w - ($per_row - 1) * $gap) / $per_row;
+        $label_w = $per_row === 1 ? 36 : 22;
+
+        foreach (array_chunk($cards, $per_row) as $group) {
+            $tallest = 0;
+            foreach ($group as $c) $tallest = max($tallest, count(array_filter($c[1], function ($v) { return $v !== null; })));
+            $y = $this->ensure($y, 6 + $tallest * 5.8);
+
+            $row_end = $y;
+            foreach ($group as $i => [$title, $rows]) {
+                $cx = $x + $i * ($card_w + $gap);
+                $this->SetXY($cx, $y);
+                $this->SetFont('Arial', 'B', 8.5);
+                $this->color('text', self::INK);
+                $this->Cell($card_w, 5, $this->t($title), 0, 1, 'L');
+                $row_end = max($row_end, $this->keyValueRows($cx, $y + 5.5, $card_w, $rows, $label_w));
+            }
+            $y = $row_end;
+        }
+        return $y;
+    }
+
+    /** Bloc de texte libre (isolation, soudure) dans un cadre gris. */
+    protected function drawTextBlock($x, $y, $w, $title, $text)
+    {
+        $text = trim(str_replace(["\r", '<br />', '<br>', '<br/>'], ["", "\n", "\n", "\n"], (string) $text));
+        if ($text === '') return $y;
+
+        $this->SetFont('Arial', '', 8.5);
+        $lines = $this->wrapLines($this->t($text), $w - 8);
+        $h = max(9, count($lines) * 4.6 + 5);
+        $y = $this->ensure($y, $h + 10);
+        $y = $this->sectionTitle($x, $y, $w, $title);
+        $this->roundedBox($x, $y, $w, $h, self::PANEL);
+        $this->SetXY($x + 4, $y + 2.5);
+        $this->color('text', self::INK);
+        $this->MultiCell($w - 8, 4.6, implode("\n", $lines), 0, 'L');
+        return $y + $h + 2;
+    }
+
+    /** Découpe un texte en lignes qui tiennent dans $width (mm) avec la police courante. */
+    protected function wrapLines($text, $width)
+    {
+        $out = [];
+        foreach (explode("\n", $text) as $paragraph) {
+            $line = '';
+            foreach (preg_split('/\s+/', trim($paragraph)) as $word) {
+                $try = $line === '' ? $word : $line . ' ' . $word;
+                if ($line !== '' && $this->GetStringWidth($try) > $width) {
+                    $out[] = $line;
+                    $line = $word;
+                } else {
+                    $line = $try;
+                }
+            }
+            $out[] = $line;
+        }
+        return $out;
+    }
+
+    /** Texte d'isolation : ligne liée au réservoir, sinon isolation saisie dans le formulaire. */
+    protected function insulationText($article)
+    {
+        $insulation = apply_filters('ispag_get_related_insulation_information', null, $article->Id ?? 0);
+        if ($insulation) return $insulation;
+
+        $tank_datas = apply_filters('ispag_get_tank_datas', null, $article->Id ?? 0);
+        if (!empty($tank_datas['insulation']) && !empty($tank_datas['dimensions'])) {
+            $i = $tank_datas['insulation'];
+            if (!empty($i->insulation)) {
+                return sprintf(
+                    __('%dmm %s for %dL tank', 'creation-reservoir'),
+                    $i->InsulationThickness ?? 0,
+                    __($i->insulation, 'creation-reservoir'),
+                    $tank_datas['dimensions']->Volume ?? 0
+                ) . "\n" . __('Assembly at the customer\'s expense', 'creation-reservoir');
+            }
+        }
+        return '';
+    }
+
+    // ------------------------------------------------------------------ Colonne de droite
+
+    protected function drawRightColumn($article, $svg_path, $y)
+    {
+        $x = $this->right_x;
+        $w = $this->right_w;
+
+        // Dessin
+        $y = $this->sectionTitle($x, $y, $w, __('Drawing', 'creation-reservoir'));
+        $box_h = 112;
+        $this->roundedBox($x, $y, $w, $box_h, self::WHITE, self::LINE);
+        $this->placeDrawing($svg_path, $x + 3, $y + 3, $w - 6, $box_h - 6);
+        $y += $box_h + 6;
+
+        // Piquages
+        $lines = $this->fittingLines($article->fittings_description ?? '');
+        if ($lines) {
+            $y = $this->sectionTitle($x, $y, $w, __('Fittings', 'creation-reservoir'));
+            foreach ($lines as $i => $line) {
+                $wrapped = $this->wrapLinesFor($line, $w - 12, 8);
+                $h = count($wrapped) * 4.2 + 2.4;
+                $y = $this->ensure($y, $h);
+                if ($i % 2 === 0) {
+                    $this->color('fill', self::PANEL);
+                    $this->Rect($x, $y, $w, $h, 'F');
+                }
+                $this->color('fill', self::RED);
+                $this->Rect($x + 1.8, $y + 1.9, 1.4, 1.4, 'F');
+                $this->SetXY($x + 5.5, $y + 1.2);
+                $this->SetFont('Arial', '', 8);
+                $this->color('text', self::INK);
+                $this->MultiCell($w - 7, 4.2, implode("\n", $wrapped), 0, 'L');
+                $y += $h;
+            }
+        }
+        return $y;
+    }
+
+    protected function wrapLinesFor($text, $width, $size)
+    {
+        $this->SetFont('Arial', '', $size);
+        return $this->wrapLines($this->t($text), $width);
+    }
+
+    /** Une ligne par piquage à partir de la description texte/HTML. */
+    protected function fittingLines($description)
+    {
+        $description = str_ireplace(['<br />', '<br>', '<br/>', '</li>', '</p>', '</tr>'], "\n", (string) $description);
+        $lines = [];
+        foreach (preg_split('/\n+/', wp_strip_all_tags($description)) as $line) {
+            $line = trim(html_entity_decode($line, ENT_QUOTES, 'UTF-8'));
+            if ($line !== '') $lines[] = $line;
+        }
+        return $lines;
+    }
+
+    /** Dessin du réservoir centré dans le cadre, proportions conservées. */
+    protected function placeDrawing($svgUrl, $x, $y, $max_w, $max_h)
     {
         $svgPath = $this->get_local_path_from_url($svgUrl);
-        if (!file_exists($svgPath)) {
-            $this->Cell(0, 10, mb_convert_encoding(__('Error: SVG file not found.', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-            $this->y_image_bottom = $this->GetY();
+        $png = null;
+
+        if ($svgUrl && file_exists($svgPath)) {
+            $png = str_replace('.svg', '.png', $svgPath);
+            if (file_exists($png)) @unlink($png);
+            try {
+                $this->convert_svg_to_png($svgPath, $png);
+            } catch (Exception $e) {
+                $png = null;
+            }
+        }
+
+        if (!$png || !file_exists($png)) {
+            $this->SetXY($x, $y + $max_h / 2 - 3);
+            $this->SetFont('Arial', 'I', 8.5);
+            $this->color('text', self::MUTED);
+            $this->Cell($max_w, 6, $this->t(__('Drawing not available.', 'creation-reservoir')), 0, 0, 'C');
             return;
         }
 
-        $pngPath = str_replace('.svg', '.png', $svgPath);
-        if (file_exists($pngPath)) {
-            unlink($pngPath);
-        }
-
-        try {
-            $this->convert_svg_to_png($svgPath, $pngPath);
-            if (file_exists($pngPath)) {
-                $this->Image($pngPath, 130, $this->GetY(), 0, 80);
-                $this->Ln(65);
-            } else {
-                $this->Cell(0, 10, mb_convert_encoding(__('Failed to convert SVG to PNG.', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-            }
-        } catch (ImagickException $e) {
-            $this->Cell(0, 10, mb_convert_encoding(__('Error converting SVG: ', 'creation-reservoir') . $e->getMessage(), 'ISO-8859-1', 'UTF-8'), 0, 1);
-        }
-
-        $this->y_image_bottom = $this->GetY();
+        $size = @getimagesize($png);
+        $ratio = ($size && $size[1] > 0) ? $size[0] / $size[1] : 0.5;
+        $h = $max_h;
+        $w = $h * $ratio;
+        if ($w > $max_w) { $w = $max_w; $h = $w / $ratio; }
+        $this->Image($png, $x + ($max_w - $w) / 2, $y + ($max_h - $h) / 2, $w, $h);
     }
 
-    /**
-     * Convertit un fichier SVG en PNG.
-     *
-     * @param string $svgPath Chemin vers le fichier SVG.
-     * @param string $pngPath Chemin vers le fichier PNG de sortie.
-     * @throws ImagickException Si la conversion échoue.
-     */
+    /** Convertit un fichier SVG en PNG (proportions conservées). */
     protected function convert_svg_to_png($svgPath, $pngPath)
     {
         if (!class_exists('Imagick')) {
@@ -209,8 +481,7 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         $imagick = new Imagick();
         $imagick->setBackgroundColor(new ImagickPixel('white'));
         $imagick->readImage($svgPath);
-        $imagick->resizeImage(1200, 2400, Imagick::FILTER_LANCZOS, 1);
-        $imagick->quantizeImage(256, Imagick::COLORSPACE_RGB, 0, false, false);
+        $imagick->resizeImage(1200, 2400, Imagick::FILTER_LANCZOS, 1, true);
         $imagick->setImageDepth(8);
         $imagick->setImageFormat('png');
         $imagick->writeImage($pngPath);
@@ -218,278 +489,83 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         $imagick->destroy();
     }
 
-    /**
-     * Convertit une URL en chemin local.
-     *
-     * @param string $url URL du fichier.
-     * @return string Chemin local absolu.
-     */
+    /** Convertit une URL en chemin local. */
     protected function get_local_path_from_url($url)
     {
-        $site_url = site_url();
-        $server_path = ABSPATH;
-        return str_replace($site_url, $server_path, $url);
+        return str_replace(site_url(), ABSPATH, (string) $url);
     }
 
-    /**
-     * Ajoute le bloc échangeur thermique.
-     *
-     * @param object $article Données de l'article.
-     */
-    protected function addBlocEchangeur($article)
+    // ------------------------------------------------------------------ Remarque et pied de page
+
+    protected function drawNotes($y)
     {
-        $x = $this->GetX();
-        $y = $this->GetY();
-
-        $this->SetFillColor(255, 255, 255);
-        $this->SetDrawColor(218, 124, 81);
-
-        $heat_exchanger_datas = apply_filters('ispag_get_heat_exchanger_datas', null, $article->Id ?? 0);
-        if (empty($heat_exchanger_datas)) {
-            return;
-        }
-
-        $datas = [];
-        foreach ($heat_exchanger_datas as $key => $coil) {
-            $surface = !empty($coil['coilSurface']) && $coil['coilSurface'] > 0 ? $coil['coilSurface'] : null;
-            $input = !empty($coil['loadInputTemperature']) && $coil['loadInputTemperature'] > 0 ? $coil['loadInputTemperature'] : null;
-            $output = !empty($coil['loadOutputTemperature']) && $coil['loadOutputTemperature'] > 0 ? $coil['loadOutputTemperature'] : null;
-            $cold = !empty($coil['coldWaterInputTemperature']) && $coil['coldWaterInputTemperature'] > 0 ? $coil['coldWaterInputTemperature'] : null;
-            $hot = !empty($coil['hotWaterOutputTemperature']) && $coil['hotWaterOutputTemperature'] > 0 ? $coil['hotWaterOutputTemperature'] : null;
-            $power = !empty($coil['exchangerPower']) && $coil['exchangerPower'] > 0 ? $coil['exchangerPower'] : null;
-            $exchangerPression = !empty($coil['exchangerPression']) ? $coil['exchangerPression'] : null;
-            $comment = !empty($coil['comment']) ? $coil['comment'] : null;
-
-            $parts = [];
-            if ($surface !== null) $parts[] = sprintf(__('%sm²', 'creation-reservoir'), $surface);
-            if ($power !== null) $parts[] = sprintf(__('%s kW', 'creation-reservoir'), $power);
-            if ($input !== null || $output !== null) $parts[] = sprintf(__('In %s°C / Out %s°C', 'creation-reservoir'), $input ?? '-', $output ?? '-');
-            if ($cold !== null || $hot !== null) $parts[] = sprintf(__('Water %s°C / %s°C', 'creation-reservoir'), $cold ?? '-', $hot ?? '-');
-            if ($exchangerPression !== null) $parts[] = sprintf(__('Pression : %s bar', 'creation-reservoir'), $exchangerPression ?? null);
-            if ($comment !== null) $parts[] = sprintf(__('%s', 'creation-reservoir'), $comment ?? null);
-
-            if (!empty($parts)) {
-                $coil_nb = str_ireplace('coil', '', $key);
-                $line_title = sprintf(__('Coil %s', 'creation-reservoir'), $coil_nb);
-                $line_data = implode("\n", $parts);
-                $datas[$line_title] = $line_data;
-            }
-        }
-
-        if (empty($datas)) return;
-
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(0, 10, mb_convert_encoding(__('Heat exchanger', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-        $this->SetFont('Arial', '', 8);
-
-        foreach ($datas as $label => $value) {
-            $this->Cell(60, 5, mb_convert_encoding($label, 'ISO-8859-1', 'UTF-8'), 0, 0);
-            $this->MultiCell(0, 5, mb_convert_encoding($value, 'ISO-8859-1', 'UTF-8'), 0, 1);
-        }
-
-        $this->Ln(3);
-        $height = $this->GetY() - $y;
-        $this->RoundedRect($x, $y, 110, $height, 3, 'D');
-        $this->Ln(3);
+        $y = $this->ensure($y + 2, 12);
+        $this->SetXY(self::MARGIN, $y);
+        $this->SetFont('Arial', 'I', 7.5);
+        $this->color('text', self::MUTED);
+        $this->MultiCell(186, 4, $this->t(__('Technical data is given for information and may be modified without notice. Dimensions in millimetres.', 'creation-reservoir')), 0, 'L');
     }
 
-    /**
-     * Ajoute le bloc soudure.
-     *
-     * @param object $article Données de l'article.
-     */
-    protected function addBlocSoudure($article)
+    public function Footer()
     {
-        $x = $this->GetX();
-        $y = $this->GetY();
+        $this->SetY(-17);
+        $this->color('draw', self::LINE);
+        $this->SetLineWidth(0.3);
+        $this->Line(self::MARGIN, $this->GetY(), 198, $this->GetY());
+        $this->Ln(2);
 
-        $this->SetFillColor(255, 255, 255);
-        $this->SetDrawColor(218, 124, 81);
+        $company = array_filter([
+            get_option('wpcb_companyName'),
+            get_option('wpcb_companyAdress'),
+            trim(get_option('wpcb_companyNIP') . ' ' . get_option('wpcb_companyCity')),
+            get_option('wpcb_companyMail'),
+            get_option('wpcb_companyPhone'),
+            get_option('wpcb_companyWebsite'),
+        ]);
 
-        if (empty($article->tank_on_site_welded)) return;
-
-        $welding_description = apply_filters('ispag_get_welding_text', null, $article->Id ?? 0, false);
-        $warranty_information = apply_filters('ispag_get_warranty_information', null, $article->Id ?? 0);
-
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(0, 10, mb_convert_encoding(__('Welding', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-        $this->SetFont('Arial', '', 8);
-
-        $this->MultiCell($this->GetPageWidth() / 2, 5, mb_convert_encoding($warranty_information ?? '', 'ISO-8859-1', 'UTF-8'));
-        $this->Ln(3);
-
-        $height = $this->GetY() - $y;
-        $this->RoundedRect($x, $y, 110, $height, 3, 'D');
-        $this->Ln(3);
+        $this->SetFont('Arial', '', 7.5);
+        $this->color('text', self::MUTED);
+        $this->Cell(160, 4, $this->t(implode('  -  ', $company)), 0, 0, 'L');
+        $this->Cell(26, 4, $this->t(sprintf(__('Page %s / %s', 'creation-reservoir'), $this->PageNo(), '{nb}')), 0, 0, 'R');
     }
 
-    /**
-     * Ajoute le bloc isolation.
-     *
-     * @param object $article Données de l'article.
-     */
-    protected function addBlocIsolation($article)
-    {
-        $x = $this->GetX();
-        $y = $this->GetY();
+    // ------------------------------------------------------------------ Rectangle arrondi
 
-        $this->SetFillColor(255, 255, 255);
-        $this->SetDrawColor(218, 124, 81);
-
-        if (empty($article)) return;
-
-        // 1. Tenter de récupérer l'isolation liée (accessoire/spécifique)
-        $insulation = apply_filters('ispag_get_related_insulation_information', null, $article->Id ?? 0);
-        
-        // 2. Si aucune isolation spécifique, on récupère l'isolation standard du réservoir
-        if (!$insulation) 
-        {
-            $tank_datas = apply_filters('ispag_get_tank_datas', null, $article->Id ?? 0);
-        
-            if (!empty($tank_datas['insulation']) && !empty($tank_datas['dimensions'])) 
-            {
-                $insulation_obj = $tank_datas['insulation'];
-                $dimensions_obj = $tank_datas['dimensions'];
-
-                // Récupération des variables pour le sprintf
-                $thickness_text   = $insulation_obj->InsulationThickness ?? '0';
-                $type_text        = $insulation_obj->insulation ?? '';
-                $cover_text       = $insulation_obj->insulationCover ?? '';
-                
-                $volume           = $dimensions_obj->Volume ?? '0';
-                $tank_height      = $dimensions_obj->Height ?? '0';
-                $tank_height_text = 'H-Total'; // Ou la clé de traduction correspondante à votre hauteur
-
-                // Génération du Titre (comme dans votre exemple)
-                $title = sprintf(
-                    __('%dmm %s for %dL tank', 'creation-reservoir'),
-                    $thickness_text,
-                    __($type_text, 'creation-reservoir'),
-                    $volume,
-                    
-                );
-
-                // Assemblage de la description complète avec des retours à la ligne (\n) pour le PDF
-                $desc = $title;
-                $desc .= "\n" . __('Assembly at the customer\'s expense', 'creation-reservoir');
-
-                $insulation = $desc;
-            }
-        }
-
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(0, 10, mb_convert_encoding(__('Insulation', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-        $this->SetFont('Arial', '', 8);
-
-        $this->MultiCell($this->GetPageWidth() / 2, 5, mb_convert_encoding($insulation ?? '', 'ISO-8859-1', 'UTF-8'));
-        $this->Ln(3);
-
-        $height = $this->GetY() - $y;
-        $this->RoundedRect($x, $y, 110, $height, 3, 'D');
-        $this->Ln(3);
-    }
-
-    // ========== MÉTHODES POUR LES RACCORDS ==========
-
-    /**
-     * Ajoute la liste des raccords.
-     *
-     * @param object $article Données de l'article.
-     */
-    protected function addRaccordsList($article)
-    {
-        $this->SetXY(130, $this->y_image_bottom + 20);
-        $x = $this->GetX();
-        $y = $this->GetY();
-
-        $this->SetFillColor(255, 255, 255);
-        $this->SetDrawColor(218, 124, 81);
-
-        if (empty($article)) return;
-
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(0, 10, mb_convert_encoding(__('Fittings', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-
-        $this->SetX(130);
-        $this->SetFont('Arial', '', 8);
-        $this->MultiCell($this->GetPageWidth() / 3, 5, mb_convert_encoding($article->fittings_description ?? '', 'ISO-8859-1', 'UTF-8'));
-        $this->Ln(3);
-
-        $height = $this->GetY() - $y;
-        $this->RoundedRect($x, $y, $this->GetPageWidth() / 3, $height, 3, 'D');
-        $this->Ln(3);
-    }
-
-    // ========== MÉTHODES UTILITAIRES POUR LES FORMES ==========
-
-    /**
-     * Dessine un rectangle arrondi.
-     *
-     * @param float $x      Position X.
-     * @param float $y      Position Y.
-     * @param float $w      Largeur.
-     * @param float $h      Hauteur.
-     * @param float $r      Rayon des coins.
-     * @param string $style Style (D pour bordure, F pour remplissage, DF pour les deux).
-     */
     protected function RoundedRect($x, $y, $w, $h, $r = 2, $style = '')
     {
         $k = $this->k;
         $hp = $this->h;
         $op = ($style == 'F') ? 'f' : (($style == 'FD' || $style == 'DF') ? 'B' : 'S');
-
-        $MyArc = 4 / 3 * (sqrt(2) - 1);
+        $arc = 4 / 3 * (sqrt(2) - 1);
 
         $this->_out(sprintf('%.2F %.2F m', ($x + $r) * $k, ($hp - $y) * $k));
         $xc = $x + $w - $r;
         $yc = $y + $r;
         $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - $y) * $k));
-
-        // Coin haut droit
-        $this->_Arc($xc + $r * $MyArc, $yc - $r, $xc + $r, $yc - $r * $MyArc, $xc + $r, $yc);
-
-        // Coin bas droit
+        $this->_Arc($xc + $r * $arc, $yc - $r, $xc + $r, $yc - $r * $arc, $xc + $r, $yc);
         $xc = $x + $w - $r;
         $yc = $y + $h - $r;
         $this->_out(sprintf('%.2F %.2F l', ($x + $w) * $k, ($hp - $yc) * $k));
-        $this->_Arc($xc + $r, $yc + $r * $MyArc, $xc + $r * $MyArc, $yc + $r, $xc, $yc + $r);
-
-        // Coin bas gauche
+        $this->_Arc($xc + $r, $yc + $r * $arc, $xc + $r * $arc, $yc + $r, $xc, $yc + $r);
         $xc = $x + $r;
         $yc = $y + $h - $r;
         $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - ($y + $h)) * $k));
-        $this->_Arc($xc - $r * $MyArc, $yc + $r, $xc - $r, $yc + $r * $MyArc, $xc - $r, $yc);
-
-        // Coin haut gauche
+        $this->_Arc($xc - $r * $arc, $yc + $r, $xc - $r, $yc + $r * $arc, $xc - $r, $yc);
         $xc = $x + $r;
         $yc = $y + $r;
         $this->_out(sprintf('%.2F %.2F l', $x * $k, ($hp - $yc) * $k));
-        $this->_Arc($xc - $r, $yc - $r * $MyArc, $xc - $r * $MyArc, $yc - $r, $xc, $yc - $r);
-
+        $this->_Arc($xc - $r, $yc - $r * $arc, $xc - $r * $arc, $yc - $r, $xc, $yc - $r);
         $this->_out($op);
     }
 
-    /**
-     * Dessine un arc de cercle pour les coins arrondis.
-     *
-     * @param float $x1 Coordonnée X du point de départ.
-     * @param float $y1 Coordonnée Y du point de départ.
-     * @param float $x2 Coordonnée X du point de contrôle 1.
-     * @param float $y2 Coordonnée Y du point de contrôle 1.
-     * @param float $x3 Coordonnée X du point final.
-     * @param float $y3 Coordonnée Y du point final.
-     */
     protected function _Arc($x1, $y1, $x2, $y2, $x3, $y3)
     {
         $h = $this->h;
         $this->_out(sprintf(
             '%.2F %.2F %.2F %.2F %.2F %.2F c ',
-            $x1 * $this->k,
-            ($h - $y1) * $this->k,
-            $x2 * $this->k,
-            ($h - $y2) * $this->k,
-            $x3 * $this->k,
-            ($h - $y3) * $this->k
+            $x1 * $this->k, ($h - $y1) * $this->k,
+            $x2 * $this->k, ($h - $y2) * $this->k,
+            $x3 * $this->k, ($h - $y3) * $this->k
         ));
     }
 }
