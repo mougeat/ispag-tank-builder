@@ -330,17 +330,38 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
         $text = trim(str_replace(["\r", '<br />', '<br>', '<br/>'], ["", "\n", "\n", "\n"], (string) $text));
         if ($text === '') return $y;
 
-        $this->SetFont('Arial', '', 8.5);
-        $lines = $this->wrapLines($this->t($text), $w - 8);
-        $h = max(9, count($lines) * 4.6 + 5);
+        $size = 8;
+        $lead = 4;
+        $this->SetFont('Arial', '', $size);
+        // MultiCell retire 1 mm de marge de chaque côté : on mesure sur la largeur réellement disponible
+        $inner = $w - 8 - 2 * $this->cMargin - 0.5;
+        $lines = $this->wrapLines($this->t($this->reflow($text)), $inner);
+        $h = max(9, count($lines) * $lead + 5);
+
         $y = $this->ensure($y, $h + 10);
         $y = $this->sectionTitle($x, $y, $w, $title);
-        $this->SetFont('Arial', '', 8.5);
+        $this->SetFont('Arial', '', $size);
         $this->roundedBox($x, $y, $w, $h, self::PANEL);
         $this->SetXY($x + 4, $y + 2.5);
         $this->color('text', self::INK);
-        $this->MultiCell($w - 8, 4.6, implode("\n", $lines), 0, 'L');
+        $this->MultiCell($w - 8, $lead, implode("\n", $lines), 0, 'L');
         return $y + $h + 2;
+    }
+
+    /** Recolle les phrases coupées par un retour à la ligne (la ligne suivante commence par une minuscule). */
+    protected function reflow($text)
+    {
+        $out = [];
+        foreach (preg_split('/\n+/', $text) as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+            if ($out && preg_match('/^\p{Ll}/u', $line)) {
+                $out[count($out) - 1] .= ' ' . $line;
+            } else {
+                $out[] = $line;
+            }
+        }
+        return implode("\n", $out);
     }
 
     /** Découpe un texte en lignes qui tiennent dans $width (mm) avec la police courante. */
@@ -500,7 +521,8 @@ class ISPAG_Tank_TechSheet_Generator extends ISPAG_PDF_Generator
 
     protected function drawNotes($y)
     {
-        $y = $this->ensure($y + 2, 12);
+        // La remarque ne crée jamais de page : au pire elle se place juste au-dessus du pied de page
+        $y = min($y + 2, 297 - 27);
         $this->SetXY(self::MARGIN, $y);
         $this->SetFont('Arial', 'I', 7.5);
         $this->color('text', self::MUTED);
