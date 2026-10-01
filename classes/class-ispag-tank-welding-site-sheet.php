@@ -192,7 +192,6 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
                                 <label style="display:block; font-size:11px; font-weight:bold;"><?php echo esc_html__('Ventilation', 'creation-reservoir'); ?></label>
                                 <select name="ventilation" id="modal_ventilation" style="width:100%; padding:5px; box-sizing:border-box;">
                                     <option value=""><?php echo esc_html__('-- Select --', 'creation-reservoir'); ?></option>
-                                    <option value="Yes"><?php echo esc_html__('Yes', 'creation-reservoir'); ?></option>
                                     <option value="No"><?php echo esc_html__('No', 'creation-reservoir'); ?></option>
                                     <option value="Natural"><?php echo esc_html__('Natural', 'creation-reservoir'); ?></option>
                                     <option value="Mechanical"><?php echo esc_html__('Mechanical', 'creation-reservoir'); ?></option>
@@ -623,7 +622,7 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
         );
         $ventilation    = $this->checkbox_or_value(
             $delivery_info->ventilation ?? null,
-            [__('Yes', 'creation-reservoir'), __('No', 'creation-reservoir'), __('Natural', 'creation-reservoir'), __('Mechanical', 'creation-reservoir')]
+            [__('No', 'creation-reservoir'), __('Natural', 'creation-reservoir'), __('Mechanical', 'creation-reservoir')]
         );
         $electricity    = $this->checkbox_or_value(
             $delivery_info->electricity_available ?? null,
