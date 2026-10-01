@@ -534,6 +534,12 @@ class ISPAG_Tank_Designer
 
         $this->apply_default_supplier($article_id, $newData['TankType'] ?? 0, $newData['Material'] ?? 0);
 
+        // Largeur de porte : enregistrée avant la soudure pour que sa description l'indique (au lieu de « information manquante »)
+        if (isset($datas['door_width']) && $deal_id && class_exists('ISPAG_Tank_Welding_Site_Sheet')) {
+            $welding_sheet = new ISPAG_Tank_Welding_Site_Sheet();
+            $welding_sheet->save_welding_sheet_data($deal_id, ['door_width' => sanitize_text_field($datas['door_width'])]);
+        }
+
         // Nombre de soudures : toujours enregistré (piquages de type soudure) ; l'article de soudure n'est créé
         // que si la soudure n'est pas faite par le client. Champ absent = on ne touche à rien.
         $nb_welding = array_key_exists('nbWelding', $data_received) ? $data_received['nbWelding'] : null;

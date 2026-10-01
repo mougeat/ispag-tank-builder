@@ -585,7 +585,7 @@ function saveTankData(articleId, is_purchase = false) {
 
     console.log("Données envoyées au serveur :", tank); // Pour tes tests
 
-    return $.post(ISPAG_TANK.ajax_url, {
+    const payload = {
         action: 'ispag_save_tank_data',
         _ajax_nonce: ISPAG_TANK.nonce,
         deal_id: deal_id,
@@ -593,7 +593,12 @@ function saveTankData(articleId, is_purchase = false) {
         article_id: articleId,
         is_purchase: is_purchase,
         tank: tank
-    }).then(response => {
+    };
+    // Largeur de porte (cm) : enregistrée avec la soudure pour figurer dans sa description (seulement si le champ est affiché)
+    const $doorWidth = $('[name="door_width"]');
+    if ($doorWidth.length) payload.door_width = $doorWidth.val();
+
+    return $.post(ISPAG_TANK.ajax_url, payload).then(response => {
         // Une réponse sans succès (ou non JSON) doit être traitée comme un échec
         if (!response || !response.success) {
             console.error('Error cuve : ', response && response.data);
