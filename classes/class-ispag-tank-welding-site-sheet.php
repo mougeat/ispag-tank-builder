@@ -236,9 +236,14 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
             const modal = document.getElementById('ispag-welding-modal');
             if (modal && modal.parentNode !== document.body) document.body.appendChild(modal);
         })();
+        // Articles cochés ; la case « tout sélectionner » n'a pas d'identifiant d'article
+        function selectedArticleIds() {
+            return [...document.querySelectorAll('.ispag-article-checkbox:checked')]
+                .map(cb => cb.dataset.articleId)
+                .filter(Boolean);
+        }
         document.getElementById('generate-welding-site-sheet').addEventListener('click', function () {
-            const ids = [...document.querySelectorAll('.ispag-article-checkbox:checked')]
-                .map(cb => cb.dataset.articleId);
+            const ids = selectedArticleIds();
 
             // if (ids.length === 0) {
             //     alert('<?php echo esc_js(__('No items selected', 'creation-reservoir')); ?>');
@@ -309,9 +314,7 @@ class ISPAG_Tank_Welding_Site_Sheet extends \setasign\Fpdi\Fpdi
                 success: function(response) {
                     if (response.success) {
                         document.getElementById('ispag-welding-modal').style.display = 'none';
-                        const ids = [...document.querySelectorAll('.ispag-article-checkbox:checked')]
-                            .map(cb => cb.dataset.articleId);
-                        openPdfUrl(document.querySelector('[name="deal_id"]').value, ids);
+                        openPdfUrl(formData.get('deal_id'), selectedArticleIds());
                     } else {
                         alert('Error saving data.');
                     }
