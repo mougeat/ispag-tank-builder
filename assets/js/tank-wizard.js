@@ -38,6 +38,11 @@
         #ispag-wizard-fittings-host .ispag-modal-fitting-left img,#ispag-wizard-fittings-host .ispag-modal-fitting-left svg{max-width:100%;max-height:240px;height:auto}
         .ispag-wizard-error{color:#b32d2e;margin:8px 0;font-weight:600}
         .ispag-wizard-panel{background:#fff;border:1px solid #ddd;border-radius:6px;padding:14px 16px;margin-top:10px}
+        #ispag-wizard-fittings.ispag-wizard-panel{border:0;background:transparent;padding:0;margin-top:0}
+        #ispag-wizard-fittings-host #tank-fittings-form-container > h2,
+        #ispag-wizard-fittings-host #tank-fittings-form-container > p{display:none !important}
+        #ispag-wizard-fittings-host .ispag-modal-fitting-right{background:transparent;padding:0;border-radius:0}
+        #ispag-wizard-fittings-host .ispag-modal-fitting-left{background:#f8fafc;border:1px solid #e5e7eb !important;border-radius:8px}
     `;
 
     let wizard = null; // un seul assistant actif à la fois
@@ -119,8 +124,7 @@
         $(insField).before(insSkip);
 
         const panel = $('<div class="ispag-wizard-panel" id="ispag-wizard-fittings">' +
-            '<h3 style="margin-top:0">Fittings</h3>' +
-            '<p>The tank is saved. Add its fittings below; they are saved when you continue.</p>' +
+            '<p style="margin-top:0">The tank is saved. Add its fittings below; they are saved when you continue.</p>' +
             '<div id="ispag-wizard-fittings-host"></div>' +
             '<button type="button" id="open-tank-fittings-modal" style="display:none"></button>' +
             '</div>')[0];
