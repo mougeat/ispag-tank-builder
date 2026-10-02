@@ -103,7 +103,7 @@ class ISPAG_Tank_Drawing {
         ], admin_url('admin-ajax.php'));
     }
 
-    /** Droit de valider le plan d'un article : gestionnaire de commandes ou propriétaire du projet. */
+    /** Droit de modifier / valider le plan d'un article : gestionnaire de commandes ou personne concernée par le projet (AssociatedContactIDs). */
     private function can_validate_plan($article) {
         if (current_user_can('manage_order')) return true;
         return $article && class_exists('ISPAG_Projet_Repository')
@@ -322,6 +322,14 @@ class ISPAG_Tank_Drawing {
         if (!$article_id) return "No article found.";
 
         $article = apply_filters('ispag_get_article_by_id', null, $article_id);
+        // Validation réservée au gestionnaire de commandes et aux personnes concernées par le projet
+        if (!is_user_logged_in()) {
+            $login = wp_login_url(add_query_arg(['drawing_id' => $drawing_id, 'article_id' => $article_id], get_permalink()));
+            return '<p><a href="' . esc_url($login) . '">' . esc_html__('Log in to view and validate this drawing.', 'creation-reservoir') . '</a></p>';
+        }
+        if (!$article || !$this->can_validate_plan($article)) {
+            return esc_html__('Drawing not found or access denied.', 'creation-reservoir');
+        }
         $url = $article->last_drawing_url;
         if (!$url) return "PDF introuvable.";
 
