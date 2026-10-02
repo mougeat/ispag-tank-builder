@@ -23,6 +23,10 @@ class ISPAG_Tank_Drawing {
 
         add_shortcode('ispag_plan_viewer', [self::$instance, 'plan_viewer']);
 
+        // Page de consultation/validation autonome (ne dépend d'aucune page WordPress ni des règles de réécriture)
+        add_action('wp_ajax_ispag_plan_viewer_page', [self::$instance, 'render_plan_viewer_page']);
+        add_filter('ispag_plan_validation_url', [self::$instance, 'plan_validation_url'], 10, 3);
+
     }
     public static function enqueue_assets() {
 
@@ -89,6 +93,102 @@ class ISPAG_Tank_Drawing {
         return null;
     }
 
+    /** URL de la page de validation d'un plan. */
+    public function plan_validation_url($default, $article_id, $drawing_id) {
+        return add_query_arg([
+            'action'     => 'ispag_plan_viewer_page',
+            'drawing_id' => (int) $drawing_id,
+            'article_id' => (int) $article_id,
+        ], admin_url('admin-ajax.php'));
+    }
+
+    /** Droit de valider le plan d'un article : gestionnaire de commandes ou propriétaire du projet. */
+    private function can_validate_plan($article) {
+        if (current_user_can('manage_order')) return true;
+        return $article && class_exists('ISPAG_Projet_Repository')
+            && ISPAG_Projet_Repository::is_user_project_owner($article->hubspot_deal_id);
+    }
+
+    /** Page autonome : le PDF à consulter + bouton de validation (avec confirmation). */
+    public function render_plan_viewer_page() {
+        if (!is_user_logged_in()) {
+            wp_safe_redirect(wp_login_url(add_query_arg($_GET, admin_url('admin-ajax.php'))));
+            exit;
+        }
+        $drawing_id = (int) ($_GET['drawing_id'] ?? 0);
+        $article_id = (int) ($_GET['article_id'] ?? 0);
+        $article    = $article_id ? apply_filters('ispag_get_article_by_id', null, $article_id) : null;
+        $url        = $drawing_id ? wp_get_attachment_url($drawing_id) : '';
+
+        if (!$article || !$url || !$this->can_validate_plan($article)) {
+            wp_die(esc_html__('Drawing not found or access denied.', 'creation-reservoir'), '', ['response' => 404]);
+        }
+
+        $user    = wp_get_current_user();
+        $name    = trim($user->user_firstname . ' ' . $user->user_lastname) ?: $user->display_name;
+        $payload = [
+            'ajax_url'   => admin_url('admin-ajax.php'),
+            'nonce'      => wp_create_nonce('ispag_plan_validation'),
+            'drawing_id' => $drawing_id,
+            'article_id' => $article_id,
+            'confirm'    => sprintf(__('Do you really want to validate this drawing? It will be marked "Validated by %s" with today\'s date.', 'creation-reservoir'), $name),
+            'busy'       => __('Validating', 'creation-reservoir'),
+            'label'      => '✅ ' . __('Validate drawing', 'creation-reservoir'),
+        ];
+        ?>
+        <!doctype html>
+        <html <?php language_attributes(); ?>>
+        <head>
+            <meta charset="<?php bloginfo('charset'); ?>">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title><?php esc_html_e('Validation plan', 'creation-reservoir'); ?></title>
+            <style>
+                html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+                body { display: flex; flex-direction: column; }
+                .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: #f6f7f7; border-bottom: 1px solid #ddd; }
+                .bar strong { font-size: 15px; }
+                button { background: #00a32a; color: #fff; border: 0; border-radius: 6px; padding: 9px 18px; font-size: 15px; cursor: pointer; }
+                button:disabled { opacity: .6; cursor: wait; }
+                iframe { flex: 1; width: 100%; border: 0; }
+            </style>
+        </head>
+        <body>
+            <div class="bar">
+                <strong><?php echo esc_html(sprintf(__('Drawing for article #%d', 'creation-reservoir'), $article_id)); ?></strong>
+                <button type="button" id="btn-validate-plan"></button>
+            </div>
+            <iframe src="<?php echo esc_url($url); ?>" title="PDF"></iframe>
+            <script>
+            (function () {
+                const cfg = <?php echo wp_json_encode($payload); ?>;
+                const btn = document.getElementById('btn-validate-plan');
+                btn.textContent = cfg.label;
+                btn.addEventListener('click', function () {
+                    if (!window.confirm(cfg.confirm)) return;
+                    btn.disabled = true;
+                    btn.textContent = cfg.busy + '...';
+                    fetch(cfg.ajax_url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ action: 'ispag_validate_pdf_plan', nonce: cfg.nonce, drawing_id: cfg.drawing_id, article_id: cfg.article_id })
+                    }).then(function (r) { return r.json(); }).then(function (res) {
+                        if (res.success) {
+                            if (window.opener) { window.opener.location.reload(); window.close(); } else { location.reload(); }
+                        } else {
+                            alert('Error: ' + res.data);
+                            btn.disabled = false;
+                            btn.textContent = cfg.label;
+                        }
+                    }).catch(function () { alert('Network error'); btn.disabled = false; btn.textContent = cfg.label; });
+                });
+            })();
+            </script>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
+
     public function plan_viewer(){
         $drawing_id = isset($_GET['drawing_id']) ? (int) $_GET['drawing_id'] : 0;
         if (!$drawing_id) return "No drawing found.";
@@ -108,7 +208,7 @@ class ISPAG_Tank_Drawing {
 
         $btn = "
             <div style='margin-top:20px; text-align:center;'>
-                <button id='btn-validate-plan' class='ispag-btn' data-id='{$drawing_id}' data-article='{$article_id}' data-user='{$display_name}' data-date='{$date}'>
+                <button id='btn-validate-plan' class='ispag-btn' data-id='{$drawing_id}' data-article='{$article_id}' data-nonce='" . esc_attr(wp_create_nonce('ispag_plan_validation')) . "'>
                     ✅ " . __('Validate drawing', 'creation-reservoir') . "
                 </button>
             </div>";
@@ -172,8 +272,17 @@ class ISPAG_Tank_Drawing {
 
         $drawing_id = isset($_POST['drawing_id']) ? (int) $_POST['drawing_id'] : 0;
         $article_id = isset($_POST['article_id']) ? (int) $_POST['article_id'] : 0;
-        $user = sanitize_text_field($_POST['user'] ?? '');
-        $date = sanitize_text_field($_POST['date'] ?? '');
+
+        $nonce_ok = isset($_POST['nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'ispag_plan_validation');
+        $article_check = $article_id ? apply_filters('ispag_get_article_by_id', null, $article_id) : null;
+        if (!$nonce_ok || !is_user_logged_in() || !$this->can_validate_plan($article_check)) {
+            ob_end_clean();
+            wp_send_json_error('Not authorized.');
+        }
+        // Nom et date calculés côté serveur (jamais pris dans la requête)
+        $current = wp_get_current_user();
+        $user = trim($current->user_firstname . ' ' . $current->user_lastname) ?: $current->display_name;
+        $date = date_i18n('d/m/Y', current_time('timestamp'));
 
         if (!$drawing_id || !$article_id || !$user || !$date) {
             ob_end_clean();
