@@ -48,8 +48,11 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $this->build_bom($article, $tank_datas, $fittings);
 
         $this->drawFrame();
-        $this->drawFrontView($article, $tank_datas, $fittings, 9, 12, 216, 205);
-        $this->drawTopView($article, $tank_datas, $fittings, 10, 222, 120, 68);
+
+        // Vue de face et vue de dessus à la même échelle : la place de chacune découle de l'échelle commune
+        [$front_h, $top_y, $top_h] = $this->view_layout($tank_datas);
+        $this->drawFrontView($article, $tank_datas, $fittings, 9, 12, 216, $front_h);
+        $this->drawTopView($article, $tank_datas, $fittings, 10, $top_y, 120, $top_h);
         $bom_end = $this->drawBomTable(235, 10);
         $this->drawInfoBlock($article, $tank_datas, $project, 242, min($bom_end + 12, 150));
         $this->drawDisclaimer(135, 262);
@@ -129,7 +132,8 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         }
 
         // Réindexe à partir de 1
-        $this->bom = array_combine(range(1, count($this->bom)), array_values($this->bom)) ?: [];
+        // (nomenclature vide, sans piquage ni échangeur : range(1, 0) donnerait [1, 0] et ferait échouer array_combine)
+        $this->bom = $this->bom ? array_combine(range(1, count($this->bom)), array_values($this->bom)) : [];
     }
 
     protected function item_id($f) {
@@ -349,6 +353,36 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
     // =====================================================================
     // Vue de face
     // =====================================================================
+    /**
+     * Répartition verticale des deux vues pour qu'elles aient la MÊME échelle.
+     * Échelle commune = la plus petite de : largeur disponible pour la vue de face, largeur de la vue de dessus,
+     * et hauteur totale partagée entre les deux vues. Retourne [hauteur de la vue de face, Y de la vue de dessus,
+     * hauteur de la vue de dessus].
+     */
+    protected function view_layout($tank_datas) {
+        $dim = $tank_datas['dimensions'] ?? null;
+        $top_limit = 290;   // bas de la zone de dessin
+        $gap = 5;
+        if (!$dim || empty($dim->Diameter) || empty($dim->Height)) {
+            return [205, 222, 68];
+        }
+
+        $diam = floatval($dim->Diameter);
+        $height = floatval($dim->Height);
+        $vw = $diam + 2 * self::FRONT_PAD_X;
+        $vh = $height + self::FRONT_PAD_TOP + 60;
+        $half = $diam / 2 + self::TOP_RADIAL_PAD;
+
+        $s_front_w = (216 - 34 - 52) / $vw;
+        $s_top_w   = 120 / (2 * $half);
+        $s_height  = ($top_limit - 12 - $gap) / ($vh + 2 * $half);
+        $s = min($s_front_w, $s_top_w, $s_height);
+
+        $front_h = $vh * $s;
+        $top_h = 2 * $half * $s;
+        return [$front_h, 12 + $front_h + $gap, $top_h];
+    }
+
     protected function drawFrontView($article, $tank_datas, $fittings, $bx, $by, $bw, $bh) {
         $dim = $tank_datas['dimensions'] ?? null;
         if (!$dim || empty($dim->Diameter) || empty($dim->Height)) {
