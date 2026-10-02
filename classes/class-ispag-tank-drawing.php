@@ -103,6 +103,20 @@ class ISPAG_Tank_Drawing {
         ], admin_url('admin-ajax.php'));
     }
 
+    /**
+     * Destinataires des notifications de plan (validé, modifications demandées) : chef de projet, créateur du projet et administrateur (Id 1).
+     * Avant, le « créateur » était lu dans AssociatedCompanyID (un Id d'entreprise, pas d'utilisateur) : la notification
+     * partait vers un mauvais utilisateur, voire personne.
+     */
+    private function plan_notification_recipients($deal_id) {
+        $recipients = [1];
+        if (class_exists('ISPAG_Project_Phase_Resolver') && ($purchase = ISPAG_Project_Phase_Resolver::get_purchase($deal_id))) {
+            $recipients[] = (int) ($purchase->project_manager ?? 0);
+            $recipients[] = (int) ($purchase->created_by ?? 0);
+        }
+        return array_values(array_unique(array_filter(array_map('intval', $recipients))));
+    }
+
     /** Droit de modifier / valider le plan d'un article : gestionnaire de commandes ou personne concernée par le projet (AssociatedContactIDs). */
     private function can_validate_plan($article) {
         if (current_user_can('manage_order')) return true;
@@ -296,7 +310,7 @@ class ISPAG_Tank_Drawing {
                 $who = get_userdata($user_id);
                 $deal_creator = class_exists('ISPAG_Project_Details_Repository') ? (new ISPAG_Project_Details_Repository())->get_deal_created_by($deal_id) : 0;
                 ISPAG_Notifications_Manager::send(
-                    array_filter([$deal_creator, 1]),
+                    $this->plan_notification_recipients($deal_id),
                     'product_manager',
                     sprintf(esc_html__('✏️ Modifications requested: %s', 'ispag-crm'), esc_html($article_id)),
                     sprintf(esc_html__('<strong>%1$s</strong> annotated the drawing and requested modifications.<br>- <strong>Article ID</strong>: %2$s<br>- <strong>Deal ID</strong>: %3$s', 'ispag-crm'),
@@ -552,7 +566,7 @@ class ISPAG_Tank_Drawing {
                 $project_url = 'project-detail/' . $deal_id . '/';
 
                 ISPAG_Notifications_Manager::send(
-                    [$deal_creator, 1], // Destinataire : admin (ID = 1)
+                    $this->plan_notification_recipients($deal_id), // chef de projet, créateur du projet, administrateur
                     'product_manager', // Type de notification (à adapter si besoin)
                     $title,
                     $message,
