@@ -41,6 +41,7 @@ class ISPAG_Tank_Designer
 
         add_action('ispag_render_tank_form', [self::$instance, 'render_tank_form']);
         add_action('ispag_render_tank_dimensions_form', [self::$instance, 'render_dimensions_form']);
+        add_action('ispag_render_tank_comments_form', [self::$instance, 'render_comments_form']);
         add_action('wp_ajax_ispag_save_tank_data', [self::$instance, 'ajax_save_tank_data']);
         add_action('ispag_duplicate_tank_data', [self::$instance, 'duplicate_tank_data'], 10, 2);
         add_filter('ispag_get_tank_id_by_article_id', [self::$instance, 'get_tank_id_by_article_id'], 10, 1);
@@ -187,6 +188,13 @@ class ISPAG_Tank_Designer
 
         include plugin_dir_path(__FILE__) . 'templates/form-tank-dimensions-field.php';
         $this->logger->log_user_action(self::LOG_NAME, 'dimensions_form_rendered', ['article_id' => $article_id], $user_id);
+    }
+
+    /** Commentaire ouvert + modèle de commentaire : affichés par le formulaire article, sous Logistics / Classification. */
+    public function render_comments_form($article_id)
+    {
+        $data = $this->get_tank_data(null, $article_id);
+        include plugin_dir_path(__FILE__) . 'templates/form-tank-comments-field.php';
     }
 
     private function safe_get($obj, $prop)
