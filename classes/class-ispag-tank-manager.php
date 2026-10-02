@@ -35,6 +35,7 @@ class ISPAG_Tank_Manager {
         add_action('wp_ajax_ispag_ajax_generate_sketch', [self::class, 'ispag_ajax_generate_sketch']);
         add_filter('ispag_get_technical_sheet_btn', [self::class, 'get_technical_sheet_btn'], 10, 3);
         add_filter('ispag_get_sketch_btn', [self::class, 'get_sketch_btn'], 10, 3);
+        add_filter('ispag_get_sketch_chip', [self::class, 'get_sketch_chip'], 10, 3);
         add_action('ispag_delete_tank_with_article_id', [self::class, 'delete_tank_with_article_id'],10,2);
         // add_filter('ispag_get_sketch_btn', [self::class, 'get_sketch_btn'], 10, 2);
         add_filter('ispag_get_related_tank', [self::class, 'get_related_tank'], 10, 3);
@@ -325,6 +326,38 @@ class ISPAG_Tank_Manager {
         exit;
     }
 
+    /**
+     * Droit de voir le croquis : tout le monde tant que l'article n'a pas de plan ;
+     * dès qu'un plan existe, seuls l'administrateur et le chef de projet du projet.
+     */
+    public static function can_view_sketch($article) {
+        if (empty($article->last_drawing_url)) return true;
+        if (current_user_can('manage_options')) return true;
+
+        if (class_exists('ISPAG_Project_Phase_Resolver')) {
+            $purchase = ISPAG_Project_Phase_Resolver::get_purchase((int) ($article->hubspot_deal_id ?? 0));
+            $pm = $purchase ? (int) ($purchase->project_manager ?? 0) : 0;
+            if ($pm && $pm === get_current_user_id()) return true;
+        }
+        return false;
+    }
+
+    /** Badge « Croquis » de la ligne d'article (même zone que le badge du plan). */
+    public static function get_sketch_chip($html, $article, $deal_id = null){
+        if (empty($article) || $article->Type != 1 || !self::can_view_sketch($article)) {
+            return $html;
+        }
+
+        $url = add_query_arg([
+            'action'     => 'ispag_ajax_generate_sketch',
+            'deal_id'    => intval($deal_id ?: ($article->hubspot_deal_id ?? 0)),
+            'article_id' => intval($article->Id),
+        ], admin_url('admin-ajax.php'));
+
+        return '<a href="#" class="ispag-chip ispag-chip--info ispag-chip--link" data-tank-sketch="' . intval($article->Id) . '" title="' . esc_attr__('Sketch', 'creation-reservoir') . '" onclick="window.open(' . esc_attr(wp_json_encode($url)) . ', \'_blank\', \'width=1000,height=800\'); return false;">✏️ '
+            . esc_html__('Sketch', 'creation-reservoir') . '</a>';
+    }
+
     public static function get_sketch_btn($html, $article, $deal_id = null){
 
         if ($article->Type != 1) {
@@ -366,6 +399,9 @@ class ISPAG_Tank_Manager {
 
         if (!$article) {
             wp_die('No data found for article');
+        }
+        if (!self::can_view_sketch($article)) {
+            wp_die(esc_html__('Access denied.', 'creation-reservoir'), '', ['response' => 403]);
         }
         if (!$project) {
             wp_die('No data found for project');
