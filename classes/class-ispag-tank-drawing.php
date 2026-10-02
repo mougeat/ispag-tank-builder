@@ -25,6 +25,7 @@ class ISPAG_Tank_Drawing {
 
         // Page de consultation/validation autonome (ne dépend d'aucune page WordPress ni des règles de réécriture)
         add_action('wp_ajax_ispag_plan_viewer_page', [self::$instance, 'render_plan_viewer_page']);
+        add_action('wp_ajax_ispag_plan_request_changes', [self::$instance, 'ajax_request_plan_changes']);
         add_filter('ispag_plan_validation_url', [self::$instance, 'plan_validation_url'], 10, 3);
 
     }
@@ -109,7 +110,7 @@ class ISPAG_Tank_Drawing {
             && ISPAG_Projet_Repository::is_user_project_owner($article->hubspot_deal_id);
     }
 
-    /** Page autonome : le PDF à consulter + bouton de validation (avec confirmation). */
+    /** Page autonome : le PDF à consulter, annotable (crayon / texte), avec « Valider » ou « Demander des modifications ». */
     public function render_plan_viewer_page() {
         if (!is_user_logged_in()) {
             wp_safe_redirect(wp_login_url(add_query_arg($_GET, admin_url('admin-ajax.php'))));
@@ -124,16 +125,26 @@ class ISPAG_Tank_Drawing {
             wp_die(esc_html__('Drawing not found or access denied.', 'creation-reservoir'), '', ['response' => 404]);
         }
 
-        $user    = wp_get_current_user();
-        $name    = trim($user->user_firstname . ' ' . $user->user_lastname) ?: $user->display_name;
-        $payload = [
-            'ajax_url'   => admin_url('admin-ajax.php'),
+        $user = wp_get_current_user();
+        $name = trim($user->user_firstname . ' ' . $user->user_lastname) ?: $user->display_name;
+        $cfg  = [
+            'ajaxUrl'    => admin_url('admin-ajax.php'),
             'nonce'      => wp_create_nonce('ispag_plan_validation'),
-            'drawing_id' => $drawing_id,
-            'article_id' => $article_id,
-            'confirm'    => sprintf(__('Do you really want to validate this drawing? It will be marked "Validated by %s" with today\'s date.', 'creation-reservoir'), $name),
-            'busy'       => __('Validating', 'creation-reservoir'),
-            'label'      => '✅ ' . __('Validate drawing', 'creation-reservoir'),
+            'drawingId'  => $drawing_id,
+            'articleId'  => $article_id,
+            'pdfUrl'     => $url,
+            'workerSrc'  => 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+            'i18n'       => [
+                'busy'             => __('Sending', 'creation-reservoir'),
+                'validateLabel'    => '✅ ' . __('Validate drawing', 'creation-reservoir'),
+                'changesLabel'     => '✏️ ' . __('Request modifications', 'creation-reservoir'),
+                'validateDisabled' => __('You added annotations: send them as a modification request instead.', 'creation-reservoir'),
+                'hintClean'        => __('Draw or write on the plan to request modifications, or validate it as it is.', 'creation-reservoir'),
+                'hintModified'     => __('Annotations added: the drawing can no longer be validated, send your modification request.', 'creation-reservoir'),
+                'confirmValidate'  => sprintf(__('Do you really want to validate this drawing? It will be marked "Validated by %s" with today\'s date.', 'creation-reservoir'), $name),
+                'confirmChanges'   => __('Send your annotations as a modification request? A new version of the drawing will be created and they cannot be edited afterwards.', 'creation-reservoir'),
+                'confirmClear'     => __('Remove all annotations?', 'creation-reservoir'),
+            ],
         ];
         ?>
         <!doctype html>
@@ -143,50 +154,164 @@ class ISPAG_Tank_Drawing {
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <title><?php esc_html_e('Validation plan', 'creation-reservoir'); ?></title>
             <style>
-                html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
-                body { display: flex; flex-direction: column; }
-                .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: #f6f7f7; border-bottom: 1px solid #ddd; }
-                .bar strong { font-size: 15px; }
-                button { background: #00a32a; color: #fff; border: 0; border-radius: 6px; padding: 9px 18px; font-size: 15px; cursor: pointer; }
-                button:disabled { opacity: .6; cursor: wait; }
-                iframe { flex: 1; width: 100%; border: 0; }
+                html, body { margin: 0; font-family: system-ui, sans-serif; background: #e9ebee; }
+                .bar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 16px; background: #f6f7f7; border-bottom: 1px solid #ccc; }
+                .bar .grow { flex: 1 1 auto; }
+                .bar button { border: 1px solid #bbb; background: #fff; border-radius: 6px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+                .bar button.is-active { background: #dbeafe; border-color: #2271b1; }
+                .bar button:disabled { opacity: .45; cursor: not-allowed; }
+                .bar #btn-validate-plan { background: #00a32a; border-color: #00a32a; color: #fff; }
+                .bar #btn-request-changes { background: #d97706; border-color: #d97706; color: #fff; }
+                #plan-hint { font-size: 13px; color: #555; flex-basis: 100%; }
+                #plan-pages { max-width: 1100px; margin: 16px auto; padding: 0 8px; }
+                .plan-page { position: relative; margin: 0 auto 16px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+                .plan-page canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+                .plan-overlay { touch-action: none; }
+                #plan-pages[data-tool="pen"] .plan-overlay { cursor: crosshair; }
+                #plan-pages[data-tool="text"] .plan-overlay { cursor: text; }
+                .plan-text-input { position: absolute; z-index: 5; min-width: 120px; background: rgba(255,255,255,.85); border: 1px dashed #2271b1; font-family: Arial, sans-serif; font-weight: bold; resize: none; padding: 0; line-height: 1.2; }
             </style>
         </head>
         <body>
             <div class="bar">
-                <strong><?php echo esc_html(sprintf(__('Drawing for article #%d', 'creation-reservoir'), $article_id)); ?></strong>
-                <button type="button" id="btn-validate-plan"></button>
+                <button type="button" data-tool="pen" class="is-active">✏️ <?php esc_html_e('Pen', 'creation-reservoir'); ?></button>
+                <button type="button" data-tool="text">🔤 <?php esc_html_e('Text', 'creation-reservoir'); ?></button>
+                <input type="color" id="plan-color" value="#d63638" title="<?php esc_attr_e('Color', 'creation-reservoir'); ?>">
+                <select id="plan-width" title="<?php esc_attr_e('Thickness', 'creation-reservoir'); ?>">
+                    <option value="2">2</option><option value="4" selected>4</option><option value="8">8</option>
+                </select>
+                <button type="button" id="plan-undo">↩️ <?php esc_html_e('Undo', 'creation-reservoir'); ?></button>
+                <button type="button" id="plan-clear">🗑️ <?php esc_html_e('Clear', 'creation-reservoir'); ?></button>
+                <span class="grow"></span>
+                <button type="button" id="btn-request-changes" disabled>✏️ <?php esc_html_e('Request modifications', 'creation-reservoir'); ?></button>
+                <button type="button" id="btn-validate-plan">✅ <?php esc_html_e('Validate drawing', 'creation-reservoir'); ?></button>
+                <span id="plan-hint"></span>
             </div>
-            <iframe src="<?php echo esc_url($url); ?>" title="PDF"></iframe>
-            <script>
-            (function () {
-                const cfg = <?php echo wp_json_encode($payload); ?>;
-                const btn = document.getElementById('btn-validate-plan');
-                btn.textContent = cfg.label;
-                btn.addEventListener('click', function () {
-                    if (!window.confirm(cfg.confirm)) return;
-                    btn.disabled = true;
-                    btn.textContent = cfg.busy + '...';
-                    fetch(cfg.ajax_url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ action: 'ispag_validate_pdf_plan', nonce: cfg.nonce, drawing_id: cfg.drawing_id, article_id: cfg.article_id })
-                    }).then(function (r) { return r.json(); }).then(function (res) {
-                        if (res.success) {
-                            if (window.opener) { window.opener.location.reload(); window.close(); } else { location.reload(); }
-                        } else {
-                            alert('Error: ' + res.data);
-                            btn.disabled = false;
-                            btn.textContent = cfg.label;
-                        }
-                    }).catch(function () { alert('Network error'); btn.disabled = false; btn.textContent = cfg.label; });
-                });
-            })();
-            </script>
+            <div id="plan-pages" data-tool="pen"></div>
+
+            <script>window.ispagPlanCfg = <?php echo wp_json_encode($cfg); ?>;</script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+            <script src="<?php echo esc_url(plugin_dir_url(__FILE__) . '../assets/js/plan-annotator.js'); ?>?v=<?php echo esc_attr(@filemtime(plugin_dir_path(__FILE__) . '../assets/js/plan-annotator.js')); ?>"></script>
         </body>
         </html>
         <?php
         exit;
+    }
+
+    /** Charge FPDF + FPDI (fournis par le plugin Project Manager). */
+    private function load_fpdi() {
+        if (class_exists('\setasign\Fpdi\Fpdi')) return;
+        $dir = ispag_project_manager_dir() . 'libs/';
+        if (file_exists($dir . 'fpdf/fpdf.php')) require_once $dir . 'fpdf/fpdf.php';
+        if (!file_exists($dir . 'fpdi/autoload.php')) {
+            if (ob_get_length()) ob_end_clean();
+            wp_send_json_error('Librairie FPDI introuvable dans : ' . $dir . 'fpdi/autoload.php');
+        }
+        require_once $dir . 'fpdi/autoload.php';
+    }
+
+    /**
+     * Demande de modifications : le client a annoté le plan. Les annotations (un PNG transparent par page) sont
+     * incrustées dans une copie du PDF, enregistrée comme nouveau document « drawingModification » de l'article.
+     * Le plan n'est alors plus validable tant qu'une nouvelle version n'a pas été déposée.
+     */
+    public function ajax_request_plan_changes() {
+        global $wpdb;
+        $drawing_id = (int) ($_POST['drawing_id'] ?? 0);
+        $article_id = (int) ($_POST['article_id'] ?? 0);
+        $article    = $article_id ? apply_filters('ispag_get_article_by_id', null, $article_id) : null;
+        $nonce_ok   = isset($_POST['nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['nonce'])), 'ispag_plan_validation');
+        if (!$nonce_ok || !is_user_logged_in() || !$article || !$this->can_validate_plan($article)) {
+            wp_send_json_error('Not authorized.');
+        }
+        $original_path = $drawing_id ? get_attached_file($drawing_id) : '';
+        if (!$original_path || !file_exists($original_path)) {
+            wp_send_json_error('PDF file not found.');
+        }
+
+        // Annotations reçues : overlay_<n° de page> (PNG)
+        $overlays = [];
+        foreach ($_FILES as $key => $f) {
+            if (!preg_match('/^overlay_(\d+)$/', $key, $m) || ($f['error'] ?? 1) !== UPLOAD_ERR_OK) continue;
+            $info = @getimagesize($f['tmp_name']);
+            if (!$info || $info[2] !== IMAGETYPE_PNG || $f['size'] > 15 * 1024 * 1024) continue;
+            $overlays[(int) $m[1]] = $f['tmp_name'];
+        }
+        if (!$overlays) {
+            wp_send_json_error('No annotation received.');
+        }
+
+        $this->load_fpdi();
+        if (ob_get_length()) ob_clean();
+
+        try {
+            $pdf = new \setasign\Fpdi\Fpdi();
+            $source = $this->decompress_pdf_for_fpdi($original_path);
+            $pageCount = $pdf->setSourceFile($source);
+            for ($i = 1; $i <= $pageCount; $i++) {
+                $tpl  = $pdf->importPage($i);
+                $size = $pdf->getTemplateSize($tpl);
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($tpl);
+                if (isset($overlays[$i])) {
+                    $pdf->Image($overlays[$i], 0, 0, $size['width'], $size['height'], 'PNG');
+                }
+            }
+
+            $upload   = wp_upload_dir();
+            $filename = 'modif_' . time() . '_' . basename($original_path);
+            $target   = trailingslashit($upload['path']) . $filename;
+            $pdf->Output($target, 'F');
+
+            $attach_id = wp_insert_attachment([
+                'guid'           => trailingslashit($upload['url']) . $filename,
+                'post_mime_type' => 'application/pdf',
+                'post_title'     => 'Modification request - ' . $article_id,
+                'post_content'   => '',
+                'post_status'    => 'inherit',
+            ], $target);
+            if (is_wp_error($attach_id) || !$attach_id) {
+                throw new Exception('Attachment creation failed.');
+            }
+
+            $article_achat = apply_filters('ispag_get_achat_article_by_project_article_id', null, $article_id);
+            $deal_id  = (int) $article->hubspot_deal_id;
+            $achat_id = $article_achat ? (int) $article_achat->IdCommande : 0;
+            $user_id  = get_current_user_id();
+
+            $wpdb->insert($wpdb->prefix . 'achats_historique', [
+                'hubspot_deal_id' => $deal_id,
+                'purchase_order'  => $achat_id,
+                'Date'            => time(),
+                'dateReadable'    => current_time('mysql'),
+                'IdUser'          => $user_id,
+                'Historique'      => $article_id,
+                'IdMedia'         => $attach_id,
+                'is_task'         => 0,
+                'is_done'         => 0,
+                'ClassCss'        => 'drawingModification',
+            ], ['%d', '%d', '%d', '%s', '%d', '%s', '%d', '%d', '%d', '%s']);
+
+            if (class_exists('ISPAG_Notifications_Manager')) {
+                $who = get_userdata($user_id);
+                $deal_creator = class_exists('ISPAG_Project_Details_Repository') ? (new ISPAG_Project_Details_Repository())->get_deal_created_by($deal_id) : 0;
+                ISPAG_Notifications_Manager::send(
+                    array_filter([$deal_creator, 1]),
+                    'product_manager',
+                    sprintf(esc_html__('✏️ Modifications requested: %s', 'ispag-crm'), esc_html($article_id)),
+                    sprintf(esc_html__('<strong>%1$s</strong> annotated the drawing and requested modifications.<br>- <strong>Article ID</strong>: %2$s<br>- <strong>Deal ID</strong>: %3$s', 'ispag-crm'),
+                        esc_html($who ? $who->display_name : ''), esc_html($article_id), esc_html($deal_id)),
+                    'project-detail/' . $deal_id . '/',
+                    $deal_id
+                );
+            }
+
+            if (ob_get_length()) ob_clean();
+            wp_send_json_success('Modification request saved.');
+        } catch (Exception $e) {
+            if (ob_get_length()) ob_clean();
+            wp_send_json_error('PDF error: ' . $e->getMessage());
+        }
     }
 
     public function plan_viewer(){
