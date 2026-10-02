@@ -148,7 +148,7 @@ class ISPAG_Existing_Tanks_Table {
                             ?>
                             <tr class="project-row-item">
                                 <td data-label="<?php esc_attr_e('Project / Article', 'creation-reservoir'); ?>" class="td-title">
-                                    <strong><a href="<?php echo esc_url($link); ?>" class="project-link" target="_blank"><?php echo esc_html($row->ObjetCommande ?: $row->Article); ?></a></strong><br>
+                                    <strong><a href="<?php echo esc_url($link); ?>" class="project-link"><?php echo esc_html($row->ObjetCommande ?: $row->Article); ?></a></strong><br>
                                     <small class="project-number">#<?php echo (int) $row->article_id; ?></small>
                                     <?php if (!empty($row->Article)) : ?> | <small class="creator-name"><?php echo esc_html($row->Article); ?></small><?php endif; ?>
                                 </td>
