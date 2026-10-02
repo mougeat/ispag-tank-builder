@@ -6,6 +6,11 @@
 $user_can = current_user_can('manage_order'); 
 $can_view_prices = current_user_can('display_sales_prices');
 $allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE['ispag_allow_prices'] === 'true';
+// Achats : les prix sont toujours visibles (tout utilisateur qui accède à la page achat y est autorisé)
+if (isset($source) && $source === 'purchase') {
+    $can_view_prices = true;
+    $allow_display_sensible_info = true;
+}
 
 // error_log('Formulaire Tank Dimensions : ' . print_r($data, true));
 ?>

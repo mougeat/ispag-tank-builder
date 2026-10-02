@@ -40,7 +40,7 @@ class ISPAG_Tank_Designer
         }
 
         add_action('ispag_render_tank_form', [self::$instance, 'render_tank_form']);
-        add_action('ispag_render_tank_dimensions_form', [self::$instance, 'render_dimensions_form']);
+        add_action('ispag_render_tank_dimensions_form', [self::$instance, 'render_dimensions_form'], 10, 2); // 2e argument : source ('project' | 'purchase')
         add_action('ispag_render_tank_comments_form', [self::$instance, 'render_comments_form']);
         add_action('wp_ajax_ispag_save_tank_data', [self::$instance, 'ajax_save_tank_data']);
         add_action('ispag_duplicate_tank_data', [self::$instance, 'duplicate_tank_data'], 10, 2);
