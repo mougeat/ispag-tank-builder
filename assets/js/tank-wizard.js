@@ -87,11 +87,12 @@
 
         const dims  = $form.find('#tank-dimensions-form')[0];
         const grids = $(dims).children('.ispag-modal-grid').toArray();
-        // 0: dimensions, 1: isolation + soudures, 2: commentaire
-        if (grids.length < 3) return; // structure inattendue : on laisse le formulaire classique
+        // 0: dimensions, 1: isolation + soudures (le commentaire est un bloc du formulaire, sous Logistics / Classification)
+        if (grids.length < 2) return; // structure inattendue : on laisse le formulaire classique
 
         const designBlock = $form.children('.ispag-modal-grid').first()[0];
         const common      = $form.children('.ispag-bloc-common').toArray();
+        const comments    = $form.children('.ispag-tank-comments')[0];
         const insField    = $(grids[1]).children('.ispag-field').eq(0)[0];
         const weldField   = $(grids[1]).children('.ispag-field').eq(1)[0];
 
@@ -136,7 +137,7 @@
             [weldField, [2]],
             [weldSkip, [2]],
             [insSkip, [4]],
-            [grids[2], [5]],
+            [comments, [5]],
             [panel, [3]],
             [hidden, []],
         ].concat(common.map(el => [el, [5]])).filter(i => i[0]);
