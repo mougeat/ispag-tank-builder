@@ -214,7 +214,7 @@ class ISPAG_Tank_Pricing {
         }
 
         if (empty($fittings) || !is_array($fittings)) {
-            $this->add_error("Le tableau des piquages (fittings) est vide ou invalide.");
+            // Aucun piquage (par exemple réservoir en cours de création) : ce n'est pas une erreur
             ISPAG_Logger::get_instance()->log(self::LOG_NAME, "Le tableau des piquages (fittings) est vide ou invalide.", $user_id);
             return [
                 'total_price' => 0,
@@ -254,6 +254,18 @@ class ISPAG_Tank_Pricing {
             $pressure = $fitting['MaxPressure'] ?? 6;
 
             ISPAG_Logger::get_instance()->log(self::LOG_NAME, "Traitement du piquage index [$index] -> ID Pouce : '$fitting_pouce' Type : '$fitting_type', Pression : '$pressure'", $user_id);
+
+            // Soudure (Type 23) : ce n'est pas un raccord à tarifer ; la plus-value « soudure sur place » est ajoutée
+            // une fois dans les majorations (voir calculate_surcharges), sans avertissement.
+            if ((string) $fitting_type === '23') {
+                $calculation_details["raccords" . ($index + 1)] = [
+                    'type' => __('Welding', 'creation-reservoir'),
+                    'prix' => ' ' . __('surcharge', 'creation-reservoir'),
+                    'accessoires' => __('none', 'creation-reservoir'),
+                    'accessoires_prix' => 0,
+                ];
+                continue;
+            }
 
             
             if($fitting_type == 0 && $fitting_pouce != 0){
@@ -405,11 +417,12 @@ class ISPAG_Tank_Pricing {
         $total_surcharge = 0;
 
         // Soudure sur place (20% du prix de base)
+        // Soudure sur place : nombre de soudures saisi, ou piquages de type soudure (Type 23) ; appliquée une seule fois
+        $welding_count = isset($tank_params['welding']) && is_numeric($tank_params['welding']) ? (int) $tank_params['welding'] : 0;
+        $welding_connections = (int) ($tank_params['welding_connections'] ?? 0);
         if (
             isset($this->tank_pricing_data['logic']['surcharge_soudure_sur_place']) &&
-            isset($tank_params['welding']) &&
-            $tank_params['welding'] > 0 &&
-            $tank_params['welding'] != 'NaN'
+            ($welding_count > 0 || $welding_connections > 0)
         ) {
             $welding_surcharge_percent = $this->tank_pricing_data['logic']['surcharge_soudure_sur_place'];
             $tank_price_details = $this->calculate_tank_price(
@@ -669,6 +682,9 @@ class ISPAG_Tank_Pricing {
 
         // Calculer les majorations
         $tank_details = !empty($tank_params['article_id']) ? ISPAG_Tank_Repository::get_tank_details($tank_params['article_id']) : null;
+        $tank_params['welding_connections'] = count(array_filter((array) $fittings, function ($f) {
+            return (string) ($f['Type'] ?? '') === '23';
+        }));
         $surcharges = $this->calculate_surcharges($tank_params, $tank_details);
         $total_surcharge = $surcharges['total_surcharge'];
 
