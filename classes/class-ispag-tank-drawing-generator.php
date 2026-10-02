@@ -13,6 +13,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
     const FRONT_PAD_TOP     = 300;   // espace conservé au-dessus de la cuve (piquages verticaux)
     const TOP_INSULATION    = 160;
     const TOP_RADIAL_PAD    = 450;   // espace conservé autour du cercle de la cuve
+    const LEFT_COL          = 54;    // largeur réservée aux cotes de gauche (hauteur totale, niveaux, tronçons)
 
     protected $margin = 5;
     protected $creator_name;
@@ -73,6 +74,18 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $tank_fittings = new ISPAG_Tank_Fittings();
         $fittings = $tank_fittings->get_all_fittings($article_id);
         return is_array($fittings) ? $fittings : [];
+    }
+
+    /** Hauteurs des soudures (piquages de type 23), du bas vers le haut, mesurées depuis le sol comme les piquages. */
+    protected function load_welds($article_id) {
+        global $wpdb;
+        $heights = $wpdb->get_col($wpdb->prepare(
+            "SELECT c.Height FROM {$wpdb->prefix}achats_tank_connection c
+             INNER JOIN {$wpdb->prefix}achats_tank_dimensions d ON c.TankId = d.Id
+             WHERE d.customerTankId = %d AND c.Type = 23 ORDER BY c.Height ASC",
+            (int) $article_id
+        ));
+        return array_map('floatval', (array) $heights);
     }
 
     protected function fitting_label($f) {
@@ -373,7 +386,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $vh = $height + self::FRONT_PAD_TOP + 60;
         $half = $diam / 2 + self::TOP_RADIAL_PAD;
 
-        $s_front_w = (216 - 34 - 52) / $vw;
+        $s_front_w = (216 - self::LEFT_COL - 52) / $vw;
         $s_top_w   = 120 / (2 * $half);
         $s_height  = ($top_limit - 12 - $gap) / ($vh + 2 * $half);
         $s = min($s_front_w, $s_top_w, $s_height);
@@ -405,7 +418,7 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         $vy0 = $dome - self::FRONT_PAD_TOP;
         $vh = $height + self::FRONT_PAD_TOP + 60;
 
-        $left_col = 34;  // cotes de gauche
+        $left_col = self::LEFT_COL;  // cotes de gauche
         $right_col = 52; // cotes et bulles de droite
         $s = min(($bw - $left_col - $right_col) / $vw, $bh / $vh);
         $this->front_scale = $s;
@@ -460,6 +473,28 @@ class ISPAG_Tank_Drawing_Generator extends ISPAG_PDF_Generator{
         for ($i = 0; $i < count($levels) - 1; $i++) {
             if (($levels[$i + 1] - $levels[$i]) * $s < 3) { continue; }
             $this->dimV($x_in, $Y($levels[$i]), $Y($levels[$i + 1]), (string) round($levels[$i + 1] - $levels[$i]), false);
+        }
+
+        // Tronçons (cuve livrée en morceaux) : une cote par morceau, entre le bas de la cuve, chaque soudure et le haut
+        $welds = array_values(array_filter($this->load_welds($article->Id), function ($h) use ($gc, $height) { return $h > $gc && $h < $height; }));
+        if ($welds) {
+            $x_pc = $bx + 40;
+            $bounds = array_merge([$gc], $welds, [$height]);
+            $this->SetDrawColor(120);
+            foreach ($welds as $w) {
+                $this->SetDash(1.2, 1.2);
+                $this->Line($x_pc - 1, $Y($w), $tank_r, $Y($w)); // trait de soudure prolongé jusqu'à la cote
+                $this->SetDash();
+            }
+            $this->Line($x_pc - 1, $Y($gc), $tank_l - 1.5, $Y($gc));
+            $this->Line($x_pc - 1, $Y($height), $tank_l - 1.5, $Y($height));
+            $this->SetDrawColor(0);
+            for ($i = 0; $i < count($bounds) - 1; $i++) {
+                $this->dimV($x_pc, $Y($bounds[$i]), $Y($bounds[$i + 1]), (string) round($bounds[$i + 1] - $bounds[$i]), false);
+            }
+            $this->SetFont('Arial', 'I', 6.5);
+            $this->SetXY($x_pc - 9, $Y($height) - 7);
+            $this->Cell(18, 3.5, $this->tx(sprintf(__('%d pieces', 'creation-reservoir'), count($bounds) - 1)), 0, 0, 'C');
         }
 
         // Cotes de droite : hauteur des piquages + bulles
