@@ -1,6 +1,11 @@
 // Sauvegarde des données techniques de l'échangeur
 function saveHeatExchangerData(articleId, is_purchase = false) {
 
+    // Pas de formulaire d'échangeur à plaques sur cette fenêtre (réservoir, par exemple) : rien à enregistrer
+    if (!$('[name^="exchanger["]').length) {
+        return $.Deferred().resolve().promise();
+    }
+
     const exchanger = {
         type:                       $('[name="exchanger[type]"]').val(), // Nouveau champ type
         power:                      $('[name="exchanger[power]"]').val(),

@@ -245,6 +245,12 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             }
         }
 
+        // Rien de saisi (aucun champ d'échangeur renseigné) : on n'enregistre pas de ligne vide
+        $has_value = (bool) array_filter($newData, function ($v) { return trim((string) $v) !== ''; });
+        if (!$has_value && !$exists) {
+            return ['success' => true, 'skipped' => 'no exchanger data'];
+        }
+
         if ($exists) {
             $wpdb->update($this->exchanger_table, $newData, ['article_id' => $article_id]);
         } else {
