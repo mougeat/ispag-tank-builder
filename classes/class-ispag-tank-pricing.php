@@ -668,7 +668,7 @@ class ISPAG_Tank_Pricing {
         $fittings_price = $fittings_details['total_price'];
 
         // Calculer les majorations
-        $tank_details = ISPAG_Tank_Repository::get_tank_details($tank_params['article_id']);
+        $tank_details = !empty($tank_params['article_id']) ? ISPAG_Tank_Repository::get_tank_details($tank_params['article_id']) : null;
         $surcharges = $this->calculate_surcharges($tank_params, $tank_details);
         $total_surcharge = $surcharges['total_surcharge'];
 
@@ -726,10 +726,8 @@ class ISPAG_Tank_Pricing {
         $article_id = $tank_params['article_id'] ?? 0;
         $supplier = $tank_params['supplier'] ?? 'Diem-Werke GmbH';
 
-        if (empty($article_id)) {
-            ISPAG_Logger::get_instance()->log_error(self::LOG_NAME, "Article ID manquant dans la requête AJAX.", ['tank_params' => $tank_params], $user_id);
-            wp_send_json_error(['message' => __('Article ID missing', 'creation-reservoir')]);
-        }
+        // Réservoir en cours de création (pas encore d'article) : le prix indicatif se calcule sur les valeurs saisies
+        $is_new_tank = empty($article_id);
 
         // Vérifier si les fichiers JSON du fournisseur existent
         $formatted_supplier = $this->price_basename($supplier);
@@ -740,13 +738,13 @@ class ISPAG_Tank_Pricing {
         $json_files_exist = file_exists($tank_json_path) && file_exists($fittings_json_path);
 
         // Si achat, on cherche l'article du projet
-        if ($tank_params['is_project_or_purchase'] == 'purchase' && class_exists('ISPAG_Achat_Article_Repository')) {
+        if (!$is_new_tank && ($tank_params['is_project_or_purchase'] ?? '') == 'purchase' && class_exists('ISPAG_Achat_Article_Repository')) {
             $achat_article_repo = new ISPAG_Achat_Article_Repository();
             $article = $achat_article_repo->get_article_by_id(null, $article_id);
             $article_id = $article->IdCommandeClient;
         }
 
-        $tank_datas = ISPAG_Tank_Repository::get_tank_details($article_id);
+        $tank_datas = $is_new_tank ? ['piquages_techniques' => []] : ISPAG_Tank_Repository::get_tank_details($article_id);
         if (!$tank_datas) {
             ISPAG_Logger::get_instance()->log_error(self::LOG_NAME, "Impossible de récupérer les détails de la cuve depuis le repository pour l'article ID : $article_id", [], $user_id);
             wp_send_json_error(['message' => __('Tank details not found', 'creation-reservoir')]);

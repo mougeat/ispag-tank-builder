@@ -62,7 +62,11 @@ jQuery(document).ready(function($) {
             ground_clearance: parseInt($(tankFields).filter('input[name="tank[clearance]"]').val()),
             pressure: parseFloat($(tankFields).filter('input[name="tank[max_pressure]"]').val()),
             welding: parseInt($(tankFields).filter('input[name="tank[nbWelding]"]').val()),
-            supplier: $('#tank-supplier-display').data('value') || 'Diem-Werke GmbH',
+            // Fournisseur saisi ; à défaut celui défini par défaut pour le type et le matériau ; en dernier recours le fournisseur historique
+            supplier: ($('input[name="supplier"]').val() || '').trim()
+                || $('#tank-supplier-display').data('value')
+                || (typeof ispagDefaultSupplierName === 'function' ? ispagDefaultSupplierName() : '')
+                || 'Diem-Werke GmbH',
             article_id: $(articleIdField).val(),
             is_project_or_purchase: $('input[name="isProjectOrPurchase"]').val()
         };
@@ -93,8 +97,9 @@ jQuery(document).ready(function($) {
         const fittingsParams = getFittingsParams();
 
         // Vérifier que les données nécessaires sont présentes
-        if (!tankParams.diameter || !tankParams.height || !tankParams.article_id) {
-            console.warn('[Tank Pricing] Données manquantes (diamètre, hauteur ou ID article). Calcul annulé.');
+        // L'article peut ne pas exister encore (création en cours) : seuls les diamètre et hauteur sont indispensables
+        if (!tankParams.diameter || !tankParams.height) {
+            console.warn('[Tank Pricing] Données manquantes (diamètre ou hauteur). Calcul annulé.');
             $('#tank-price-display').val('---');
             $('#tank-price-errors').empty();
             return;
@@ -265,6 +270,13 @@ jQuery(document).ready(function($) {
     $(document).on('change', 'input[name="isProjectOrPurchase"]', function() {
         toggleReportButtonVisibility();
         calculatePrice();
+    });
+
+    // Assistant de création : le prix indicatif se calcule dès l'étape Dimensions (fournisseur par défaut connu)
+    let wizardPriceTimer = null;
+    $(document).on('ispag:wizard_step ispag:restrictions_loaded', function () {
+        clearTimeout(wizardPriceTimer);
+        wizardPriceTimer = setTimeout(calculatePrice, 400);
     });
 
     // Initialisation

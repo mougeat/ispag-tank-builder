@@ -199,6 +199,16 @@ jQuery(document).on('ispag:wizard_step', async function () {
     ispagApplyTankRules();
 });
 
+/** Fournisseur par défaut du type et du matériau choisis (un fournisseur commun aux deux, sinon celui du matériau, sinon celui du type). */
+function ispagDefaultSupplierName() {
+    if (typeof restrictions === 'undefined' || !restrictions) return '';
+    const materialId = jQuery('select[name="tank[materiau]"]').val();
+    const typeId = typeof ispagCurrentTypeId === 'function' ? ispagCurrentTypeId() : '';
+    const mat = restrictions.material?.[materialId]?.default?.supplier_name || [];
+    const typ = restrictions.typ?.[typeId]?.default?.supplier_name || [];
+    return mat.find(s => typ.includes(s)) || mat[0] || typ[0] || '';
+}
+
 function updateSupplierByMaterial(selectEl) {
     const $ = jQuery;
     const materialId = $(selectEl).val();
