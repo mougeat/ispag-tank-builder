@@ -487,12 +487,13 @@ class ISPAG_Tank_Drawing {
             $article = apply_filters('ispag_get_article_by_id', null, $article_id);
             $article_achat = apply_filters('ispag_get_achat_article_by_project_article_id', null, $article_id);
 
-            if (!$article || !$article_achat) {
-                throw new Exception("Article or Purchase data not found.");
+            // La commande d'achat peut ne pas exister encore (projet en cours de préparation) : elle n'est pas nécessaire pour valider
+            if (!$article) {
+                throw new Exception("Article not found.");
             }
 
             $deal_id = $article->hubspot_deal_id;
-            $achat_id = $article_achat->IdCommande;
+            $achat_id = $article_achat ? (int) $article_achat->IdCommande : 0;
             $userId = get_current_user_id();
 
             // Insertion Historique
@@ -528,7 +529,7 @@ class ISPAG_Tank_Drawing {
             $wpdb->update(
                 $wpdb->prefix . 'achats_details_commande',
                 ['DrawingApproved' => '1'],
-                ['Id' => $article_achat->Id] // Utilisation de l'ID de la commande, pas de l'article projet !
+                ['Id' => $article_id] // ligne de l'article du projet (l'Id de la ligne d'achat désignait une autre ligne)
             );
 
             // // Telegram : On notifie seulement si l'utilisateur actuel n'est PAS un gestionnaire
