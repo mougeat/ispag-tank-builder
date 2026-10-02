@@ -542,6 +542,10 @@ class ISPAG_Tank_Exchanger
             wp_send_json_error($wpdb->last_error);
         }
 
+        // Article du réservoir (tank_id = ligne de dimensions) : prévient le chef de projet si ce n'est pas lui qui modifie
+        $tank_article_id = (int) $wpdb->get_var($wpdb->prepare("SELECT customerTankId FROM {$wpdb->prefix}achats_tank_dimensions WHERE Id = %d", $tank_id));
+        if ($tank_article_id) do_action('ispag_article_modified', $tank_article_id, 'exchangers');
+
         $this->logger->log_user_action(self::LOG_NAME, 'save_heat_exchangers_complete', [], $user_id);
         wp_send_json_success(__('Exchanger data has been saved.', 'creation-reservoir'));
     }

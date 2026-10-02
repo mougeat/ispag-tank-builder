@@ -559,6 +559,9 @@ class ISPAG_Tank_Designer
         $debug['insulation_status'] = apply_filters('ispag_insulation_last_status', '');
         $this->logger->log_user_action(self::LOG_NAME, 'insulation_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'insulation' => $newData['insulation'] ?? '', 'thickness' => $newData['InsulationThickness'] ?? '', 'cover' => $newData['insulationCover'] ?? ''], $user_id);
 
+        // Prévient le chef de projet si ce n'est pas lui qui modifie
+        do_action('ispag_article_modified', $article_id, 'tank', $deal_id);
+
         $debug['success'] = true;
         $this->logger->log_user_action(self::LOG_NAME, 'save_tank_data_complete', [], $user_id);
         return $debug;

@@ -338,6 +338,7 @@ class ISPAG_Tank_Fittings {
 
         $inserted = $this->save_fittings($article_id, $fittings);
         do_action('ispag_fittings_changed', $article_id);
+        do_action('ispag_article_modified', $article_id, 'fittings');
         $drawing = apply_filters('ispag_design_tank_svg', null, $article_id, true);
         $drawing .= apply_filters('ispag_design_tank_top_view_svg', null, $article_id); 
 
@@ -371,7 +372,7 @@ class ISPAG_Tank_Fittings {
         if ($deleted === false) {
             wp_send_json_error('Database error');
         }
-        if ($tank_article_id) do_action('ispag_fittings_changed', $tank_article_id);
+        if ($tank_article_id) { do_action('ispag_fittings_changed', $tank_article_id); do_action('ispag_article_modified', $tank_article_id, 'fittings'); }
 
         wp_send_json_success();
     }
