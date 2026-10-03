@@ -33,6 +33,12 @@ class ISPAG_Tank_Insulation_Auto_Saver {
         $this->log = [];
         $this->status = ['status' => 'skipped', 'message' => ''];
         $this->debug("start deal=$deal_id article=$article_id type=$selected_type thickness=$selected_thickness cover=$selected_cover");
+        // Un sous-article n'est pas un réservoir : il ne doit jamais modifier l'isolation de son article principal
+        if ((int) $this->wpdb->get_var($this->wpdb->prepare(
+            "SELECT IdArticleMaster FROM {$this->wpdb->prefix}achats_details_commande WHERE Id = %d", intval($article_id)
+        )) > 0) {
+            return '';
+        }
         $tank = apply_filters('ispag_get_tank_datas', null, $article_id);
 // \1('maybe_add_insulation_article article ' . $article_id .' : ' . print_r($tank, true));
 

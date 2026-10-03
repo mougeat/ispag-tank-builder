@@ -437,6 +437,14 @@ class ISPAG_Tank_Designer
 
         $this->logger->log_db_change(self::LOG_NAME, $this->dimension_table, 'CHECK_EXISTS', ['article_id' => $article_id, 'exists' => $exists], $user_id);
 
+        // Sous-article (capot…) : pas de données réservoir, et surtout ne pas toucher à l'isolation de l'article principal
+        if ($exists == 0 && empty($data_received['type']) && empty($data_received['volume']))
+        {
+            $debug['success'] = true;
+            $debug['message'] = 'No tank data for this article.';
+            return $debug;
+        }
+
         $newData = [];
 
         $mapping = [

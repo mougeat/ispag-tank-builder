@@ -581,6 +581,9 @@ function findClosestDiameter(targetVolume, bottomHeight, clearance, conceptionId
 // Sauvegarde des données techniques du réservoir
 function saveTankData(articleId, is_purchase = false) {
 
+    // Formulaire sans données de réservoir (sous-article, capot…) : rien à enregistrer
+    if (!$('[name="tank[type]"]').length) return $.Deferred().resolve({ success: true, data: { skipped: true } }).promise();
+
     saveHeatExchangerData(articleId, is_purchase);
 
     const tank = {
