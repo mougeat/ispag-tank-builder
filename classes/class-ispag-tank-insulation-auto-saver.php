@@ -74,7 +74,11 @@ class ISPAG_Tank_Insulation_Auto_Saver {
                 : ['status' => 'ok', 'message' => ''];
         } else {
             $this->debug('aucun article correspondant');
-            if ($requested) {
+            // Isolation livrée par le fournisseur (polyester, PIR…) : aucun article d'isolation n'est attendu, ce n'est pas une erreur
+            $supplier_delivery = $requested && (int) $this->wpdb->get_var($this->wpdb->prepare(
+                "SELECT is_supplier_delivery FROM {$this->table_conception} WHERE Id = %d", intval($selected_type)
+            )) === 1;
+            if ($requested && !$supplier_delivery) {
                 $this->status = ['status' => 'missing', 'message' => sprintf(
                     'No insulation article matches this tank (volume %s L, height %s mm). Change the insulation options, or choose none.',
                     floatval($tank['dimensions']->Volume), floatval($tank['dimensions']->Height)

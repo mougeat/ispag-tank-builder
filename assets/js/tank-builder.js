@@ -185,12 +185,28 @@ function ispagApplyTankRules(typId) {
     const insId = String($('select[name="tank[insulation]"]').val() || '');
     const ins = insId && insId !== '0' && restrictions.insulation ? restrictions.insulation[insId] : null;
 
-    // Catalogue : épaisseurs et revêtements pour lesquels un article existe pour le type d'isolation choisi
+    // Épaisseurs et revêtements proposés pour le type d'isolation choisi :
+    //  1. les combinaisons définies dans l'administration (page « Tank rules », par type d'isolation) font foi ;
+    //  2. sans règle pour cette isolation : les valeurs autorisées pour le type de réservoir, croisées avec celles
+    //     des articles du catalogue lorsqu'il y en a (une isolation livrée par le fournisseur n'a pas d'article) ;
+    //  3. sans rien : toutes les valeurs.
     const hasInsulation = insId && insId !== '0';
-    const cat = hasInsulation && insulationCatalog ? (insulationCatalog[insId] || { thickness: [], cover: [] }) : null;
+    const filled = (list) => Array.isArray(list) && list.length ? list : null;
+    const cat = hasInsulation && insulationCatalog ? (insulationCatalog[insId] || null) : null;
 
-    ispagFilterSelect($('select[name="tank[InsulationThickness]"]'), ispagIntersect([rt.InsulationThickness, ins && ins.InsulationThickness, cat && cat.thickness]), ['', '0']);
-    ispagFilterSelect($('select[name="tank[insulationCover]"]'), ispagIntersect([ins && ins.insulationCover, cat && cat.cover]), ['', '0', '53']);
+    let thicknessRule = null;
+    let coverRule = null;
+    if (hasInsulation) {
+        thicknessRule = filled(ins && ins.InsulationThickness)
+            || ispagIntersect([filled(rt.InsulationThickness), filled(cat && cat.thickness)]);
+        coverRule = filled(ins && ins.insulationCover)
+            || ispagIntersect([filled(cat && cat.cover)]);
+    } else {
+        thicknessRule = filled(rt.InsulationThickness);
+    }
+
+    ispagFilterSelect($('select[name="tank[InsulationThickness]"]'), thicknessRule, ['', '0']);
+    ispagFilterSelect($('select[name="tank[insulationCover]"]'), coverRule, ['', '0', '53']);
 }
 
 // L'assistant de création : les règles sont réappliquées à chaque étape
