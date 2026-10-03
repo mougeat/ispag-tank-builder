@@ -354,8 +354,9 @@ msgid "liters"
 msgstr "Liter"
 
 #: classes/class-ispag-tank-description.php:47
+msgctxt "tank support"
 msgid "on"
-msgstr "am"
+msgstr "auf"
 
 #: classes/class-ispag-tank-description.php:49
 msgid "in"

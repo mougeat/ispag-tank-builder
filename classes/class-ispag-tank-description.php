@@ -44,7 +44,7 @@ class ISPAG_Tank_Description {
                 '%s %s %s %s, %s %s',
                 __($tank_designer->get_tank_text_data($conception->TankType ?? ''), 'creation-reservoir'),
                 ($dimensions->Volume ?? '0') . ' ' . __('liters', 'creation-reservoir'),
-                __('on', 'creation-reservoir'),
+                _x('on', 'tank support', 'creation-reservoir'), // « sur » (virole / pieds) ; distinct de « on » dans « ajouté par … le … »
                 __($tank_designer->get_tank_text_data($conception->Support ?? ''), 'creation-reservoir'),
                 __('in', 'creation-reservoir'),
                 __($tank_designer->get_tank_text_data($conception->Material ?? ''), 'creation-reservoir')
