@@ -1,3 +1,4 @@
+window.ispagT = window.ispagT || function (s) { return s; }; // traductions des textes JS (voir includes/js-strings.php)
 const btn_validation = document.getElementById('btn-validate-plan');
 
 if (btn_validation) {
@@ -39,7 +40,7 @@ if (btn_validation) {
             location.reload();
           }
         } else {
-          alert('Error: ' + res.data);
+          alert(ispagT('Error: ') + res.data);
           btn_validation.disabled = false;
           btn_validation.textContent = '✅ ' + ispag_validation.validateDrawingButton;
         }

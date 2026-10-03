@@ -1,3 +1,4 @@
+window.ispagT = window.ispagT || function (s) { return s; }; // traductions des textes JS (voir includes/js-strings.php)
 let isCalculatingHeight = false; // Notre indicateur
 let isCalculatingVolume = false; // Notre indicateur
 
@@ -642,7 +643,7 @@ function saveTankData(articleId, is_purchase = false) {
     }, xhr => {
         console.error('Error critique AJAX', xhr.responseText);
         ispagResetSaveButtons();
-        return $.Deferred().reject({ message: 'Invalid server response', xhr: xhr });
+        return $.Deferred().reject({ message: ispagT('Invalid server response'), xhr: xhr });
     });
 }
 
@@ -768,7 +769,7 @@ jQuery(document).ready(function($) {
         if (!dirty) { openFittingsFromEdit($form, articleId); return; }
 
         // Modifications en attente : enregistrer d'abord (OK) ou continuer sans enregistrer (Annuler)
-        if (window.confirm('You have unsaved changes. Save them before opening the fittings?\n\nOK = save and continue, Cancel = continue without saving')) {
+        if (window.confirm(ispagT('You have unsaved changes. Save them before opening the fittings?\n\nOK = save and continue, Cancel = continue without saving'))) {
             $(document).one('ispag:article-saved', function () { openFittingsFromEdit($form, articleId); });
             $form.trigger('submit');
         } else {
@@ -954,7 +955,7 @@ function saveFittings(autoSave = false, btnElement = null) {
     })
     .catch(err => {
         console.error('Error Save:', err);
-        alert("Server connection error.");
+        alert(ispagT("Server connection error."));
     })
     .finally(() => {
         // --- RÉINITIALISATION DU BOUTON ---
@@ -988,7 +989,7 @@ document.addEventListener('click', function (e) {
                 if (response.success) {
                     row.remove(); // suppression du DOM
                 } else {
-                    alert('❌ Error while deleting');
+                    alert(ispagT('❌ Error while deleting'));
                     console.error(response);
                 }
             });

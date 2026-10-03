@@ -1,3 +1,4 @@
+window.ispagT = window.ispagT || function (s) { return s; }; // traductions des textes JS (voir includes/js-strings.php)
 jQuery(document).ready(function($) {
     window.generateNoticePDF = function(articleId, btnElement) {
         var $btn = $(btnElement);
@@ -25,13 +26,13 @@ jQuery(document).ready(function($) {
                     pdfWindow.location.href = response.data.pdf_url;
                 } else {
                     pdfWindow.close(); // Ferme l'onglet vierge si erreur
-                    alert("Error: " + (response.data || "Inconnu"));
+                    alert(ispagT("Error: ") + (response.data || "Inconnu"));
                 }
             },
             error: function(xhr, status, error) {
                 pdfWindow.close(); // Ferme l'onglet vierge si erreur
                 console.error("Error AJAX :", xhr.status, xhr.responseText);
-                alert("Error lors de la génération du PDF. Vérifiez la console.");
+                alert(ispagT("Error lors de la génération du PDF. Vérifiez la console."));
             },
             complete: function() {
                 // 3. Restauration de l'état initial du bouton

@@ -11,13 +11,18 @@
 (function ($) {
     'use strict';
 
+    // Textes : fournis par PHP (ispagWizardI18n, traduits), l'anglais sert de secours
+    const I18N = window.ispagWizardI18n || {};
+    const EN = {"design": "Design", "dimensions": "Dimensions", "welding": "Welding", "fittings": "Fittings", "insulation": "Insulation", "details": "Details & save", "no_welding": "No welding for this tank", "no_insulation": "No insulation for this tank", "fittings_unavailable": "The fittings editor is not available on this page. Add the fittings from the article list.", "saving": "Saving…", "next": "Next", "back": "Back", "save": "Save", "choose_material": "Choose a material.", "choose_diameter": "Choose a diameter.", "enter_volume": "Enter the volume.", "confirm_no_fitting": "No fitting has been added to this tank. Continue without fittings?", "add_fitting": "Add at least one fitting, or confirm to continue without.", "no_insulation_added": "No insulation could be added.", "save_failed": "Save failed", "tank_not_saved": "The tank could not be saved. Check the values and try again.", "server_error": "Server error while saving. Try again.", "tank_saved_add_fittings": "The tank is saved. Add its fittings below; they are saved when you continue."};
+    function t(key) { return I18N[key] || EN[key] || key; }
+
     const STEPS = [
-        { key: 'design',     label: 'Design' },
-        { key: 'dimensions', label: 'Dimensions' },
-        { key: 'welding',    label: 'Welding' },
-        { key: 'fittings',   label: 'Fittings' },
-        { key: 'insulation', label: 'Insulation' },
-        { key: 'details',    label: 'Details & save' },
+        { key: 'design',     label: t('design') },
+        { key: 'dimensions', label: t('dimensions') },
+        { key: 'welding',    label: t('welding') },
+        { key: 'fittings',   label: t('fittings') },
+        { key: 'insulation', label: t('insulation') },
+        { key: 'details',    label: t('details') },
     ];
 
     const CSS = `
@@ -107,12 +112,12 @@
         })[0];
 
         // Soudure et isolation sont facultatives : une case permet de les ignorer (valeurs « aucune »)
-        const weldSkip = makeSkip('No welding for this tank', function (skip) {
+        const weldSkip = makeSkip(t('no_welding'), function (skip) {
             const $nb = $form.find('input[name="tank[nbWelding]"]');
             if (skip) { $nb.data('prev', $nb.val()); $nb.val(0); } else { $nb.val($nb.data('prev') === undefined ? '' : $nb.data('prev')); }
             $(weldField).toggleClass('ispag-wizard-skipped', skip);
         });
-        const insSkip = makeSkip('No insulation for this tank', function (skip) {
+        const insSkip = makeSkip(t('no_insulation'), function (skip) {
             const sels = { 'tank[insulation]': 0, 'tank[insulationCover]': 53, 'tank[InsulationThickness]': 0 };
             Object.keys(sels).forEach(function (n) {
                 const $el = $form.find('[name="' + n + '"]');
@@ -124,7 +129,7 @@
         $(insField).before(insSkip);
 
         const panel = $('<div class="ispag-wizard-panel" id="ispag-wizard-fittings">' +
-            '<p style="margin-top:0">The tank is saved. Add its fittings below; they are saved when you continue.</p>' +
+            '<p style="margin-top:0">' + $('<span>').text(t('tank_saved_add_fittings')).html() + '</p>' +
             '<div id="ispag-wizard-fittings-host"></div>' +
             '<button type="button" id="open-tank-fittings-modal" style="display:none"></button>' +
             '</div>')[0];
@@ -149,9 +154,9 @@
         const $stepper = $('<ol class="ispag-wizard-steps"></ol>');
         STEPS.forEach((s, i) => $stepper.append($('<li>').text((i + 1) + '. ' + s.label).attr('data-step', i)));
         const $error = $('<div class="ispag-wizard-error" style="display:none"></div>');
-        const $back  = $('<button type="button" class="ispag-btn ispag-btn-secondary-outlined">Back</button>');
-        const $next  = $('<button type="button" class="ispag-btn ispag-btn-red-outlined">Next</button>');
-        const $save  = $('<button type="submit" class="ispag-btn ispag-btn-red-outlined">Save</button>').attr('form', $form.attr('id') || 'ispag-edit-article-form');
+        const $back  = $('<button type="button" class="ispag-btn ispag-btn-secondary-outlined">' + $('<span>').text(t('back')).html() + '</button>');
+        const $next  = $('<button type="button" class="ispag-btn ispag-btn-red-outlined">' + $('<span>').text(t('next')).html() + '</button>');
+        const $save  = $('<button type="submit" class="ispag-btn ispag-btn-red-outlined">' + $('<span>').text(t('save')).html() + '</button>').attr('form', $form.attr('id') || 'ispag-edit-article-form');
         $form.prepend($stepper);
         $form.append($error);
         if ($footer.length) {
@@ -192,7 +197,7 @@
         const $inner = $('#tank-fittings-modal .ispag-modal-fullscreen-inner').first();
         const $host = $('#ispag-wizard-fittings-host');
         if (!$inner.length) {
-            $host.text('The fittings editor is not available on this page. Add the fittings from the article list.');
+            $host.text(t('fittings_unavailable'));
             return;
         }
         w.$inner = $inner;
@@ -242,18 +247,18 @@
 
     function setBusy(busy) {
         wizard.busy = busy;
-        wizard.$next.prop('disabled', busy).text(busy ? 'Saving…' : 'Next');
+        wizard.$next.prop('disabled', busy).text(busy ? t('saving') : t('next'));
         wizard.$back.prop('disabled', busy);
     }
 
     function validate(step) {
         const $f = wizard.$form;
         if (step === 0) {
-            if (!$f.find('select[name="tank[materiau]"]').val()) return 'Choose a material.';
+            if (!$f.find('select[name="tank[materiau]"]').val()) return t('choose_material');
         }
         if (step === 1) {
-            if (!$f.find('select[name="tank[diameter]"]').val()) return 'Choose a diameter.';
-            if (!(parseFloat($f.find('input[name="tank[volume]"]').val()) > 0)) return 'Enter the volume.';
+            if (!$f.find('select[name="tank[diameter]"]').val()) return t('choose_diameter');
+            if (!(parseFloat($f.find('input[name="tank[volume]"]').val()) > 0)) return t('enter_volume');
         }
         return '';
     }
@@ -271,8 +276,8 @@
         if (w.current >= 1 && w.articleId && typeof saveTankData === 'function') {
             if (w.current === 3 && w.embedded && typeof saveFittings === 'function') {
                 if (!$('#fittings-container .fitting-row').length
-                    && !window.confirm('No fitting has been added to this tank. Continue without fittings?')) {
-                    return setError('Add at least one fitting, or confirm to continue without.');
+                    && !window.confirm(t('confirm_no_fitting'))) {
+                    return setError(t('add_fitting'));
                 }
                 setBusy(true);
                 return saveFittings(true).then(() => { setBusy(false); saveStep(); });
@@ -297,11 +302,11 @@
                 // Isolation demandée mais introuvable (ou non enregistrée) : on reste sur l'étape
                 const ins = res && res.data && res.data.debug && res.data.debug.insulation_status;
                 if (wizard.current === 4 && ins && (ins.status === 'missing' || ins.status === 'error')) {
-                    return setError(ins.message || 'No insulation could be added.');
+                    return setError(ins.message || t('no_insulation_added'));
                 }
                 goto(wizard.current + 1);
             })
-            .fail(err => { setBusy(false); setError('Save failed' + (err && err.message ? ' : ' + err.message : '')); });
+            .fail(err => { setBusy(false); setError(t('save_failed') + (err && err.message ? ' : ' + err.message : '')); });
     }
 
     function onTankCreated(articleId) {
@@ -338,7 +343,7 @@
             } else {
                 wizard.awaiting = false;
                 setBusy(false);
-                setError('The tank could not be saved. Check the values and try again.');
+                setError(t('tank_not_saved'));
             }
         } else if (action === 'ispag_save_article' && !(res && res.success)) {
             wizard.awaiting = false;
@@ -351,7 +356,7 @@
         if (action === 'ispag_save_article' || action === 'ispag_save_tank_data') {
             wizard.awaiting = false;
             setBusy(false);
-            setError('Server error while saving. Try again.');
+            setError(t('server_error'));
         }
     });
 

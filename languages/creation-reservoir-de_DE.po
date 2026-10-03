@@ -354,8 +354,9 @@ msgid "liters"
 msgstr "Liter"
 
 #: classes/class-ispag-tank-description.php:47
+msgctxt "tank support"
 msgid "on"
-msgstr "am"
+msgstr "auf"
 
 #: classes/class-ispag-tank-description.php:49
 msgid "in"
@@ -713,37 +714,105 @@ msgstr "– Keine –"
 msgid "Type of covering"
 msgstr "Mantelart"
 
-#: classes/class-ispag-tank-manager.php:119
-msgid "Generate namesplate"
-msgstr "Typenschild erstellen"
-
-#: classes/class-ispag-tank-manager.php:256
-msgid "Technical sheet"
-msgstr "Datenblatt"
-
-#: classes/class-ispag-tank-manager.php:358
-msgid "Sketch"
-msgstr "Skizze"
-
-#: classes/class-ispag-tank-manager.php:405
-msgid "Access denied."
-msgstr "Zugriff verweigert."
-
-#: classes/class-ispag-tank-manager.php:83
+#: classes/class-ispag-tank-manager.php:108
 msgid "error while saving fitting"
 msgstr "Fehler beim Speichern des Stutzens"
 
-#: classes/class-ispag-tank-manager.php:90
+#: classes/class-ispag-tank-manager.php:115
 msgid "Standard shipping available in Switzerland."
 msgstr "Standardversand in der Schweiz möglich."
 
-#: classes/class-ispag-tank-manager.php:91
+#: classes/class-ispag-tank-manager.php:116
 msgid "Oversized transport requiring standard authorization."
 msgstr "Übermasstransport mit Standardbewilligung."
 
-#: classes/class-ispag-tank-manager.php:92
+#: classes/class-ispag-tank-manager.php:117
 msgid "Oversized load requiring special authorization (escort may be required)."
 msgstr "Übermassladung mit Sonderbewilligung (Begleitfahrzeug möglicherweise erforderlich)."
+
+#: classes/class-ispag-tank-manager.php:144
+msgid "Generate namesplate"
+msgstr "Typenschild erstellen"
+
+#: classes/class-ispag-tank-manager.php:281
+msgid "Technical sheet"
+msgstr "Datenblatt"
+
+#: classes/class-ispag-tank-manager.php:383
+msgid "Sketch"
+msgstr "Skizze"
+
+#: classes/class-ispag-tank-manager.php:430
+msgid "Access denied."
+msgstr "Zugriff verweigert."
+
+#: classes/class-ispag-tank-manager.php:65
+msgid "Details & save"
+msgstr "Details und Speichern"
+
+#: classes/class-ispag-tank-manager.php:66
+msgid "No welding for this tank"
+msgstr "Keine Schweissung für diesen Behälter"
+
+#: classes/class-ispag-tank-manager.php:67
+msgid "No insulation for this tank"
+msgstr "Keine Isolation für diesen Behälter"
+
+#: classes/class-ispag-tank-manager.php:68
+msgid "The fittings editor is not available on this page. Add the fittings from the article list."
+msgstr "Der Stutzen-Editor ist auf dieser Seite nicht verfügbar. Fügen Sie die Stutzen über die Artikelliste hinzu."
+
+#: classes/class-ispag-tank-manager.php:69
+msgid "Saving…"
+msgstr "Wird gespeichert…"
+
+#: classes/class-ispag-tank-manager.php:70
+msgid "Next"
+msgstr "Weiter"
+
+#: classes/class-ispag-tank-manager.php:71
+msgid "Back"
+msgstr "Zurück"
+
+#: classes/class-ispag-tank-manager.php:73
+msgid "Choose a material."
+msgstr "Wählen Sie ein Material."
+
+#: classes/class-ispag-tank-manager.php:74
+msgid "Choose a diameter."
+msgstr "Wählen Sie einen Durchmesser."
+
+#: classes/class-ispag-tank-manager.php:75
+msgid "Enter the volume."
+msgstr "Geben Sie das Volumen ein."
+
+#: classes/class-ispag-tank-manager.php:76
+msgid "No fitting has been added to this tank. Continue without fittings?"
+msgstr "Diesem Behälter wurde kein Stutzen hinzugefügt. Ohne Stutzen fortfahren?"
+
+#: classes/class-ispag-tank-manager.php:77
+msgid "Add at least one fitting, or confirm to continue without."
+msgstr "Fügen Sie mindestens einen Stutzen hinzu oder bestätigen Sie, um ohne fortzufahren."
+
+#: classes/class-ispag-tank-manager.php:78
+msgid "No insulation could be added."
+msgstr "Es konnte keine Isolation hinzugefügt werden."
+
+#: classes/class-ispag-tank-manager.php:79
+msgid "Save failed"
+msgstr "Speichern fehlgeschlagen"
+
+#: classes/class-ispag-tank-manager.php:80
+msgid "The tank could not be saved. Check the values and try again."
+msgstr "Der Behälter konnte nicht gespeichert werden. Prüfen Sie die Werte und versuchen Sie es erneut."
+
+#: classes/class-ispag-tank-manager.php:81
+msgid "Server error while saving. Try again."
+msgstr "Serverfehler beim Speichern. Bitte versuchen Sie es erneut."
+
+#: classes/class-ispag-tank-manager.php:82
+msgid "The tank is saved. Add its fittings below; they are saved when you continue."
+msgstr "Der Behälter ist gespeichert. Fügen Sie unten seine Stutzen hinzu; sie werden beim Fortfahren gespeichert."
 
 #: classes/class-ispag-tank-pdf-exporter.php:128
 msgid "Missing article ID."
@@ -1720,3 +1789,79 @@ msgstr "Wärmetauscherfläche (m²)"
 #: classes/templates/heat-exchanger-form.php:9
 msgid "Heat exchanger #%d"
 msgstr "Wärmetauscher Nr. %d"
+
+#: includes/js-strings.php:13
+msgid "Critical error: The tank ID is missing."
+msgstr "Kritischer Fehler: Die Behälter-ID fehlt."
+
+#: includes/js-strings.php:14
+msgid "Delete this heat exchanger?"
+msgstr "Diesen Wärmetauscher löschen?"
+
+#: includes/js-strings.php:15
+msgid "Error"
+msgstr "Fehler"
+
+#: includes/js-strings.php:16
+msgid "Error lors de la génération du PDF. Vérifiez la console."
+msgstr "Fehler beim Erstellen des PDF. Prüfen Sie die Konsole."
+
+#: includes/js-strings.php:17
+msgid "Error while loading the form."
+msgstr "Fehler beim Laden des Formulars."
+
+#: includes/js-strings.php:18
+msgid "Error: "
+msgstr "Fehler: "
+
+#: includes/js-strings.php:19
+msgid "Error: Invalid temperature difference"
+msgstr "Fehler: Ungültige Temperaturdifferenz"
+
+#: includes/js-strings.php:20
+msgid "Error: Unable to load the form."
+msgstr "Fehler: Das Formular kann nicht geladen werden."
+
+#: includes/js-strings.php:21
+msgid "Fix the temperature errors before saving."
+msgstr "Beheben Sie die Temperaturfehler vor dem Speichern."
+
+#: includes/js-strings.php:22
+msgid "Invalid server response"
+msgstr "Ungültige Serverantwort"
+
+#: includes/js-strings.php:23
+msgid "Must be < charge outlet temp."
+msgstr "Muss < Austrittstemp. Ladung sein"
+
+#: includes/js-strings.php:24
+msgid "Must be > hot water outlet temp."
+msgstr "Muss > Austrittstemp. Warmwasser sein"
+
+#: includes/js-strings.php:25
+msgid "Must be ≤ charge outlet temp. - 2°C"
+msgstr "Muss ≤ Austrittstemp. Ladung - 2 °C sein"
+
+#: includes/js-strings.php:26
+msgid "Network error"
+msgstr "Netzwerkfehler"
+
+#: includes/js-strings.php:27
+msgid "Network error while saving."
+msgstr "Netzwerkfehler beim Speichern."
+
+#: includes/js-strings.php:28
+msgid "PHP error: "
+msgstr "PHP-Fehler: "
+
+#: includes/js-strings.php:29
+msgid "Server connection error."
+msgstr "Serververbindungsfehler."
+
+#: includes/js-strings.php:30
+msgid "You have unsaved changes. Save them before opening the fittings?\n\nOK = save and continue, Cancel = continue without saving"
+msgstr "Sie haben nicht gespeicherte Änderungen. Vor dem Öffnen der Stutzen speichern?\n\nOK = speichern und fortfahren, Abbrechen = ohne Speichern fortfahren."
+
+#: includes/js-strings.php:31
+msgid "❌ Error while deleting"
+msgstr "❌ Fehler beim Löschen"

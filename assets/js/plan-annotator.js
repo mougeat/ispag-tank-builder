@@ -1,3 +1,4 @@
+window.ispagT = window.ispagT || function (s) { return s; }; // traductions des textes JS (voir includes/js-strings.php)
 /**
  * Visionneuse de plan avec annotations (crayon / texte) — page de validation d'un plan.
  * Rendu du PDF par PDF.js ; une couche canvas transparente par page porte les annotations.
@@ -154,12 +155,12 @@
                 if (res.success) {
                     if (window.opener) { window.opener.location.reload(); window.close(); } else { location.reload(); }
                 } else {
-                    window.alert('Error: ' + res.data);
+                    window.alert(ispagT('Error: ') + res.data);
                     btn.textContent = label;
                     refreshButtons();
                 }
             })
-            .catch(function () { window.alert('Network error'); btn.textContent = label; refreshButtons(); });
+            .catch(function () { window.alert(ispagT('Network error')); btn.textContent = label; refreshButtons(); });
     }
 
     btnValidate.addEventListener('click', function () {
