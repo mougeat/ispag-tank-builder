@@ -328,7 +328,7 @@ Exemple :
     // ---------------------------------------------------------------
     // Écouteurs (délégués, car la modale est chargée en AJAX)
     // ---------------------------------------------------------------
-    $(document).on('change input',
+    $(document).on('change',
         'input[name="tank[height]"], ' +
         'input[name="door_width"], select[name="door_width"], ' +
         'input[name="tank[nbWelding]"]',
@@ -338,7 +338,7 @@ Exemple :
         }
     );
 
-    $(document).on('change input',
+    $(document).on('change',
         'input[name="tank[tipping]"], input[name="room_height"]',
         function () {
             // console.log('⚡ [EVENT] Changement détecté sur un champ de basculement/hauteur de pièce (input/change)');
