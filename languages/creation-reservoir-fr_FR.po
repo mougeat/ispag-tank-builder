@@ -1788,3 +1788,79 @@ msgstr "Surface de l'échangeur (m²)"
 #: classes/templates/heat-exchanger-form.php:9
 msgid "Heat exchanger #%d"
 msgstr "Échangeur de chaleur n° %d"
+
+#: includes/js-strings.php:13
+msgid "Critical error: The tank ID is missing."
+msgstr "Erreur critique : l'ID du réservoir est manquant."
+
+#: includes/js-strings.php:14
+msgid "Delete this heat exchanger?"
+msgstr "Supprimer cet échangeur de chaleur ?"
+
+#: includes/js-strings.php:15
+msgid "Error"
+msgstr "Erreur"
+
+#: includes/js-strings.php:16
+msgid "Error lors de la génération du PDF. Vérifiez la console."
+msgstr "Erreur lors de la génération du PDF. Vérifiez la console."
+
+#: includes/js-strings.php:17
+msgid "Error while loading the form."
+msgstr "Erreur lors du chargement du formulaire."
+
+#: includes/js-strings.php:18
+msgid "Error: "
+msgstr "Erreur : "
+
+#: includes/js-strings.php:19
+msgid "Error: Invalid temperature difference"
+msgstr "Erreur : écart de température invalide"
+
+#: includes/js-strings.php:20
+msgid "Error: Unable to load the form."
+msgstr "Erreur : impossible de charger le formulaire."
+
+#: includes/js-strings.php:21
+msgid "Fix the temperature errors before saving."
+msgstr "Corrigez les erreurs de température avant d'enregistrer."
+
+#: includes/js-strings.php:22
+msgid "Invalid server response"
+msgstr "Réponse du serveur invalide"
+
+#: includes/js-strings.php:23
+msgid "Must be < charge outlet temp."
+msgstr "Doit être < temp. de sortie de charge"
+
+#: includes/js-strings.php:24
+msgid "Must be > hot water outlet temp."
+msgstr "Doit être > temp. de sortie d'eau chaude"
+
+#: includes/js-strings.php:25
+msgid "Must be ≤ charge outlet temp. - 2°C"
+msgstr "Doit être ≤ temp. de sortie de charge - 2 °C"
+
+#: includes/js-strings.php:26
+msgid "Network error"
+msgstr "Erreur réseau"
+
+#: includes/js-strings.php:27
+msgid "Network error while saving."
+msgstr "Erreur réseau pendant l'enregistrement."
+
+#: includes/js-strings.php:28
+msgid "PHP error: "
+msgstr "Erreur PHP : "
+
+#: includes/js-strings.php:29
+msgid "Server connection error."
+msgstr "Erreur de connexion au serveur."
+
+#: includes/js-strings.php:30
+msgid "You have unsaved changes. Save them before opening the fittings?\n\nOK = save and continue, Cancel = continue without saving"
+msgstr "Vous avez des modifications non enregistrées. Les enregistrer avant d'ouvrir les piquages ?\n\nOK = enregistrer et continuer, Annuler = continuer sans enregistrer."
+
+#: includes/js-strings.php:31
+msgid "❌ Error while deleting"
+msgstr "❌ Erreur lors de la suppression"

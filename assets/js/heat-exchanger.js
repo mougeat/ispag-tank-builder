@@ -1,3 +1,4 @@
+window.ispagT = window.ispagT || function (s) { return s; }; // traductions des textes JS (voir includes/js-strings.php)
 jQuery(function($) {
     // `ispag_ajax` est aussi défini par le plugin CRM (clés différentes) : on ne s'y fie pas pour l'URL
     function ajaxUrl() {
@@ -82,12 +83,12 @@ jQuery(function($) {
                     refreshExchangers($modal);
                 } else {
                     console.error("Error: ", response.message || "Réponse vide");
-                    alert("Error: Unable to load the form.");
+                    alert(ispagT("Error: Unable to load the form."));
                 }
             },
             error: function(xhr) {
                 console.error("Error AJAX :", xhr.responseText);
-                alert("Error while loading the form.");
+                alert(ispagT("Error while loading the form."));
             },
             complete: function() {
                 refreshExchangers($modal); // réactive le bouton tant que la limite n'est pas atteinte
@@ -100,7 +101,7 @@ jQuery(function($) {
         const $form = $(this).closest('.exchanger-form');
         const $modal = $form.closest('.ispag-product-modal');
         const tankId = $modal.data('tank-id');
-        if (!window.confirm('Delete this heat exchanger?')) return;
+        if (!window.confirm(ispagT('Delete this heat exchanger?'))) return;
 
         delete hasErrors[`${tankId}_${$form.data('coilnb')}`];
         $form.remove();
@@ -129,7 +130,7 @@ jQuery(function($) {
 
         // Vérifier s'il y a des erreurs dans ce tank
         if (hasErrors[tankId]) {
-            alert("Fix the temperature errors before saving.");
+            alert(ispagT("Fix the temperature errors before saving."));
             return;
         }
 
@@ -153,7 +154,7 @@ jQuery(function($) {
         });
 
         if (!tankId) {
-            alert("Critical error: The tank ID is missing.");
+            alert(ispagT("Critical error: The tank ID is missing."));
             return;
         }
 
@@ -174,11 +175,11 @@ jQuery(function($) {
                         // Optionnel : rafraîchir une partie de la page
                     });
                 } else {
-                    alert("PHP error: " + (response.data || "Unknown error"));
+                    alert(ispagT("PHP error: ") + (response.data || "Unknown error"));
                 }
             },
             error: function() {
-                alert("Network error while saving.");
+                alert(ispagT("Network error while saving."));
             },
             complete: function() {
                 $btn.html('<span class="dashicons dashicons-media-archive"></span> Save').prop('disabled', false);
@@ -229,21 +230,21 @@ jQuery(function($) {
             // 1. hotWaterOutput doit être <= loadOutput - 2°C
             if (hotWaterOutput > (loadOutput - 2)) {
                 $container.find(`[name="hotWaterOutputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Must be ≤ charge outlet temp. - 2°C");
+                          .text(ispagT("Must be ≤ charge outlet temp. - 2°C"));
                 hasError = true;
             }
 
             // 2. coldWaterInput doit être < loadOutput
             if (coldWaterInput >= loadOutput) {
                 $container.find(`[name="coldWaterInputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Must be < charge outlet temp.");
+                          .text(ispagT("Must be < charge outlet temp."));
                 hasError = true;
             }
 
             // 3. loadInput doit être > hotWaterOutput
             if (loadInput <= hotWaterOutput) {
                 $container.find(`[name="loadInputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Must be > hot water outlet temp.");
+                          .text(ispagT("Must be > hot water outlet temp."));
                 hasError = true;
             }
 
@@ -252,7 +253,7 @@ jQuery(function($) {
             const deltaB = loadInput - hotWaterOutput;
 
             if (deltaA <= 0 || deltaB <= 0) {
-                surfaceField.val("Error: Invalid temperature difference")
+                surfaceField.val(ispagT("Error: Invalid temperature difference"))
                            .prop('readonly', false)
                            .css('background', '#ffcccc');
                 hasError = true;

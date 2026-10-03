@@ -125,6 +125,7 @@ if (!function_exists('ispag_i18n_register_dir')) {
 }
 
 ispag_i18n_register_dir(__DIR__ . '/languages');
+require_once __DIR__ . '/includes/js-strings.php';
 
 // Initialisation du plugin
 add_action('plugins_loaded', function() {

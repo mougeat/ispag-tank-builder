@@ -1,3 +1,4 @@
+window.ispagT = window.ispagT || function (s) { return s; }; // traductions des textes JS (voir includes/js-strings.php)
 jQuery(document).ready(function($) {
     // console.log('[Tank Pricing] Script initialisé.');
 
@@ -180,7 +181,7 @@ jQuery(document).ready(function($) {
             },
             error: function(xhr, status, error) {
                 console.error('[Tank Pricing] Error AJAX critique :', error, { xhr, status });
-                $('#tank-price-display').val('Error');
+                $('#tank-price-display').val(ispagT('Error'));
                 $('#tank-price-errors').html('<div class="ispag-errors" style="color: red; margin-top: 10px;"><strong>⚠️ ' + ispag_texts.critical_error + ' :</strong> ' + error + '</div>');
             }
         });
