@@ -56,7 +56,7 @@ class ISPAG_Tank3D_Renderer {
 
         $article_id = isset($_GET['article_id']) ? intval($_GET['article_id']) : 0;
         if ($article_id <= 0) {
-            return '<p>' . __('Error: no article specified or article not valid!', ' creation-reservoir') .'</p>';
+            return '<p>' . __('Error: no article specified or article not valid!', 'creation-reservoir') .'</p>';
         }
         $tank_datas = apply_filters('ispag_get_tank_datas', null, $article_id );
 

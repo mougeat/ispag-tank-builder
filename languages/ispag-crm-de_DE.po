@@ -1,0 +1,98 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ispag-tank-builder\n"
+"Report-Msgid-Bugs-To: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Domain: ispag-crm\n"
+
+#: classes/class-ispag-existing-tanks-table.php:34
+msgid "Restricted access"
+msgstr "Eingeschränkter Zugriff"
+
+#: classes/class-ispag-existing-tanks-table.php:35
+msgid "You do not have the necessary rights to view this order."
+msgstr "Sie haben nicht die erforderlichen Rechte, um diese Bestellung anzuzeigen."
+
+#: classes/class-ispag-existing-tanks-table.php:36
+msgid "To login page"
+msgstr "Zur Anmeldeseite"
+
+#: classes/class-ispag-tank-drawing.php:325
+msgid "✏️ Modifications requested: %s"
+msgstr "✏️ Änderungen angefordert: %s"
+
+#: classes/class-ispag-tank-drawing.php:326
+msgid "<strong>%1$s</strong> annotated the drawing and requested modifications.<br>- <strong>Article ID</strong>: %2$s<br>- <strong>Deal ID</strong>: %3$s"
+msgstr "<strong>%1$s</strong> hat die Zeichnung kommentiert und Änderungen angefordert.<br>- <strong>Artikel-ID</strong>: %2$s<br>- <strong>Deal-ID</strong>: %3$s"
+
+#: classes/class-ispag-tank-drawing.php:558
+msgid "✅ Plan Validated: %s"
+msgstr "✅ Zeichnung genehmigt: %s"
+
+#: classes/class-ispag-tank-drawing.php:563
+msgid "A plan has been validated by <strong>%1$s</strong> on %2$s.<br>\n                        - <strong>Article ID</strong>: %3$s<br>\n                        - <strong>Deal ID</strong>: %4$s<br>\n                        - <strong>Purchase Order</strong>: %5$s"
+msgstr "Eine Zeichnung wurde von <strong>%1$s</strong> am %2$s genehmigt.<br>\n                        - <strong>Artikel-ID</strong>: %3$s<br>\n                        - <strong>Deal-ID</strong>: %4$s<br>\n                        - <strong>Bestellung</strong>: %5$s"
+
+#: classes/class-ispag-tank-exchanger.php:82
+msgid "Please select an action."
+msgstr "Bitte wählen Sie eine Aktion aus."
+
+#: classes/class-ispag-tank-exchanger.php:83
+msgid "Please select at least one contact."
+msgstr "Bitte wählen Sie mindestens einen Kontakt aus."
+
+#: classes/class-ispag-tank-exchanger.php:84
+msgid "Are you sure you want to delete the selected contacts?"
+msgstr "Möchten Sie die ausgewählten Kontakte wirklich löschen?"
+
+#: classes/class-ispag-tank-exchanger.php:85
+msgid "A - High"
+msgstr "A - Hoch"
+
+#: classes/class-ispag-tank-exchanger.php:86
+msgid "B - Medium"
+msgstr "B - Mittel"
+
+#: classes/class-ispag-tank-exchanger.php:87
+msgid "C - Low"
+msgstr "C - Tief"
+
+#: classes/class-ispag-tank-exchanger.php:88
+msgid "Company ID"
+msgstr "Unternehmens-ID"
+
+#: classes/class-ispag-tank-exchanger.php:89
+msgid "-- Select owner --"
+msgstr "-- Verantwortlichen auswählen --"
+
+#: classes/class-ispag-tank-exchanger.php:90
+msgid "Preparing..."
+msgstr "Vorbereitung..."
+
+#: classes/class-ispag-tank-exchanger.php:91
+msgid "Prepare meeting"
+msgstr "Besprechung vorbereiten"
+
+#: classes/class-ispag-tank-fittings.php:218
+msgid "Fittings and Accessories"
+msgstr "Stutzen und Zubehör"
+
+#: classes/class-ispag-tank-fittings.php:235
+msgid "Welding and Perforated Sheets"
+msgstr "Schweissungen und Lochbleche"
+
+#: classes/templates/form-tank-comments-field.php:13
+msgid "-- Select a template --"
+msgstr "-- Vorlage auswählen --"
+
+#: classes/templates/form-tank-comments-field.php:48
+msgid "Other"
+msgstr "Andere"
+
+#: classes/templates/form-tank-comments-field.php:58
+msgid "Apply"
+msgstr "Anwenden"

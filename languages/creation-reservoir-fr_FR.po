@@ -1,0 +1,1722 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ispag-tank-builder\n"
+"Report-Msgid-Bugs-To: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fr_FR\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Domain: creation-reservoir\n"
+
+#: classes/class-ispag-digital-twin.php:106
+msgid "Approved drawing"
+msgstr "Plan validé"
+
+#: classes/class-ispag-digital-twin.php:106
+msgid "Technical drawing"
+msgstr "Plan technique"
+
+#: classes/class-ispag-digital-twin.php:146
+msgid "Support"
+msgstr "Assistance"
+
+#: classes/class-ispag-digital-twin.php:149
+msgid "Nominal volume"
+msgstr "Volume nominal"
+
+#: classes/class-ispag-digital-twin.php:154
+msgid "Max. temperature"
+msgstr "Température max."
+
+#: classes/class-ispag-digital-twin.php:167
+msgid "Digital Product Twin"
+msgstr "Jumeau numérique du produit"
+
+#: classes/class-ispag-digital-twin.php:216
+msgid "ISPAG equipment"
+msgstr "Équipement ISPAG"
+
+#: classes/class-ispag-digital-twin.php:218
+msgid "S/N"
+msgstr "N° de série"
+
+#: classes/class-ispag-digital-twin.php:219
+msgid "Copy"
+msgstr "Copier"
+
+#: classes/class-ispag-digital-twin.php:223
+msgid "Under warranty – %d days left"
+msgstr "Sous garantie – %d jours restants"
+
+#: classes/class-ispag-digital-twin.php:224
+msgid "Warranty expired"
+msgstr "Garantie expirée"
+
+#: classes/class-ispag-digital-twin.php:232
+msgid "Delivered on"
+msgstr "Livré le"
+
+#: classes/class-ispag-digital-twin.php:233
+msgid "Warranty until (%d years)"
+msgstr "Garantie jusqu'au (%d ans)"
+
+#: classes/class-ispag-digital-twin.php:242
+msgid "Documentation"
+msgstr "Documentation"
+
+#: classes/class-ispag-digital-twin.php:248
+msgid "Maintenance manual"
+msgstr "Manuel d'entretien"
+
+#: classes/class-ispag-digital-twin.php:248
+msgid "View online"
+msgstr "Voir en ligne"
+
+#: classes/class-ispag-digital-twin.php:250
+msgid "No document available online yet."
+msgstr "Aucun document disponible en ligne pour l'instant."
+
+#: classes/class-ispag-digital-twin.php:254
+msgid "Need assistance?"
+msgstr "Besoin d'aide ?"
+
+#: classes/class-ispag-digital-twin.php:255
+msgid "The %s team is here to help you."
+msgstr "L'équipe %s est là pour vous aider."
+
+#: classes/class-ispag-digital-twin.php:257
+msgid "Call"
+msgstr "Appeler"
+
+#: classes/class-ispag-digital-twin.php:258
+msgid "Email support"
+msgstr "Support par e-mail"
+
+#: classes/class-ispag-digital-twin.php:266
+msgid "Find your equipment"
+msgstr "Trouvez votre équipement"
+
+#: classes/class-ispag-digital-twin.php:267
+msgid "Enter the serial number printed on the nameplate, or scan its QR code."
+msgstr "Saisissez le numéro de série imprimé sur la plaque signalétique, ou scannez son QR code."
+
+#: classes/class-ispag-digital-twin.php:270
+msgid "Product not found"
+msgstr "Produit introuvable"
+
+#: classes/class-ispag-digital-twin.php:271
+msgid "The serial number is invalid or not found in our database."
+msgstr "Le numéro de série est invalide ou introuvable dans notre base de données."
+
+#: classes/class-ispag-digital-twin.php:275
+msgid "Search"
+msgstr "Rechercher"
+
+#: classes/class-ispag-existing-tanks-table.php:100
+msgid "Search for a project..."
+msgstr "Rechercher un projet..."
+
+#: classes/class-ispag-existing-tanks-table.php:104
+msgid "All types"
+msgstr "Tous les types"
+
+#: classes/class-ispag-existing-tanks-table.php:111
+msgid "All materials"
+msgstr "Tous les matériaux"
+
+#: classes/class-ispag-existing-tanks-table.php:116
+msgid "Volume L"
+msgstr "Volume L"
+
+#: classes/class-ispag-existing-tanks-table.php:117
+msgid "Pressure"
+msgstr "Pression"
+
+#: classes/class-ispag-existing-tanks-table.php:119
+msgid "Filter / Search"
+msgstr "Filtrer / Rechercher"
+
+#: classes/class-ispag-existing-tanks-table.php:120
+msgid "Reset filters"
+msgstr "Réinitialiser les filtres"
+
+#: classes/class-ispag-existing-tanks-table.php:123
+msgid "tanks found"
+msgstr "réservoirs trouvés"
+
+#: classes/class-ispag-existing-tanks-table.php:132
+msgid "Project / Article"
+msgstr "Projet / Article"
+
+#: classes/class-ispag-existing-tanks-table.php:134
+msgid "Design"
+msgstr "Conception"
+
+#: classes/class-ispag-existing-tanks-table.php:135
+msgid "Dimensions"
+msgstr "Dimensions"
+
+#: classes/class-ispag-existing-tanks-table.php:136
+msgid "Operating pressure"
+msgstr "Pression de service"
+
+#: classes/class-ispag-existing-tanks-table.php:137
+msgid "Gross unit price"
+msgstr "Prix unitaire brut"
+
+#: classes/class-ispag-nameplate-generator.php:198
+msgid "Exch. Surface"
+msgstr "Surface d'éch."
+
+#: classes/class-ispag-nameplate-generator.php:201
+msgid "Max. Temp."
+msgstr "Temp. max."
+
+#: classes/class-ispag-nameplate-svg-generator.php:103
+msgid "Volume"
+msgstr "Volume"
+
+#: classes/class-ispag-nameplate-svg-generator.php:104
+msgid "Exch. surface"
+msgstr "Surface d'échange"
+
+#: classes/class-ispag-nameplate-svg-generator.php:107
+msgid "Max. temp."
+msgstr "Temp. max."
+
+#: classes/class-ispag-nameplate-svg-generator.php:122
+msgid "YEAR"
+msgstr "ANNÉE"
+
+#: classes/class-ispag-nameplate-svg-generator.php:123
+msgid "SERIAL"
+msgstr "N° DE SÉRIE"
+
+#: classes/class-ispag-nameplate-svg-generator.php:129
+msgid "Scan for docs"
+msgstr "Scannez pour les documents"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:154
+msgid "Thermal Power"
+msgstr "Puissance thermique"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:159
+msgid "Fluid"
+msgstr "Fluide"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:160
+msgid "ΔP"
+msgstr "ΔP"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:186
+msgid "Secondary"
+msgstr "Secondaire"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:191
+msgid "Technical data according to attached data sheets."
+msgstr "Données techniques selon les fiches techniques jointes."
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:24
+msgid "Mono-Propylene-Glycol 30%"
+msgstr "Mono-propylène-glycol 30 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:25
+msgid "Water/Glycol"
+msgstr "Eau/glycol"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:26
+msgid "Sea water"
+msgstr "Eau de mer"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:27
+msgid "Mono-Ethylene-Glycol 05%"
+msgstr "Mono-éthylène-glycol 05 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:28
+msgid "Mono-Ethylene-Glycol 10%"
+msgstr "Mono-éthylène-glycol 10 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:29
+msgid "Mono-Ethylene-Glycol 15%"
+msgstr "Mono-éthylène-glycol 15 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:30
+msgid "Mono-Ethylene-Glycol 20%"
+msgstr "Mono-éthylène-glycol 20 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:31
+msgid "Mono-Ethylene-Glycol 25%"
+msgstr "Mono-éthylène-glycol 25 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:32
+msgid "Mono-Ethylene-Glycol 30%"
+msgstr "Mono-éthylène-glycol 30 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:33
+msgid "Mono-Ethylene-Glycol 35%"
+msgstr "Mono-éthylène-glycol 35 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:34
+msgid "Mono-Ethylene-Glycol 40%"
+msgstr "Mono-éthylène-glycol 40 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:35
+msgid "Mono-Ethylene-Glycol 45%"
+msgstr "Mono-éthylène-glycol 45 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:36
+msgid "Mono-Ethylene-Glycol 50%"
+msgstr "Mono-éthylène-glycol 50 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:37
+msgid "Mono-Propylene-Glycol 10%"
+msgstr "Mono-propylène-glycol 10 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:38
+msgid "Mono-Propylene-Glycol 15%"
+msgstr "Mono-propylène-glycol 15 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:39
+msgid "Mono-Propylene-Glycol 20%"
+msgstr "Mono-propylène-glycol 20 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:40
+msgid "Mono-Propylene-Glycol 25%"
+msgstr "Mono-propylène-glycol 25 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:42
+msgid "Mono-Propylene-Glycol 35%"
+msgstr "Mono-propylène-glycol 35 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:43
+msgid "Mono-Propylene-Glycol 40%"
+msgstr "Mono-propylène-glycol 40 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:44
+msgid "Mono-Propylene-Glycol 45%"
+msgstr "Mono-propylène-glycol 45 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:45
+msgid "Mono-Propylene-Glycol 50%"
+msgstr "Mono-propylène-glycol 50 %"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:46
+msgid "Other"
+msgstr "Autre"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:58
+msgid "Brazed"
+msgstr "Brasé"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:59
+msgid "Gasketed / Screwed (Inox 304)"
+msgstr "À joints / vissé (inox 304)"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:60
+msgid "Gasketed / Screwed (Inox 316 L)"
+msgstr "À joints / vissé (inox 316 L)"
+
+#: classes/class-ispag-plate-heat-exchanger-designer.php:98
+msgid "Plate Heat Exchanger"
+msgstr "Échangeur à plaques"
+
+#: classes/class-ispag-tank-3d-renderer.php:22
+msgid "Display tank 3D view"
+msgstr "Afficher la vue 3D du réservoir"
+
+#: classes/class-ispag-tank-3d-renderer.php:59
+msgid "Error: no article specified or article not valid!"
+msgstr "Erreur : aucun article spécifié ou article non valide !"
+
+#: classes/class-ispag-tank-description.php:100
+msgid "Tipping height"
+msgstr "Hauteur de basculement"
+
+#: classes/class-ispag-tank-description.php:101
+msgid "Ground clearance"
+msgstr "Garde au sol"
+
+#: classes/class-ispag-tank-description.php:109
+msgid "Temperature"
+msgstr "Température"
+
+#: classes/class-ispag-tank-description.php:118
+msgid "Fittings"
+msgstr "Piquages"
+
+#: classes/class-ispag-tank-description.php:120
+msgid "Connection layout freely configurable"
+msgstr "Disposition des raccords librement configurable"
+
+#: classes/class-ispag-tank-description.php:46
+msgid "liters"
+msgstr "litres"
+
+#: classes/class-ispag-tank-description.php:47
+msgid "on"
+msgstr "le"
+
+#: classes/class-ispag-tank-description.php:49
+msgid "in"
+msgstr "en"
+
+#: classes/class-ispag-tank-description.php:98
+msgid "Uninsulated diameter"
+msgstr "Diamètre non isolé"
+
+#: classes/class-ispag-tank-designer.php:129
+msgid "Select tank type"
+msgstr "Sélectionner le type de réservoir"
+
+#: classes/class-ispag-tank-designer.php:718
+msgid "Internally and externally stained and passivated"
+msgstr "Décapé et passivé à l'intérieur et à l'extérieur"
+
+#: classes/class-ispag-tank-designer.php:725
+msgid "Raw inside / outside painted anti-rust"
+msgstr "Brut à l'intérieur / peint antirouille à l'extérieur"
+
+#: classes/class-ispag-tank-designer.php:732
+msgid "Raw inside / zinc dust primed outside"
+msgstr "Brut à l'intérieur / apprêt poudre de zinc à l'extérieur"
+
+#: classes/class-ispag-tank-drawing-generator.php:143
+msgid "Heat exchanger"
+msgstr "Échangeur de chaleur"
+
+#: classes/class-ispag-tank-drawing-generator.php:143
+msgid "Spiraflex coil"
+msgstr "Serpentin Spiraflex"
+
+#: classes/class-ispag-tank-drawing-generator.php:209
+msgid "Group"
+msgstr "Groupe"
+
+#: classes/class-ispag-tank-drawing-generator.php:211
+msgid "Created by"
+msgstr "Créé par"
+
+#: classes/class-ispag-tank-drawing-generator.php:212
+msgid "Scale"
+msgstr "Échelle"
+
+#: classes/class-ispag-tank-drawing-generator.php:213
+msgid "Format"
+msgstr "Format"
+
+#: classes/class-ispag-tank-drawing-generator.php:234
+msgid "Dimensions in mm. Tolerance +/- 5 mm."
+msgstr "Dimensions en mm. Tolérance +/- 5 mm."
+
+#: classes/class-ispag-tank-drawing-generator.php:241
+msgid "SKETCH - FOR INFORMATION"
+msgstr "CROQUIS - À TITRE INFORMATIF"
+
+#: classes/class-ispag-tank-drawing-generator.php:246
+msgid "This sketch is given for information purposes only. The manufacturing plan will be sent later for validation and will be the only official document."
+msgstr "Ce croquis est fourni à titre informatif uniquement. Le plan de fabrication sera envoyé ultérieurement pour validation et sera le seul document officiel."
+
+#: classes/class-ispag-tank-drawing-generator.php:263
+msgid "Effective capacity"
+msgstr "Capacité effective"
+
+#: classes/class-ispag-tank-drawing-generator.php:282
+msgid "Order"
+msgstr "Commande"
+
+#: classes/class-ispag-tank-drawing-generator.php:306
+msgid "Tank"
+msgstr "Réservoir"
+
+#: classes/class-ispag-tank-drawing-generator.php:308
+msgid "Finish"
+msgstr "Finition"
+
+#: classes/class-ispag-tank-drawing-generator.php:309
+msgid "Pressure (exerc./test)"
+msgstr "Pression (serv./essai)"
+
+#: classes/class-ispag-tank-drawing-generator.php:311
+msgid "Insulation"
+msgstr "Isolation"
+
+#: classes/class-ispag-tank-drawing-generator.php:311
+msgid "NOT INSULATED"
+msgstr "NON ISOLÉ"
+
+#: classes/class-ispag-tank-drawing-generator.php:329
+msgid "Description"
+msgstr "Description"
+
+#: classes/class-ispag-tank-drawing-generator.php:329
+msgid "Qty"
+msgstr "Qté"
+
+#: classes/class-ispag-tank-drawing-generator.php:336
+msgid "Bill of Materials"
+msgstr "Nomenclature"
+
+#: classes/class-ispag-tank-drawing-generator.php:404
+msgid "Image not available"
+msgstr "Image non disponible"
+
+#: classes/class-ispag-tank-drawing-generator.php:497
+msgid "%d pieces"
+msgstr "%d pièces"
+
+#: classes/class-ispag-tank-drawing-generator.php:613
+msgid "Top view"
+msgstr "Vue de dessus"
+
+#: classes/class-ispag-tank-drawing-generator.php:92
+msgid "Fitting"
+msgstr "Piquage"
+
+#: classes/class-ispag-tank-drawing.php:140
+msgid "Drawing not found or access denied."
+msgstr "Plan introuvable ou accès refusé."
+
+#: classes/class-ispag-tank-drawing.php:153
+msgid "Sending"
+msgstr "Envoi"
+
+#: classes/class-ispag-tank-drawing.php:155
+msgid "Request modifications"
+msgstr "Demander des modifications"
+
+#: classes/class-ispag-tank-drawing.php:156
+msgid "You added annotations: send them as a modification request instead."
+msgstr "Vous avez ajouté des annotations : envoyez-les plutôt comme demande de modification."
+
+#: classes/class-ispag-tank-drawing.php:157
+msgid "Draw or write on the plan to request modifications, or validate it as it is."
+msgstr "Dessinez ou écrivez sur le plan pour demander des modifications, ou validez-le tel quel."
+
+#: classes/class-ispag-tank-drawing.php:158
+msgid "Annotations added: the drawing can no longer be validated, send your modification request."
+msgstr "Annotations ajoutées : le plan ne peut plus être validé, envoyez votre demande de modification."
+
+#: classes/class-ispag-tank-drawing.php:159
+msgid "Do you really want to validate this drawing? It will be marked \"Validated by %s\" with today's date."
+msgstr "Voulez-vous vraiment valider ce plan ? Il sera marqué « Validé par %s » avec la date du jour."
+
+#: classes/class-ispag-tank-drawing.php:160
+msgid "Send your annotations as a modification request? A new version of the drawing will be created and they cannot be edited afterwards."
+msgstr "Envoyer vos annotations comme demande de modification ? Une nouvelle version du plan sera créée et elles ne pourront plus être modifiées ensuite."
+
+#: classes/class-ispag-tank-drawing.php:161
+msgid "Remove all annotations?"
+msgstr "Supprimer toutes les annotations ?"
+
+#: classes/class-ispag-tank-drawing.php:170
+msgid "Validation plan"
+msgstr "Validation du plan"
+
+#: classes/class-ispag-tank-drawing.php:192
+msgid "Pen"
+msgstr "Stylo"
+
+#: classes/class-ispag-tank-drawing.php:193
+msgid "Text"
+msgstr "Texte"
+
+#: classes/class-ispag-tank-drawing.php:194
+msgid "Color"
+msgstr "Couleur"
+
+#: classes/class-ispag-tank-drawing.php:195
+msgid "Thickness"
+msgstr "Épaisseur"
+
+#: classes/class-ispag-tank-drawing.php:198
+msgid "Undo"
+msgstr "Annuler"
+
+#: classes/class-ispag-tank-drawing.php:199
+msgid "Clear"
+msgstr "Effacer"
+
+#: classes/class-ispag-tank-drawing.php:352
+msgid "Log in to view and validate this drawing."
+msgstr "Connectez-vous pour voir et valider ce plan."
+
+#: classes/class-ispag-tank-drawing.php:41
+msgid "Would you really validate this drawing"
+msgstr "Voulez-vous vraiment valider ce plan"
+
+#: classes/class-ispag-tank-drawing.php:42
+msgid "Validating"
+msgstr "Validation en cours"
+
+#: classes/class-ispag-tank-drawing.php:43
+msgid "Drawing successfully validated"
+msgstr "Plan validé avec succès"
+
+#: classes/class-ispag-tank-drawing.php:44
+msgid "Validate drawing"
+msgstr "Valider le plan"
+
+#: classes/class-ispag-tank-dxf-exporter.php:40
+msgid "Download DXF"
+msgstr "Télécharger le DXF"
+
+#: classes/class-ispag-tank-dxf-exporter.php:567
+msgid "Article"
+msgstr "Article"
+
+#: classes/class-ispag-tank-dxf-exporter.php:568
+msgid "Project"
+msgstr "Projet"
+
+#: classes/class-ispag-tank-dxf-exporter.php:569
+msgid "Customer"
+msgstr "Client"
+
+#: classes/class-ispag-tank-dxf-exporter.php:570
+msgid "Date"
+msgstr "Date"
+
+#: classes/class-ispag-tank-dxf-exporter.php:606
+msgid "Designation"
+msgstr "Désignation"
+
+#: classes/class-ispag-tank-dxf-exporter.php:607
+msgid "Article Nr."
+msgstr "N° d'article"
+
+#: classes/class-ispag-tank-dxf-exporter.php:608
+msgid "Order Nr."
+msgstr "N° de commande"
+
+#: classes/class-ispag-tank-dxf-exporter.php:613
+msgid "Appr."
+msgstr "Appr."
+
+#: classes/class-ispag-tank-dxf-exporter.php:614
+msgid "Drawn"
+msgstr "Dessiné"
+
+#: classes/class-ispag-tank-exchanger.php:202
+msgid "Add exchanger"
+msgstr "Ajouter un échangeur"
+
+#: classes/class-ispag-tank-exchanger.php:203
+msgid "Save"
+msgstr "Enregistrer"
+
+#: classes/class-ispag-tank-exchanger.php:350
+msgid "Spiraflex Coil %s: %sm²"
+msgstr "Serpentin Spiraflex %s : %sm²"
+
+#: classes/class-ispag-tank-exchanger.php:355
+msgid "%s Coil %s: %sm² – In %s°C / Out %s°C – Water %s°C / %s°C – %s kW %s"
+msgstr "Serpentin %s %s : %sm² – Entrée %s°C / Sortie %s°C – Eau %s°C / %s°C – %s kW %s"
+
+#: classes/class-ispag-tank-exchanger.php:409
+msgid "Spiraflex DN32 %s : %sm²"
+msgstr "Spiraflex DN32 %s : %sm²"
+
+#: classes/class-ispag-tank-exchanger.php:414
+msgid "Heat exchanger %s : %sm²"
+msgstr "Échangeur de chaleur %s : %sm²"
+
+#: classes/class-ispag-tank-exchanger.php:462
+msgid "Missing data"
+msgstr "Données manquantes"
+
+#: classes/class-ispag-tank-exchanger.php:471
+msgid "Invalid data format"
+msgstr "Format de données invalide"
+
+#: classes/class-ispag-tank-exchanger.php:478
+msgid "A tank can have at most %d heat exchangers."
+msgstr "Un réservoir peut avoir au maximum %d échangeurs de chaleur."
+
+#: classes/class-ispag-tank-exchanger.php:487
+msgid "Exchanger data has been saved."
+msgstr "Les données de l'échangeur ont été enregistrées."
+
+#: classes/class-ispag-tank-fittings.php:105
+msgid "Save fittings"
+msgstr "Enregistrer les piquages"
+
+#: classes/class-ispag-tank-fittings.php:167
+msgid "with"
+msgstr "avec"
+
+#: classes/class-ispag-tank-fittings.php:185
+msgid "for"
+msgstr "pour"
+
+#: classes/class-ispag-tank-fittings.php:227
+msgid "Add fitting"
+msgstr "Ajouter un piquage"
+
+#: classes/class-ispag-tank-fittings.php:244
+msgid "Add welding / drilled plate"
+msgstr "Ajouter une soudure / tôle perforée"
+
+#: classes/class-ispag-tank-fittings.php:414
+msgid "With %NB_PIECES% drilled plate for better stratification"
+msgstr "Avec %NB_PIECES% tôle perforée pour une meilleure stratification"
+
+#: classes/class-ispag-tank-fittings.php:52
+msgid "Configure fittings"
+msgstr "Configurer les piquages"
+
+#: classes/class-ispag-tank-fittings.php:96
+msgid "Fittings configuration"
+msgstr "Configuration des piquages"
+
+#: classes/class-ispag-tank-insulation.php:170
+msgid "%dL tank %dmm %s %s (height %s %smm)"
+msgstr "Réservoir %dL %dmm %s %s (hauteur %s %smm)"
+
+#: classes/class-ispag-tank-insulation.php:208
+msgid "%dmm %s for %dL tank (height %s %smm)"
+msgstr "%dmm %s pour réservoir de %dL (hauteur %s %smm)"
+
+#: classes/class-ispag-tank-insulation.php:217
+msgid "%s"
+msgstr "%s"
+
+#: classes/class-ispag-tank-insulation.php:224
+msgid "Installation lead time: on request"
+msgstr "Délai d'installation : sur demande"
+
+#: classes/class-ispag-tank-insulation.php:225
+msgid "Notice period: 2 to 3 weeks after call"
+msgstr "Délai de préavis : 2 à 3 semaines après l'appel"
+
+#: classes/class-ispag-tank-insulation.php:226
+msgid "Price includes on-site installation on non-connected tank."
+msgstr "Le prix comprend l'installation sur site sur un réservoir non raccordé."
+
+#: classes/class-ispag-tank-insulation.php:227
+msgid "Surcharge if already connected: +10%."
+msgstr "Supplément si déjà raccordé : +10 %."
+
+#: classes/class-ispag-tank-insulation.php:288
+msgid "to be assembled after insertion and before connections by the installer"
+msgstr "à assembler après introduction et avant les raccordements par l'installateur"
+
+#: classes/class-ispag-tank-insulation.php:64
+msgid "Type of insulation"
+msgstr "Type d'isolation"
+
+#: classes/class-ispag-tank-insulation.php:66
+msgid "– None –"
+msgstr "– Aucune –"
+
+#: classes/class-ispag-tank-insulation.php:74
+msgid "Type of covering"
+msgstr "Type d'habillage"
+
+#: classes/class-ispag-tank-manager.php:119
+msgid "Generate namesplate"
+msgstr "Générer la plaque signalétique"
+
+#: classes/class-ispag-tank-manager.php:256
+msgid "Technical sheet"
+msgstr "Fiche technique"
+
+#: classes/class-ispag-tank-manager.php:358
+msgid "Sketch"
+msgstr "Croquis"
+
+#: classes/class-ispag-tank-manager.php:405
+msgid "Access denied."
+msgstr "Accès refusé."
+
+#: classes/class-ispag-tank-manager.php:83
+msgid "error while saving fitting"
+msgstr "erreur lors de l'enregistrement du piquage"
+
+#: classes/class-ispag-tank-manager.php:90
+msgid "Standard shipping available in Switzerland."
+msgstr "Expédition standard possible en Suisse."
+
+#: classes/class-ispag-tank-manager.php:91
+msgid "Oversized transport requiring standard authorization."
+msgstr "Transport hors gabarit nécessitant une autorisation standard."
+
+#: classes/class-ispag-tank-manager.php:92
+msgid "Oversized load requiring special authorization (escort may be required)."
+msgstr "Chargement hors gabarit nécessitant une autorisation spéciale (accompagnement possiblement requis)."
+
+#: classes/class-ispag-tank-pdf-exporter.php:128
+msgid "Missing article ID."
+msgstr "ID d'article manquant."
+
+#: classes/class-ispag-tank-pdf-exporter.php:138
+msgid "Article not found"
+msgstr "Article introuvable"
+
+#: classes/class-ispag-tank-pdf-exporter.php:411
+msgid "Fittings List"
+msgstr "Liste des piquages"
+
+#: classes/class-ispag-tank-pdf-exporter.php:425
+msgid "pos"
+msgstr "pos."
+
+#: classes/class-ispag-tank-pdf-exporter.php:426
+msgid "Desc"
+msgstr "Désignation"
+
+#: classes/class-ispag-tank-pdf-exporter.php:427
+msgid "Diam."
+msgstr "Diam."
+
+#: classes/class-ispag-tank-pdf-exporter.php:428
+msgid "H"
+msgstr "H"
+
+#: classes/class-ispag-tank-pdf-exporter.php:429
+msgid "W"
+msgstr "L"
+
+#: classes/class-ispag-tank-pdf-exporter.php:455
+msgid "No fittings"
+msgstr "Aucun piquage"
+
+#: classes/class-ispag-tank-pdf-exporter.php:534
+msgid "Bend Pipe"
+msgstr "Tube coudé"
+
+#: classes/class-ispag-tank-pdf-exporter.php:535
+msgid "Flange"
+msgstr "Bride"
+
+#: classes/class-ispag-tank-pdf-exporter.php:537
+msgid "Unknown"
+msgstr "Inconnu"
+
+#: classes/class-ispag-tank-pdf-exporter.php:618
+msgid "Stainless Steel V4a (AISI316L)"
+msgstr "Acier inoxydable V4A (AISI316L)"
+
+#: classes/class-ispag-tank-pdf-exporter.php:623
+msgid "L"
+msgstr "L"
+
+#: classes/class-ispag-tank-pdf-exporter.php:628
+msgid "bar"
+msgstr "bar"
+
+#: classes/class-ispag-tank-pdf-exporter.php:633
+msgid "Approved by"
+msgstr "Approuvé par"
+
+#: classes/class-ispag-tank-pdf-exporter.php:636
+msgid "Drawn by"
+msgstr "Dessiné par"
+
+#: classes/class-ispag-tank-pdf-generator.php:142
+msgid "Technical data sheet"
+msgstr "Fiche technique"
+
+#: classes/class-ispag-tank-pdf-generator.php:213
+msgid "Height"
+msgstr "Hauteur"
+
+#: classes/class-ispag-tank-pdf-generator.php:259
+msgid "Specifications"
+msgstr "Spécifications"
+
+#: classes/class-ispag-tank-pdf-generator.php:261
+msgid "Materials"
+msgstr "Matériaux"
+
+#: classes/class-ispag-tank-pdf-generator.php:278
+msgid "Welding"
+msgstr "Soudure"
+
+#: classes/class-ispag-tank-pdf-generator.php:280
+msgid "Welding carried out by the customer."
+msgstr "Soudure réalisée par le client."
+
+#: classes/class-ispag-tank-pdf-generator.php:345
+msgid "Surface"
+msgstr "Surface"
+
+#: classes/class-ispag-tank-pdf-generator.php:346
+msgid "Power"
+msgstr "Puissance"
+
+#: classes/class-ispag-tank-pdf-generator.php:347
+msgid "Primary"
+msgstr "Primaire"
+
+#: classes/class-ispag-tank-pdf-generator.php:349
+msgid "Water"
+msgstr "Eau"
+
+#: classes/class-ispag-tank-pdf-generator.php:352
+msgid "Comment"
+msgstr "Commentaire"
+
+#: classes/class-ispag-tank-pdf-generator.php:355
+msgid "Type"
+msgstr "Type"
+
+#: classes/class-ispag-tank-pdf-generator.php:358
+msgid "Coil %s"
+msgstr "Serpentin %s"
+
+#: classes/class-ispag-tank-pdf-generator.php:363
+msgid "Heat exchanger"
+msgid_plural "Heat exchangers"
+msgstr[0] "Échangeur de chaleur"
+msgstr[1] "Échangeurs de chaleur"
+
+#: classes/class-ispag-tank-pdf-generator.php:461
+msgid "%dmm %s for %dL tank"
+msgstr "%dmm %s pour réservoir de %dL"
+
+#: classes/class-ispag-tank-pdf-generator.php:465
+msgid "Assembly at the customer's expense"
+msgstr "Montage aux frais du client"
+
+#: classes/class-ispag-tank-pdf-generator.php:479
+msgid "Drawing"
+msgstr "Plan"
+
+#: classes/class-ispag-tank-pdf-generator.php:49
+msgid "Technical specifications"
+msgstr "Spécifications techniques"
+
+#: classes/class-ispag-tank-pdf-generator.php:536
+msgid "Drawing not available."
+msgstr "Plan non disponible."
+
+#: classes/class-ispag-tank-pdf-generator.php:568
+msgid "Imagick extension is not installed."
+msgstr "L'extension Imagick n'est pas installée."
+
+#: classes/class-ispag-tank-pdf-generator.php:597
+msgid "Technical data is given for information and may be modified without notice. Dimensions in millimetres."
+msgstr "Les données techniques sont données à titre indicatif et peuvent être modifiées sans préavis. Dimensions en millimètres."
+
+#: classes/class-ispag-tank-pricing.php:262
+msgid "surcharge"
+msgstr "supplément"
+
+#: classes/class-ispag-tank-pricing.php:263
+msgid "none"
+msgstr "aucun"
+
+#: classes/class-ispag-tank-pricing.php:396
+msgid "included"
+msgstr "inclus"
+
+#: classes/class-ispag-tank-pricing.php:571
+msgid "CALCULATION REPORT - ARTICLE ID: %s"
+msgstr "RAPPORT DE CALCUL - ID ARTICLE : %s"
+
+#: classes/class-ispag-tank-pricing.php:572
+msgid "GENERATED BY : %s (ID: %s)"
+msgstr "GÉNÉRÉ PAR : %s (ID : %s)"
+
+#: classes/class-ispag-tank-pricing.php:573
+msgid "DATE: %s"
+msgstr "DATE : %s"
+
+#: classes/class-ispag-tank-pricing.php:575
+msgid "MODE : Purchase"
+msgstr "MODE : Achat"
+
+#: classes/class-ispag-tank-pricing.php:576
+msgid "MODE : Project"
+msgstr "MODE : Projet"
+
+#: classes/class-ispag-tank-pricing.php:582
+msgid "Tank base price (%dx%d - %dbar) : %.2f €"
+msgstr "Prix de base du réservoir (%dx%d - %dbar) : %.2f €"
+
+#: classes/class-ispag-tank-pricing.php:590
+msgid "Total surcharges : %.2f €"
+msgstr "Total des suppléments : %.2f €"
+
+#: classes/class-ispag-tank-pricing.php:593
+msgid "LOG FITTINGS & ACCESSORIES"
+msgstr "JOURNAL DES PIQUAGES ET ACCESSOIRES"
+
+#: classes/class-ispag-tank-pricing.php:611
+msgid "Fittings %s : %s"
+msgstr "Piquages %s : %s"
+
+#: classes/class-ispag-tank-pricing.php:624
+msgid "--> Accessories %s : %.2f €"
+msgstr "--> Accessoires %s : %.2f €"
+
+#: classes/class-ispag-tank-pricing.php:632
+msgid "Fittings price : %.2f €"
+msgstr "Prix des piquages : %.2f €"
+
+#: classes/class-ispag-tank-pricing.php:635
+msgid "Total gross price (Tank + Fittings + Surcharges) : %.2f €"
+msgstr "Prix brut total (réservoir + piquages + suppléments) : %.2f €"
+
+#: classes/class-ispag-tank-pricing.php:636
+msgid "Supplier discount : %s%%"
+msgstr "Remise fournisseur : %s %%"
+
+#: classes/class-ispag-tank-pricing.php:637
+msgid "Net price : %.2f €"
+msgstr "Prix net : %.2f €"
+
+#: classes/class-ispag-tank-pricing.php:641
+msgid "Sales price : %.2f €"
+msgstr "Prix de vente : %.2f €"
+
+#: classes/class-ispag-tank-pricing.php:772
+msgid "Tank details not found"
+msgstr "Détails du réservoir introuvables"
+
+#: classes/class-ispag-tank-pricing.php:820
+msgid "Article ID missing"
+msgstr "ID d'article manquant"
+
+#: classes/class-ispag-tank-svg-generator-backup.php:706
+msgid "Drilled plate"
+msgstr "Tôle perforée"
+
+#: classes/class-ispag-tank-welding-certificat.php:109
+msgid "Base Material"
+msgstr "Matériau de base"
+
+#: classes/class-ispag-tank-welding-certificat.php:110
+msgid "TIG"
+msgstr "TIG"
+
+#: classes/class-ispag-tank-welding-certificat.php:110
+msgid "Welding Process"
+msgstr "Procédé de soudage"
+
+#: classes/class-ispag-tank-welding-certificat.php:111
+msgid "Controlled Area"
+msgstr "Zone contrôlée"
+
+#: classes/class-ispag-tank-welding-certificat.php:111
+msgid "tank welding"
+msgstr "soudure du réservoir"
+
+#: classes/class-ispag-tank-welding-certificat.php:112
+msgid "Anomalies Detected"
+msgstr "Anomalies détectées"
+
+#: classes/class-ispag-tank-welding-certificat.php:113
+msgid "Conclusion"
+msgstr "Conclusion"
+
+#: classes/class-ispag-tank-welding-certificat.php:113
+msgid "conform"
+msgstr "conforme"
+
+#: classes/class-ispag-tank-welding-certificat.php:117
+msgid "Welding certificat"
+msgstr "Certificat de soudure"
+
+#: classes/class-ispag-tank-welding-certificat.php:140
+msgid "Number of tanks"
+msgstr "Nombre de réservoirs"
+
+#: classes/class-ispag-tank-welding-certificat.php:180
+msgid "Inspection Results"
+msgstr "Résultats du contrôle"
+
+#: classes/class-ispag-tank-welding-certificat.php:213
+msgid "Control Date"
+msgstr "Date du contrôle"
+
+#: classes/class-ispag-tank-welding-certificat.php:223
+msgid "Controller"
+msgstr "Contrôleur"
+
+#: classes/class-ispag-tank-welding-certificat.php:80
+msgid "Missing article ID or deal ID."
+msgstr "ID d'article ou de transaction manquant."
+
+#: classes/class-ispag-tank-welding-certificat.php:86
+msgid "No tank found for this article."
+msgstr "Aucun réservoir trouvé pour cet article."
+
+#: classes/class-ispag-tank-welding-certificat.php:95
+msgid "Missing required data."
+msgstr "Données requises manquantes."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:100
+msgid "Welding site checklist"
+msgstr "Check-list de soudure sur site"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1019
+msgid "General assembly conditions"
+msgstr "Conditions générales de montage"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1022
+msgid "A. Services provided by ISPAG"
+msgstr "A. Prestations fournies par ISPAG"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1024
+msgid "The intervention of the lead welder and assistant"
+msgstr "L'intervention du chef soudeur et de son assistant"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1025
+msgid "Travel expenses and accommodation"
+msgstr "Frais de déplacement et d'hébergement"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1026
+msgid "Welding and assembly tools"
+msgstr "Outillage de soudage et de montage"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1027
+msgid "Weld inspection by penetrant testing (dye penetrant test)"
+msgstr "Contrôle des soudures par ressuage (essai au liquide pénétrant)"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1030
+msgid "B. Services provided by the client"
+msgstr "B. Prestations fournies par le client"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1032
+msgid "Material introduction: Tank parts must be brought in before work begins."
+msgstr "Introduction du matériel : les éléments du réservoir doivent être amenés avant le début des travaux."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1033
+msgid "Site preparation: Clean, well-lit, ventilated, and cleared of any foreign debris."
+msgstr "Préparation du site : propre, bien éclairé, ventilé et dégagé de tout débris."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1034
+msgid "Equipment: Anchor point above the location and high-flow water supply for pressure testing."
+msgstr "Équipement : point d'ancrage au-dessus de l'emplacement et alimentation en eau à fort débit pour l'essai de pression."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1035
+msgid "Welding power supply: An electrical socket (3 x 400V / min. 10A) must be installed by a certified electrician at client expense."
+msgstr "Alimentation électrique de soudage : une prise électrique (3 x 400 V / min. 10 A) doit être installée par un électricien agréé aux frais du client."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1044
+msgid "Date and signature of client (or representative):"
+msgstr "Date et signature du client (ou de son représentant) :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1051
+msgid "Date:"
+msgstr "Date :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1054
+msgid "Signature:"
+msgstr "Signature :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:106
+msgid "Site & Delivery Information"
+msgstr "Informations sur le chantier et la livraison"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:107
+msgid "Please fill in or verify the missing site details below. They will be saved for future generations:"
+msgstr "Veuillez compléter ou vérifier les informations de chantier manquantes ci-dessous. Elles seront enregistrées pour les prochaines générations :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:114
+msgid "Address & Contact"
+msgstr "Adresse et contact"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:116
+msgid "Address"
+msgstr "Adresse"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:1174
+msgid "Page %s / %s"
+msgstr "Page %s / %s"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:120
+msgid "Address line 2"
+msgstr "Complément d'adresse"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:125
+msgid "ZIP Code"
+msgstr "Code postal"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:129
+msgid "City"
+msgstr "Ville"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:135
+msgid "Contact Person"
+msgstr "Personne de contact"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:139
+msgid "Contact Phone"
+msgstr "Téléphone du contact"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:147
+msgid "Accessibility & internal path"
+msgstr "Accessibilité et cheminement interne"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:150
+msgid "Corridor width (cm)"
+msgstr "Largeur du couloir (cm)"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:154
+msgid "Smallest door width (cm)"
+msgstr "Largeur de la plus petite porte (cm)"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:160
+msgid "Number of doors"
+msgstr "Nombre de portes"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:164
+msgid "Other obstacles"
+msgstr "Autres obstacles"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:172
+msgid "Heater room / Technical room"
+msgstr "Local chaufferie / local technique"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:175
+msgid "Room size (LxW)"
+msgstr "Dimensions du local (L x l)"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:179
+msgid "Room height"
+msgstr "Hauteur du local"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:185
+msgid "Ceiling type"
+msgstr "Type de plafond"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:189
+msgid "Hoist allowed"
+msgstr "Palan autorisé"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:191
+msgid "-- Select --"
+msgstr "-- Sélectionner --"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:192
+msgid "Yes"
+msgstr "Oui"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:193
+msgid "No"
+msgstr "Non"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:199
+msgid "Floor covering"
+msgstr "Revêtement de sol"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:203
+msgid "Ventilation"
+msgstr "Ventilation"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:207
+msgid "Natural"
+msgstr "Naturelle"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:208
+msgid "Mechanical"
+msgstr "Mécanique"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:216
+msgid "Infrastructure & Parking"
+msgstr "Infrastructure et stationnement"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:218
+msgid "Electricity available"
+msgstr "Électricité disponible"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:226
+msgid "Parking address / Unloading location"
+msgstr "Adresse de stationnement / lieu de déchargement"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:230
+msgid "Observations"
+msgstr "Remarques"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:236
+msgid "Cancel"
+msgstr "Annuler"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:237
+msgid "Save and Generate"
+msgstr "Enregistrer et générer"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:259
+msgid "No items selected"
+msgstr "Aucun article sélectionné"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:355
+msgid "Unauthorized"
+msgstr "Non autorisé"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:362
+msgid "Missing project or article IDs."
+msgstr "ID de projet ou d'article manquant."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:380
+msgid "None of the selected items require on-site welding."
+msgstr "Aucun des articles sélectionnés ne nécessite de soudure sur site."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:385
+msgid "Project not found."
+msgstr "Projet introuvable."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:533
+msgid "Welding site sheet"
+msgstr "Fiche de soudure sur site"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:753
+msgid "Order No."
+msgstr "N° de commande"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:755
+msgid "Please return by:"
+msgstr "À retourner avant le :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:770
+msgid "Site address & contact"
+msgstr "Adresse et contact du chantier"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:775
+msgid "Contact"
+msgstr "Contact"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:776
+msgid "Phone"
+msgstr "Téléphone"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:780
+msgid "Corridor width:"
+msgstr "Largeur du couloir :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:781
+msgid "Smallest door width:"
+msgstr "Largeur de la plus petite porte :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:782
+msgid "Number of doors:"
+msgstr "Nombre de portes :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:783
+msgid "Other obstacles:"
+msgstr "Autres obstacles :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:787
+msgid "Room size (LxW):"
+msgstr "Dimensions du local (L x l) :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:788
+msgid "Room height:"
+msgstr "Hauteur du local :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:789
+msgid "Ceiling type:"
+msgstr "Type de plafond :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:790
+msgid "concrete"
+msgstr "béton"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:790
+msgid "wood beam"
+msgstr "poutre en bois"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:791
+msgid "Hoist allowed on ceiling:"
+msgstr "Palan autorisé au plafond :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:793
+msgid "Floor covering:"
+msgstr "Revêtement de sol :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:794
+msgid "poured cement"
+msgstr "chape en ciment"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:794
+msgid "tiles"
+msgstr "carrelage"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:795
+msgid "Ventilation available:"
+msgstr "Ventilation disponible :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:799
+msgid "Infrastructure"
+msgstr "Infrastructure"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:800
+msgid "Electricity available:"
+msgstr "Électricité disponible :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:804
+msgid "Parking / Unloading address"
+msgstr "Adresse de stationnement / déchargement"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:805
+msgid "Parking address / Unloading location:"
+msgstr "Adresse de stationnement / lieu de déchargement :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:806
+msgid "Observations:"
+msgstr "Remarques :"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:817
+msgid "Tank"
+msgid_plural "Tanks"
+msgstr[0] "Réservoir"
+msgstr[1] "Réservoirs"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:846
+msgid "Tank %d / %d"
+msgstr "Réservoir %d / %d"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:850
+msgid "Diameter"
+msgstr "Diamètre"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:851
+msgid "Total height"
+msgstr "Hauteur totale"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:852
+msgid "Design pressure"
+msgstr "Pression de calcul"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:853
+msgid "Number of welds"
+msgstr "Nombre de soudures"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:874
+msgid "Material"
+msgstr "Matériau"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:875
+msgid "Test pressure"
+msgstr "Pression d'essai"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:878
+msgid "Delivered in pieces"
+msgstr "Livré en morceaux"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:879
+msgid "Expected delivery date"
+msgstr "Date de livraison prévue"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:890
+msgid "No validated plan available for this tank yet."
+msgstr "Aucun plan validé disponible pour ce réservoir pour l'instant."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:906
+msgid "The plan could not be merged automatically. Please attach it manually."
+msgstr "Le plan n'a pas pu être fusionné automatiquement. Veuillez le joindre manuellement."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:913
+msgid "Manufacturing plan"
+msgstr "Plan de fabrication"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:927
+msgid "Tank introduction & critical turning points"
+msgstr "Introduction du réservoir et points de passage critiques"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:928
+msgid "Path analysis for tank parts introduction"
+msgstr "Analyse du cheminement pour l'introduction des éléments du réservoir"
+
+#: classes/class-ispag-tank-welding-site-sheet.php:934
+msgid "Please note: Since the introduction and positioning of the tank parts are your responsibility, please pay special attention to critical passages (doors, corridors, staircases, tight turns) and sketch them below."
+msgstr "Remarque : l'introduction et la mise en place des éléments du réservoir étant de votre responsabilité, portez une attention particulière aux passages critiques (portes, couloirs, escaliers, virages serrés) et esquissez-les ci-dessous."
+
+#: classes/class-ispag-tank-welding-site-sheet.php:951
+msgid "[Schema of critical turning points & staircase introduction]"
+msgstr "[Schéma des points de passage critiques et de l'introduction par l'escalier]"
+
+#: classes/class-ispag-tank-welding.php:125
+msgid "On-site welding of a %s tank in diameter %smm delivered in %s pieces"
+msgstr "Soudure sur site d'un réservoir %s de diamètre %smm livré en %s morceaux"
+
+#: classes/class-ispag-tank-welding.php:167
+msgid "Door width: %s cm"
+msgstr "Largeur de porte : %s cm"
+
+#: classes/class-ispag-tank-welding.php:171
+msgid "Missing information: Door width (determines the number of welds)."
+msgstr "Information manquante : largeur de porte (détermine le nombre de soudures)."
+
+#: classes/class-ispag-tank-welding.php:185
+msgid "Site setup."
+msgstr "Installation du chantier."
+
+#: classes/class-ispag-tank-welding.php:186
+msgid "The transport of the (cut) tank from the truck to its final location will be carried out by the installer."
+msgstr "Le transport du réservoir (découpé) du camion à son emplacement définitif sera assuré par l'installateur."
+
+#: classes/class-ispag-tank-welding.php:187
+msgid "Assembly, preparation, and tack welding of the water heater in %s parts."
+msgstr "Assemblage, préparation et pointage du chauffe-eau en %s parties."
+
+#: classes/class-ispag-tank-welding.php:188
+msgid "Execution of the welding."
+msgstr "Exécution de la soudure."
+
+#: classes/class-ispag-tank-welding.php:189
+msgid "Weld inspection by dye penetrant testing."
+msgstr "Contrôle des soudures par ressuage."
+
+#: classes/class-ispag-tank-welding.php:190
+msgid "Site cleaning and dismantling."
+msgstr "Nettoyage du chantier et démontage."
+
+#: classes/class-ispag-tank-welding.php:237
+msgid "Number of welding"
+msgstr "Nombre de soudures"
+
+#: classes/class-ispag-tank-welding.php:251
+msgid "Welding managed by client"
+msgstr "Soudure gérée par le client"
+
+#: classes/class-ispag-tank-welding.php:258
+msgid "Smallest door width"
+msgstr "Largeur de la plus petite porte"
+
+#: classes/class-ispag-tank-welding.php:296
+msgid "The sections can be pointed to facilitate transport."
+msgstr "Les sections peuvent être pointées pour faciliter le transport."
+
+#: classes/class-ispag-tank-welding.php:300
+msgid "Tank delivered to site in %NB_PIECES% pieces"
+msgstr "Réservoir livré sur site en %NB_PIECES% morceaux"
+
+#: classes/class-ispag-tank-welding.php:308
+msgid "Welding covered under standard ISPAG tank warranty."
+msgstr "La soudure est couverte par la garantie standard ISPAG des réservoirs."
+
+#: classes/class-ispag-tank-welding.php:309
+msgid "No warranty can be granted for this tank, as the welding is not carried out by us."
+msgstr "Aucune garantie ne peut être accordée pour ce réservoir, la soudure n'étant pas réalisée par nos soins."
+
+#: classes/class-ispag-valves-manager.php:100
+msgid "Total Quantity:"
+msgstr "Quantité totale :"
+
+#: classes/class-ispag-valves-manager.php:101
+msgid "Unique Brands:"
+msgstr "Marques uniques :"
+
+#: classes/class-ispag-valves-manager.php:102
+msgid "Unique Types:"
+msgstr "Types uniques :"
+
+#: classes/class-ispag-valves-manager.php:103
+msgid "Top 5 Brands"
+msgstr "Top 5 des marques"
+
+#: classes/class-ispag-valves-manager.php:104
+msgid "Top 5 Types"
+msgstr "Top 5 des types"
+
+#: classes/class-ispag-valves-manager.php:105
+msgid "Brand"
+msgstr "Marque"
+
+#: classes/class-ispag-valves-manager.php:107
+msgid "Count"
+msgstr "Nombre"
+
+#: classes/class-ispag-valves-manager.php:108
+msgid "Quantity"
+msgstr "Quantité"
+
+#: classes/class-ispag-valves-manager.php:140
+msgid "No data available."
+msgstr "Aucune donnée disponible."
+
+#: classes/class-ispag-valves-manager.php:56
+msgid "Valves Statistics"
+msgstr "Statistiques des vannes"
+
+#: classes/class-ispag-valves-manager.php:57
+msgid "Valves Stats"
+msgstr "Stats vannes"
+
+#: classes/class-ispag-valves-manager.php:92
+msgid "You do not have sufficient permissions to access this page."
+msgstr "Vous n'avez pas les permissions suffisantes pour accéder à cette page."
+
+#: classes/class-ispag-valves-manager.php:99
+msgid "Total Valves:"
+msgstr "Total des vannes :"
+
+#: classes/templates/form-plate-exchanger-field.php:13
+msgid "Plate Heat Exchanger Data"
+msgstr "Données de l'échangeur à plaques"
+
+#: classes/templates/form-plate-exchanger-field.php:20
+msgid "Exchanger Type"
+msgstr "Type d'échangeur"
+
+#: classes/templates/form-plate-exchanger-field.php:37
+msgid "Total Power"
+msgstr "Puissance totale"
+
+#: classes/templates/form-plate-exchanger-field.php:48
+msgid "Primary Circuit"
+msgstr "Circuit primaire"
+
+#: classes/templates/form-plate-exchanger-field.php:53
+msgid "Inlet Temp."
+msgstr "Temp. d'entrée"
+
+#: classes/templates/form-plate-exchanger-field.php:57
+msgid "Outlet Temp."
+msgstr "Temp. de sortie"
+
+#: classes/templates/form-plate-exchanger-field.php:63
+msgid "Pressure Drop"
+msgstr "Perte de charge"
+
+#: classes/templates/form-plate-exchanger-field.php:68
+msgid "Max Pressure"
+msgstr "Pression max."
+
+#: classes/templates/form-plate-exchanger-field.php:73
+msgid "Fluid Type"
+msgstr "Type de fluide"
+
+#: classes/templates/form-plate-exchanger-field.php:87
+msgid "Secondary Circuit"
+msgstr "Circuit secondaire"
+
+#: classes/templates/form-tank-comments-field.php:10
+msgid "Article comment template"
+msgstr "Modèle de commentaire d'article"
+
+#: classes/templates/form-tank-comments-field.php:68
+msgid "Open comment"
+msgstr "Commentaire libre"
+
+#: classes/templates/form-tank-comments-field.php:70
+msgid "will be inserted into the item description"
+msgstr "sera inséré dans la description de l'article"
+
+#: classes/templates/form-tank-conception-field.php:128
+msgid "Indicative purchase price (excluding VAT)"
+msgstr "Prix d'achat indicatif (hors TVA)"
+
+#: classes/templates/form-tank-dimensions-field.php:109
+msgid "Report Price"
+msgstr "Reporter le prix"
+
+#: classes/templates/form-tank-dimensions-field.php:112
+msgid "Raw tank price based on dimensions"
+msgstr "Prix brut du réservoir selon les dimensions"
+
+#: classes/templates/form-tank-dimensions-field.php:116
+msgid "You are not allowed to view this field"
+msgstr "Vous n'êtes pas autorisé à voir ce champ"
+
+#: classes/templates/form-tank-dimensions-field.php:23
+msgid "Dimensions & Technical data"
+msgstr "Dimensions et données techniques"
+
+#: classes/templates/form-tank-dimensions-field.php:28
+msgid "Automatically calculate"
+msgstr "Calculer automatiquement"
+
+#: classes/templates/form-tank-dimensions-field.php:39
+msgid "Select"
+msgstr "Sélectionner"
+
+#: classes/templates/form-tank-dimensions-field.php:63
+msgid "Calculated automatically"
+msgstr "Calculé automatiquement"
+
+#: classes/templates/form-tank-dimensions-field.php:93
+msgid "Indicative price (excluding VAT)"
+msgstr "Prix indicatif (hors TVA)"
+
+#: classes/templates/form-tank-fields.php:15
+msgid "Tank design"
+msgstr "Conception du réservoir"
+
+#: classes/templates/form-tank-fields.php:24
+msgid "Tank type"
+msgstr "Type de réservoir"
+
+#: classes/templates/form-tank-fields.php:26
+msgid "-- Choose --"
+msgstr "-- Choisir --"
+
+#: classes/templates/form-tank-fittings.php:18
+msgid "-- Ø --"
+msgstr "-- Ø --"
+
+#: classes/templates/form-tank-fittings.php:37
+msgid "Accessory"
+msgstr "Accessoire"
+
+#: classes/templates/form-tank-fittings.php:39
+msgid "-- Accessories --"
+msgstr "-- Accessoires --"
+
+#: classes/templates/form-tank-fittings.php:56
+msgid "Usage"
+msgstr "Usage"
+
+#: classes/templates/form-tank-fittings.php:57
+msgid "ex: Aller"
+msgstr "ex : Aller"
+
+#: classes/templates/form-tank-fittings.php:69
+msgid "Angle"
+msgstr "Angle"
+
+#: classes/templates/form-tank-fittings.php:77
+msgid "Duplicate"
+msgstr "Dupliquer"
+
+#: classes/templates/form-tank-fittings.php:80
+msgid "Delete"
+msgstr "Supprimer"
+
+#: classes/templates/form-tank-welding.php:14
+msgid "Welding / Plate Type"
+msgstr "Soudure / type de tôle"
+
+#: classes/templates/form-tank-welding.php:16
+msgid "-- Type --"
+msgstr "-- Type --"
+
+#: classes/templates/heat-exchanger-form.php:10
+msgid "Delete this exchanger"
+msgstr "Supprimer cet échangeur"
+
+#: classes/templates/heat-exchanger-form.php:18
+msgid "Spiraflex DN32"
+msgstr "Spiraflex DN32"
+
+#: classes/templates/heat-exchanger-form.php:24
+msgid "Load input temperature"
+msgstr "Température d'entrée de charge"
+
+#: classes/templates/heat-exchanger-form.php:29
+msgid "Load output temperature"
+msgstr "Température de sortie de charge"
+
+#: classes/templates/heat-exchanger-form.php:34
+msgid "Cold water temperature"
+msgstr "Température d'eau froide"
+
+#: classes/templates/heat-exchanger-form.php:39
+msgid "Warm water temperature"
+msgstr "Température d'eau chaude"
+
+#: classes/templates/heat-exchanger-form.php:44
+msgid "Power (kW)"
+msgstr "Puissance (kW)"
+
+#: classes/templates/heat-exchanger-form.php:49
+msgid "Heat exchanger surface (m²)"
+msgstr "Surface de l'échangeur (m²)"
+
+#: classes/templates/heat-exchanger-form.php:9
+msgid "Heat exchanger #%d"
+msgstr "Échangeur de chaleur n° %d"
