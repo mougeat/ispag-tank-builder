@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class ISPAG_Tank_Welding_Auto_Saver
  * Gère l'ajout automatique des articles de soudure pour les réservoirs ISPAG.

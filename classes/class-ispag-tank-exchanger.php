@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class ISPAG_Tank_Exchanger
  * Gère les échangeurs thermiques pour les réservoirs ISPAG.
@@ -41,7 +42,6 @@ class ISPAG_Tank_Exchanger
         // $logger->log_user_action(self::LOG_NAME, 'scripts_hooks_registered', [], $user_id);
 
         add_action('wp_ajax_ispag_save_heat_exchangers', [self::$instance, 'save_heat_exchangers']);
-        add_action('wp_ajax_nopriv_ispag_save_heat_exchangers', [self::$instance, 'save_heat_exchangers']);
         // $logger->log_user_action(self::LOG_NAME, 'ajax_hooks_registered', ['hook' => 'ispag_save_heat_exchangers'], $user_id);
 
         add_filter('ispag_get_heat_exchanger_description', [self::$instance, 'get_description'], 10, 2);

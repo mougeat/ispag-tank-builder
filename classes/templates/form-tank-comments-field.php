@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /** Commentaire ouvert + modèle de commentaire d'un réservoir (affichés sous Logistics / Classification). Variable : $data */
 ?>
 <div class="ispag-modal-grid ispag-tank-comments" style="margin-top: 20px;">

@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class ISPAG_Tank_Designer
  * Gère la conception et les dimensions des réservoirs ISPAG.
@@ -50,12 +51,9 @@ class ISPAG_Tank_Designer
         add_action('ispag_get_tank_created_by_id', [self::$instance, 'get_tank_created_by_id'], 10, 2);
 
         add_action('wp_ajax_ispag_save_tank_unit_price', [self::$instance, 'save_tank_unit_price']);
-        add_action('wp_ajax_nopriv_ispag_save_tank_unit_price', [self::class, 'save_tank_unit_price']);
 
         add_action('wp_ajax_ispag_select_tank_type', [self::$instance, 'select_tank_type']);
-        add_action('wp_ajax_nopriv_ispag_select_tank_type', [self::$instance, 'select_tank_type']);
         add_action('wp_ajax_ispag_tank_conception', [self::$instance, 'render_tank_conception']);
-        add_action('wp_ajax_nopriv_ispag_tank_conception', [self::$instance, 'render_tank_conception']);
 
         // $logger->log_user_action(self::LOG_NAME, 'hooks_and_filters_registered', [], $user_id);
     }
@@ -897,6 +895,11 @@ class ISPAG_Tank_Designer
                     wp_mkdir_p($debug_dir);
                     file_put_contents($debug_dir . '/index.php', '<?php // Silence is golden');
                     $logger->log_user_action(self::LOG_NAME, 'debug_dir_created', ['dir' => $debug_dir], $user_id);
+                }
+
+                // Dossier fermé à l'accès direct (détails de calcul de prix)
+                if (!file_exists($debug_dir . '/.htaccess')) {
+                    @file_put_contents($debug_dir . '/.htaccess', "Require all denied\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n");
                 }
 
                 $current_user = wp_get_current_user();

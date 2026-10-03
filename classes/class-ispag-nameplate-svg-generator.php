@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Nameplate_SVG_Generator {
 

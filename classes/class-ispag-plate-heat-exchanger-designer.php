@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Plate_Heat_exchanger_Designer {
     private $exchanger_table;

@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class ISPAG_Tank_Welding_Certificat
  *

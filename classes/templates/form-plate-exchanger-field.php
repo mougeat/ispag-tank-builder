@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * ISPAG Plate Heat Exchanger Sub-template
  * @version 1.2.0

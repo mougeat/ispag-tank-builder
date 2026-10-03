@@ -97,7 +97,6 @@ class ISPAG_Tank_PDF_Exporter extends FPDF
         }
 
         add_action('wp_ajax_ispag_export_pdf', [self::$instance, 'ispag_export_pdf']);
-        add_action('wp_ajax_nopriv_ispag_export_pdf', [self::$instance, 'ispag_export_pdf']);
         // $logger->log_user_action(self::LOG_NAME, 'hooks_registered', [], $user_id);
     }
 

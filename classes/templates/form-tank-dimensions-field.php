@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * ISPAG Tank Dimensions Sub-template
  * @version 2.1.8 - Modernized Grid

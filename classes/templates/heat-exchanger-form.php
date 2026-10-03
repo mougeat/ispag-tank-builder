@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 $coil_nb = $args['coil_nb'];
 $data = $args['data'] ?? [];
 ?>

@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Tank_Fittings {
     private $wpdb;

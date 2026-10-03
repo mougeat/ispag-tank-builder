@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 class ISPAG_Tank_Pricing {
     protected static $instance = null;
     private $tank_pricing_data;
@@ -17,9 +18,7 @@ class ISPAG_Tank_Pricing {
 
         // Enregistrer les actions AJAX
         add_action('wp_ajax_calculate_tank_price', [self::$instance, 'handle_ajax_request']);
-        add_action('wp_ajax_nopriv_calculate_tank_price', [self::$instance, 'handle_ajax_request']);
         add_action('wp_ajax_generate_tank_report', [self::$instance, 'generate_report_ajax']);
-        add_action('wp_ajax_nopriv_generate_tank_report', [self::$instance, 'generate_report_ajax']);
 
         // Charger les scripts uniquement dans l'admin WordPress
         add_action('wp_enqueue_scripts', [self::$instance, 'enqueue_scripts']);
@@ -647,6 +646,13 @@ class ISPAG_Tank_Pricing {
         $report_dir = $upload_dir['basedir'] . '/ispag_pricing/';
         if (!file_exists($report_dir)) {
             wp_mkdir_p($report_dir);
+        }
+        // Dossier fermé à l'accès direct : les notes sont servies par PHP avec contrôle des droits
+        if (!file_exists($report_dir . '.htaccess')) {
+            @file_put_contents($report_dir . '.htaccess', "Require all denied\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n");
+        }
+        if (!file_exists($report_dir . 'index.php')) {
+            @file_put_contents($report_dir . 'index.php', "<?php // Silence is golden.\n");
         }
 
         // Enregistrer le fichier

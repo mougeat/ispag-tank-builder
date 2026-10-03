@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class Ispag_Fitting_Autosaver
  *

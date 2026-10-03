@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 $results = $results; // inutile mais clarifie
 ?>
 <input type="text" id="tankSearch" placeholder="Search..." style="margin-bottom:10px;padding:5px;width:100%;max-width:300px;" />

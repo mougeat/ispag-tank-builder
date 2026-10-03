@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Accessoires internes des piquages (tube plongeant, tube diffuseur, tôle de déflexion) dessinés en SVG,
  * en traits interrompus (pièces cachées), pour la vue de face et la vue de dessus.

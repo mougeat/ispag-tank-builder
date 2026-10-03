@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 require_once __DIR__ . '/class-ispag-tank-accessories-svg.php';
 /**
  * Class ISPAG_Tank_SVG_Top_View_Generator

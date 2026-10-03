@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Tank_Manager {
     public static function init() {
