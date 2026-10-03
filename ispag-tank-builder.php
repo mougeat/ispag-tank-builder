@@ -16,7 +16,7 @@ if (!defined('ISPAG_PLUGIN_PATH')) {
     define('ISPAG_PLUGIN_PATH', plugin_dir_path(__FILE__));
 }
 
-// Mise à jour depuis une branche GitHub : inactif sauf si wp-config.php définit ISPAG_GITHUB_TOKEN et ISPAG_UPDATE_BRANCH
+// Mise à jour depuis une branche GitHub (jeton + branche : wp-config.php ou Outils → Updates ISPAG ; « main » par défaut)
 require_once ISPAG_PLUGIN_PATH . 'classes/class-ispag-github-updater.php';
 ISPAG_GitHub_Updater::plugin(__FILE__, 'mougeat/ispag-tank-builder');
 
