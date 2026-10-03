@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class ISPAG_Tank_Exchanger
  * Gère les échangeurs thermiques pour les réservoirs ISPAG.
@@ -10,6 +11,7 @@ class ISPAG_Tank_Exchanger
     protected static $instance = null;
     private $table;
     private const LOG_NAME = 'tank_exchanger';
+    public const MAX_EXCHANGERS = 3;
 
     /** @var ISPAG_Logger Instance du logger. */
     private $logger;
@@ -40,7 +42,6 @@ class ISPAG_Tank_Exchanger
         // $logger->log_user_action(self::LOG_NAME, 'scripts_hooks_registered', [], $user_id);
 
         add_action('wp_ajax_ispag_save_heat_exchangers', [self::$instance, 'save_heat_exchangers']);
-        add_action('wp_ajax_nopriv_ispag_save_heat_exchangers', [self::$instance, 'save_heat_exchangers']);
         // $logger->log_user_action(self::LOG_NAME, 'ajax_hooks_registered', ['hook' => 'ispag_save_heat_exchangers'], $user_id);
 
         add_filter('ispag_get_heat_exchanger_description', [self::$instance, 'get_description'], 10, 2);
@@ -122,6 +123,7 @@ class ISPAG_Tank_Exchanger
         $this->logger->log_db_change(self::LOG_NAME, 'tank_ids', 'FETCH', ['article_id' => $article_id, 'tank_id' => $tank_id], $user_id);
 
         $btn = '<button class="openExchangerModal ispag-btn ispag-btn-grey-outlined" data-tank-id="' . esc_attr($tank_id) . '">'
+            . '<i class="fas fa-temperature-high" aria-hidden="true"></i> '
             . __('Heat exchanger', 'creation-reservoir')
             . '</button>'
             . $this->heat_exchanger_modal($tank_id);
@@ -138,7 +140,7 @@ class ISPAG_Tank_Exchanger
         if (!current_user_can('edit_posts'))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: User cannot edit posts', $user_id);
-            wp_die('Accès refusé');
+            wp_die('Access denied');
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'post_data_received', ['data' => $_POST], $user_id);
@@ -149,7 +151,7 @@ class ISPAG_Tank_Exchanger
         if ($tank_id === 0)
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Missing tank_id', $user_id);
-            wp_send_json_error(['message' => 'ID du réservoir manquant.']);
+            wp_send_json_error(['message' => 'Missing tank ID.']);
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'form_params_validated', ['tank_id' => $tank_id, 'coil_nb' => $coil_nb], $user_id);
@@ -197,7 +199,7 @@ class ISPAG_Tank_Exchanger
                     ' . $this->load_heat_exchanger_forms($tank_id) . '
                 </div>
                 <div class="ispag-modal-footer">
-                    <button class="addExchangerForm ispag-btn ispag-btn-secondary-outlined"><span class="dashicons dashicons-plus-alt"></span> ' . __('Add exchanger', 'creation-reservoir') . '</button>
+                    <button class="addExchangerForm ispag-btn ispag-btn-secondary-outlined" data-max="' . self::MAX_EXCHANGERS . '"><span class="dashicons dashicons-plus-alt"></span> ' . __('Add exchanger', 'creation-reservoir') . '</button>
                     <button class="saveExchangers ispag-btn ispag-btn-red-outlined" data-tank-id="' . esc_attr($tank_id) . '"><span class="dashicons dashicons-media-archive"></span> ' . __('Save', 'creation-reservoir') . '</button>
                 </div>
             </div>
@@ -457,7 +459,7 @@ class ISPAG_Tank_Exchanger
         if (!$tank_id || empty($exchangers_json))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Missing tank_id or exchangers_json', $user_id);
-            wp_send_json_error(__('Données manquantes', 'creation-reservoir'));
+            wp_send_json_error(__('Missing data', 'creation-reservoir'));
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'exchangers_json_received', ['tank_id' => $tank_id, 'json_length' => strlen($exchangers_json)], $user_id);
@@ -466,10 +468,24 @@ class ISPAG_Tank_Exchanger
         if (!is_array($exchangers_array))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: JSON decode failed - ' . json_last_error_msg(), $user_id);
-            wp_send_json_error(__('Format de données invalide', 'creation-reservoir'));
+            wp_send_json_error(__('Invalid data format', 'creation-reservoir'));
         }
 
         $this->logger->log_user_action(self::LOG_NAME, 'exchangers_decoded', ['count' => count($exchangers_array)], $user_id);
+
+        if (count($exchangers_array) > self::MAX_EXCHANGERS)
+        {
+            wp_send_json_error(sprintf(__('A tank can have at most %d heat exchangers.', 'creation-reservoir'), self::MAX_EXCHANGERS));
+        }
+
+        // Plus aucun échangeur : on supprime l'enregistrement
+        if (count($exchangers_array) === 0)
+        {
+            global $wpdb;
+            $wpdb->delete($wpdb->prefix . 'achats_tank_heat_exchanger', ['tank_id' => $tank_id]);
+            $this->logger->log_db_change(self::LOG_NAME, $wpdb->prefix . 'achats_tank_heat_exchanger', 'DELETE_ALL', ['tank_id' => $tank_id], $user_id);
+            wp_send_json_success(__('Exchanger data has been saved.', 'creation-reservoir'));
+        }
 
         $totalSurface = 0;
         foreach ($exchangers_array as $coil)
@@ -526,6 +542,10 @@ class ISPAG_Tank_Exchanger
             $this->logger->log(self::LOG_NAME, 'ERROR: DB operation failed - ' . $error, $user_id);
             wp_send_json_error($wpdb->last_error);
         }
+
+        // Article du réservoir (tank_id = ligne de dimensions) : prévient le chef de projet si ce n'est pas lui qui modifie
+        $tank_article_id = (int) $wpdb->get_var($wpdb->prepare("SELECT customerTankId FROM {$wpdb->prefix}achats_tank_dimensions WHERE Id = %d", $tank_id));
+        if ($tank_article_id) do_action('ispag_article_modified', $tank_article_id, 'exchangers');
 
         $this->logger->log_user_action(self::LOG_NAME, 'save_heat_exchangers_complete', [], $user_id);
         wp_send_json_success(__('Exchanger data has been saved.', 'creation-reservoir'));

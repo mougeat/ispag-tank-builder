@@ -19,8 +19,7 @@ if (btn_validation) {
       action: 'ispag_validate_pdf_plan',
       drawing_id: btn_validation.dataset.id,
       article_id: btn_validation.dataset.article,
-      user: btn_validation.dataset.user,
-      date: btn_validation.dataset.date
+      nonce: btn_validation.dataset.nonce
     };
 
     fetch(ispag_validation.ajax_url, {
@@ -40,7 +39,7 @@ if (btn_validation) {
             location.reload();
           }
         } else {
-          alert('Erreur : ' + res.data);
+          alert('Error: ' + res.data);
           btn_validation.disabled = false;
           btn_validation.textContent = '✅ ' + ispag_validation.validateDrawingButton;
         }

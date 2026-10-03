@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Plate_Heat_exchanger_Designer {
     private $exchanger_table;
@@ -195,6 +196,7 @@ class ISPAG_Plate_Heat_exchanger_Designer {
     public function render_dimensions_form($article_id, $source = 'project') {
         $data['exchanger'] = $this->get_exchanger_data($article_id);
         $fluids = $this->get_fluids();
+        $exchanger_types = $this->get_exchanger_types();
 
         ob_start();
         include plugin_dir_path(__FILE__) . 'templates/form-plate-exchanger-field.php'; 
@@ -243,6 +245,12 @@ class ISPAG_Plate_Heat_exchanger_Designer {
             if (isset($data_received[$inputKey])) {
                 $newData[$sqlKey] = $data_received[$inputKey];
             }
+        }
+
+        // Rien de saisi (aucun champ d'échangeur renseigné) : on n'enregistre pas de ligne vide
+        $has_value = (bool) array_filter($newData, function ($v) { return trim((string) $v) !== ''; });
+        if (!$has_value && !$exists) {
+            return ['success' => true, 'skipped' => 'no exchanger data'];
         }
 
         if ($exists) {

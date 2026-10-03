@@ -18,14 +18,14 @@ async function loadTransportRules() {
     const response = await fetch(ISPAG_TRANSPORT.transportRulesUrl);
 
     if (!response.ok) {
-      throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`Error HTTP ${response.status}: ${response.statusText}`);
     }
 
     transportRules = await response.json();
     // console.log('✅ [TRANSPORT] Règles de transport chargées avec succès:', transportRules);
     return true;
   } catch (error) {
-    console.error('❌ [TRANSPORT] Erreur lors du chargement des règles:', error);
+    console.error('❌ [TRANSPORT] Error lors du chargement des règles:', error);
 
     // 👇 Utiliser des valeurs par défaut
     transportRules = {
@@ -42,8 +42,8 @@ async function loadTransportRules() {
       },
       messages: ISPAG_TRANSPORT.messages || {
         standard: "Transport standard possible en Suisse.",
-        exceptional_simple: "Transport exceptionnel nécessitant une autorisation simple.",
-        exceptional_complex: "Transport exceptionnel nécessitant une autorisation spéciale (escorte possible)."
+        exceptional_simple: "Exceptional transport requiring a simple permit.",
+        exceptional_complex: "Exceptional transport requiring a special permit (escort possible)."
       }
     };
     // console.warn('⚠️ [TRANSPORT] Utilisation des règles par défaut:', transportRules);

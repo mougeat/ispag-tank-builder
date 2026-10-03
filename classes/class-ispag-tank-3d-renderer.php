@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 class ISPAG_Tank3D_Renderer {
 
     protected static $instance = null;

@@ -1,11 +1,22 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class ISPAG_Tank_Welding_Certificat
- * Génère un certificat de soudure PDF pour les réservoirs ISPAG.
+ *
+ * Certificat de soudure PDF d'un réservoir ISPAG (A4 portrait), sur le modèle de la fiche technique.
+ *
+ * Mise en page :
+ *   1. bandeau : logo, titre du document, date
+ *   2. titre du réservoir, sous-titre (projet · groupe · quantité)
+ *   3. quatre indicateurs clés (volume, diamètre, hauteur, pression de service)
+ *   4. deux colonnes : dimensions et résultats du contrôle | dessin du réservoir
+ *   5. conclusion, date du contrôle et signature du contrôleur
+ *   6. pied de page : coordonnées de la société, pagination
  */
-class ISPAG_Tank_Welding_Certificat extends ISPAG_PDF_Generator
+require_once __DIR__ . '/class-ispag-tank-pdf-generator.php';
+
+class ISPAG_Tank_Welding_Certificat extends ISPAG_Tank_TechSheet_Generator
 {
-    protected $y_image_bottom;
     private $wpdb;
     private $table_flange_dimension;
     private $table_conception;
@@ -118,239 +129,136 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_PDF_Generator
     public function generate_weld_certificat($project, $svg_path, $article, $tank_datas, $weld_control)
     {
         $this->title = __('Welding certificat', 'creation-reservoir');
+        $this->AliasNbPages('{nb}');
+        $this->SetTitle($this->cleanStr($this->title . ' - ' . ($article->Article ?? '')), true);
+        $this->SetAutoPageBreak(false);
         $this->AddPage();
-        $this->SetTitle(mb_convert_encoding($this->title, 'ISO-8859-1', 'UTF-8'));
-        $this->SetAutoPageBreak(true, 20);
-        $this->addHeader();
 
-        // Ajoute l'en-tête et le contenu
-        $this->addModernHeader($project, $article);
-        $this->addArticleTitle($article);
-        $this->addLayoutBlocks($article, $svg_path, $tank_datas, $weld_control);
-    }
-
-    // === Méthodes existantes (conservées) ===
-    protected function addModernHeader($project, $article) {
-        $this->SetTextColor(65, 76, 82);
-        $this->SetFont('Arial', '', 8);
-        $this->SetDrawColor(222, 226, 230);
-        $this->SetLineWidth(0.5);
-
-        $width = $this->GetPageWidth() / 2;
-        $this->SetXY($width - 10, 20);
-        $this->Cell($width, 5, mb_convert_encoding($project->ObjetCommande ?? '', 'ISO-8859-1', 'UTF-8'), 0, 2, 'R');
-        $this->Cell($width, 5, mb_convert_encoding($article->Groupe ?? '', 'ISO-8859-1', 'UTF-8'), 0, 2, 'R');
-        $this->Cell($width, 5, mb_convert_encoding(__('Number of tanks', 'creation-reservoir') . ' : ' . ($article->Qty ?? ''), 'ISO-8859-1', 'UTF-8'), 0, 2, 'R');
-        $this->Cell($width, 5, date('d.m.Y'), 0, 1, 'R');
-        $this->Ln(5);
-
-        $x1 = 10;
-        $y1 = $this->GetY();
-        $x2 = $this->GetPageWidth() - $x1;
-        $this->Line($x1, $y1, $x2, $y1);
-        $this->Ln(5);
-    }
-
-    protected function addArticleTitle($article) {
-        $this->SetFont('Arial', 'B', 16);
-        $this->SetTextColor(0);
-        $this->Cell(0, 12, mb_convert_encoding($article->Article ?? '', 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
-        $this->Ln(5);
-    }
-
-    protected function addLayoutBlocks($article, $svg_path, $tank_datas, $weld_control) {
-        $startY = $this->GetY();
-
-        // Bloc gauche
-        $this->SetXY(10, $startY);
-        $this->addBlocDimensions($tank_datas);
-        $this->addBlocSoudure($weld_control);
-
-        // Bloc droit (image)
-        $this->SetXY(130, $startY);
-        $this->addCuveImage($svg_path);
-
-        // Bas de page
-        $this->add_certificat_bottom($article);
-    }
-
-    protected function addBlocDimensions($tank_datas) {
-        $x = $this->GetX();
-        $y = $this->GetY();
-
-        $this->SetFillColor(255, 255, 255);
-        $this->SetDrawColor(218, 124, 81);
-
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(0, 10, mb_convert_encoding(__('Dimensions', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-
-        $this->SetFont('Arial', '', 8);
-        $dims = [
-            __('Diameter', 'creation-reservoir') => isset($tank_datas['dimensions']->Diameter) ? $tank_datas['dimensions']->Diameter . ' mm' : '-',
-            __('Volume', 'creation-reservoir') => isset($tank_datas['dimensions']->Volume) ? $tank_datas['dimensions']->Volume . ' L' : '-',
-            __('Height', 'creation-reservoir') => isset($tank_datas['dimensions']->Height) ? $tank_datas['dimensions']->Height . ' mm' : '-',
-            __('Tipping height', 'creation-reservoir') => isset($tank_datas['dimensions']->TippingHeight) ? $tank_datas['dimensions']->TippingHeight . ' mm' : '-',
-            __('Materials', 'creation-reservoir') => isset($tank_datas['conception']->material_text) ? __($tank_datas['conception']->material_text, 'creation-reservoir') : '-',
-        ];
-
-        foreach ($dims as $label => $value) {
-            $this->Cell(60, 5, mb_convert_encoding($label, 'ISO-8859-1', 'UTF-8'), 0, 0);
-            $this->Cell(0, 5, mb_convert_encoding(': ' . $value, 'ISO-8859-1', 'UTF-8'), 0, 1);
+        // Le sous-titre (projet | groupe) indique aussi le nombre de réservoirs
+        $heading = clone $article;
+        if (!empty($article->Qty)) {
+            $heading->Groupe = trim(($article->Groupe ?? '') . '   |   ' . __('Number of tanks', 'creation-reservoir') . ' : ' . $article->Qty, ' |');
         }
 
-        $this->Ln(3);
-        $height = $this->GetY() - $y;
-        $this->RoundedRect($x, $y, 110, $height, 3, 'D');
-        $this->Ln(3);
+        $this->drawBand($project, $article);
+        $y = $this->drawTitle($project, $heading);
+        $y = $this->drawKpis($tank_datas, $y);
+
+        $right_end = $this->drawDrawingColumn($svg_path, $y);
+        $left_end  = $this->drawControlColumn($tank_datas, $weld_control, $y);
+
+        $this->drawSignature($article, max($left_end, $right_end));
     }
 
-    protected function addCuveImage($svgUrl) {
-        $svgPath = $this->get_local_path_from_url($svgUrl);
-        if (!file_exists($svgPath)) {
-            $this->Cell(0, 10, mb_convert_encoding(__('Error: SVG file not found.', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-            $this->y_image_bottom = $this->GetY();
-            return;
-        }
+    // ------------------------------------------------------------------ Bandeau et titre
 
-        $pngPath = str_replace('.svg', '.png', $svgPath);
-        if (file_exists($pngPath)) {
-            unlink($pngPath);
-        }
-
-        try {
-            $this->convert_svg_to_png($svgPath, $pngPath);
-            if (file_exists($pngPath)) {
-                $this->Image($pngPath, 130, $this->GetY(), 0, 80);
-                $this->Ln(65);
-            } else {
-                $this->Cell(0, 10, mb_convert_encoding(__('Failed to convert SVG to PNG.', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-            }
-        } catch (ImagickException $e) {
-            $this->Cell(0, 10, mb_convert_encoding(__('Error converting SVG: ', 'creation-reservoir') . $e->getMessage(), 'ISO-8859-1', 'UTF-8'), 0, 1);
-        }
-
-        $this->y_image_bottom = $this->GetY();
+    protected function docTitle()
+    {
+        return __('Welding certificat', 'creation-reservoir');
     }
 
-    protected function get_local_path_from_url($url) {
-        $site_url = site_url();
-        $server_path = ABSPATH;
-        return str_replace($site_url, $server_path, $url);
+    // ------------------------------------------------------------------ Colonne de gauche
+
+    protected function drawControlColumn($tank_datas, $weld_control, $y)
+    {
+        $x = self::MARGIN;
+        $w = self::LEFT_W;
+        $d = $tank_datas['dimensions'] ?? null;
+        $c = $tank_datas['conception'] ?? null;
+
+        // Dimensions
+        $y = $this->sectionTitle($x, $y, $w, __('Dimensions', 'creation-reservoir'));
+        $y = $this->keyValueRows($x, $y, $w, [
+            __('Diameter', 'creation-reservoir')       => !empty($d->Diameter) ? $d->Diameter . ' mm' : null,
+            __('Volume', 'creation-reservoir')         => !empty($d->Volume) ? $d->Volume . ' L' : null,
+            __('Height', 'creation-reservoir')         => !empty($d->Height) ? $d->Height . ' mm' : null,
+            __('Tipping height', 'creation-reservoir') => !empty($d->TippingHeight) ? $d->TippingHeight . ' mm' : null,
+            __('Materials', 'creation-reservoir')      => !empty($c->material_text) ? __($c->material_text, 'creation-reservoir') : null,
+        ]);
+
+        // Résultats du contrôle
+        $y = $this->sectionTitle($x, $y + 3, $w, __('Inspection Results', 'creation-reservoir'));
+        $y = $this->keyValueRows($x, $y, $w, $weld_control);
+
+        return $y;
     }
 
-    protected function convert_svg_to_png($svgPath, $pngPath) {
-        if (!class_exists('Imagick')) {
-            throw new Exception(__('Imagick extension is not installed.', 'creation-reservoir'));
-        }
+    // ------------------------------------------------------------------ Colonne de droite
 
-        $imagick = new Imagick();
-        $imagick->setBackgroundColor(new ImagickPixel('white'));
-        $imagick->readImage($svgPath);
-        $imagick->resizeImage(1200, 2400, Imagick::FILTER_LANCZOS, 1);
-        $imagick->quantizeImage(256, Imagick::COLORSPACE_RGB, 0, false, false);
-        $imagick->setImageDepth(8);
-        $imagick->setImageFormat('png');
-        $imagick->writeImage($pngPath);
-        $imagick->clear();
-        $imagick->destroy();
+    protected function drawDrawingColumn($svg_path, $y)
+    {
+        $x = $this->right_x;
+        $w = $this->right_w;
+
+        $y = $this->sectionTitle($x, $y, $w, __('Drawing', 'creation-reservoir'));
+        $box_h = 112;
+        $this->roundedBox($x, $y, $w, $box_h, self::WHITE, self::LINE);
+        $this->placeDrawing($svg_path, $x + 3, $y + 3, $w - 6, $box_h - 6);
+        return $y + $box_h + 6;
     }
 
-    protected function addBlocSoudure($weld_control) {
-        $x = $this->GetX();
-        $y = $this->GetY();
+    // ------------------------------------------------------------------ Date et signature
 
-        $this->SetFillColor(255, 255, 255);
-        $this->SetDrawColor(218, 124, 81);
-
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(0, 10, mb_convert_encoding(__('Inspection Results', 'creation-reservoir'), 'ISO-8859-1', 'UTF-8'), 0, 1);
-        $this->SetFont('Arial', '', 8);
-
-        foreach ($weld_control as $label => $value) {
-            $this->Cell(60, 5, mb_convert_encoding($label, 'ISO-8859-1', 'UTF-8'), 0, 0);
-            $this->Cell(0, 5, mb_convert_encoding(': ' . $value, 'ISO-8859-1', 'UTF-8'), 0, 1);
-        }
-
-        $this->Ln(3);
-        $height = $this->GetY() - $y;
-        $this->RoundedRect($x, $y, 110, $height, 3, 'D');
-        $this->Ln(3);
-    }
-
-    protected function add_certificat_bottom($article) {
-        $y = max($this->y_image_bottom, $this->GetY());
-        $this->SetY($y + 10);
-        $this->SetX(10);
-
-        $this->SetTextColor(65, 76, 82);
-        $this->SetFont('Arial', '', 8);
-
+    protected function drawSignature($article, $y)
+    {
+        $y = $this->ensure($y + 6, 46);
         $control_date = date('d.m.Y', strtotime($article->date_livraison ?? 'now'));
-        $width_col = $this->GetPageWidth() / 3;
 
-        $this->Cell($width_col, 5, mb_convert_encoding(__('Control Date', 'creation-reservoir') . ': ' . $control_date, 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
-        $this->Ln(5);
+        $this->roundedBox(self::MARGIN, $y, 186, 40, self::PANEL);
 
-        $x_sig = $this->GetPageWidth() - 70;
-        $y_start_sig = $this->GetY() - 5;
-        $this->SetXY($x_sig, $y_start_sig);
+        // Date du contrôle
+        $this->SetXY(self::MARGIN + 6, $y + 6);
+        $this->SetFont('Arial', '', 7.5);
+        $this->color('text', self::MUTED);
+        $this->Cell(80, 4, $this->t(mb_strtoupper(__('Control Date', 'creation-reservoir'))), 0, 2, 'L');
+        $this->SetFont('Arial', 'B', 12);
+        $this->color('text', self::INK);
+        $this->Cell(80, 8, $this->t($control_date), 0, 0, 'L');
 
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(60, 5, mb_convert_encoding(__('Qualified Inspector', 'creation-reservoir') . ':', 'ISO-8859-1', 'UTF-8'), 0, 2, 'C');
+        // Contrôleur et signature
+        $sx = self::MARGIN + 186 - 76;
+        $this->SetXY($sx, $y + 6);
+        $this->SetFont('Arial', '', 7.5);
+        $this->color('text', self::MUTED);
+        $this->Cell(70, 4, $this->t(mb_strtoupper(__('Controller', 'creation-reservoir'))), 0, 2, 'C');
+        $this->SetFont('Arial', 'B', 10);
+        $this->color('text', self::INK);
+        $this->Cell(70, 6, $this->t('Cyril Barthel'), 0, 0, 'C');
 
-        $this->SetFont('Arial', '', 9);
-        $this->Cell(60, 5, mb_convert_encoding('Cyril Barthel', 'ISO-8859-1', 'UTF-8'), 0, 2, 'C');
-        $this->Ln(2);
-
-        $signature_url = 'https://app.ispag-asp.ch/wp-content/uploads/2024/05/Signature_Cyril-Barthel.jpg';
-        $this->Image($signature_url, $x_sig + 5, $this->GetY(), 50, 0);
-        $this->SetY($this->GetY() + 20);
-
-        $this->SetDrawColor(222, 226, 230);
-        $this->SetLineWidth('0.5');
-        $x1 = 10;
-        $y1 = $this->GetY();
-        $x2 = $this->GetPageWidth() - $x1;
-        $this->Line($x1, $y1, $x2, $y1);
+        // Signature lue sur le serveur (jamais dans le dépôt Git ni accessible par URL) ; absente : cadre vierge
+        $signature_path = self::get_signature_path();
+        if ($signature_path) {
+            try {
+                $this->Image($signature_path, $sx + 10, $y + 17, 50, 0);
+            } catch (Exception $e) {
+                // signature illisible : le cadre reste vierge pour une signature manuscrite
+            }
+        }
+        return $y + 40;
     }
 
-    // === Méthodes utilitaires (RoundedRect, _Arc) ===
-    protected function RoundedRect($x, $y, $w, $h, $r = 2, $style = '') {
-        $k = $this->k;
-        $hp = $this->h;
-        $op = ($style == 'F') ? 'f' : (($style == 'FD' || $style == 'DF') ? 'B' : 'S');
-        $MyArc = 4 / 3 * (sqrt(2) - 1);
+    /**
+     * Chemin du PNG de signature (fond transparent), ou '' s'il n'existe pas.
+     * Ordre : constante ISPAG_WELDING_SIGNATURE_PATH (idéalement hors du dossier web), filtre
+     * 'ispag_welding_signature_path', puis dossier protégé wp-content/uploads/ispag-private/signature_controleur.png.
+     */
+    protected static function get_signature_path()
+    {
+        $dir = trailingslashit(wp_upload_dir()['basedir']) . 'ispag-private';
+        $path = defined('ISPAG_WELDING_SIGNATURE_PATH') ? ISPAG_WELDING_SIGNATURE_PATH : $dir . '/signature_controleur.png';
+        $path = apply_filters('ispag_welding_signature_path', $path);
 
-        $this->_out(sprintf('%.2F %.2F m', ($x + $r) * $k, ($hp - $y) * $k));
-        $xc = $x + $w - $r;
-        $yc = $y + $r;
-        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - $y) * $k));
+        // Dossier par défaut : interdit l'accès direct par URL (Apache ; sur Nginx, bloquer /uploads/ispag-private/)
+        if (wp_mkdir_p($dir)) {
+            if (!file_exists($dir . '/.htaccess')) {
+                @file_put_contents($dir . '/.htaccess', "Require all denied\nDeny from all\n");
+            }
+            if (!file_exists($dir . '/index.php')) {
+                @file_put_contents($dir . '/index.php', "<?php // Silence is golden.\n");
+            }
+        }
 
-        $this->_Arc($xc + $r * $MyArc, $yc - $r, $xc + $r, $yc - $r * $MyArc, $xc + $r, $yc);
-        $xc = $x + $w - $r;
-        $yc = $y + $h - $r;
-        $this->_out(sprintf('%.2F %.2F l', ($x + $w) * $k, ($hp - $yc) * $k));
-        $this->_Arc($xc + $r, $yc + $r * $MyArc, $xc + $r * $MyArc, $yc + $r, $xc, $yc + $r);
-
-        $xc = $x + $r;
-        $yc = $y + $h - $r;
-        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - ($y + $h)) * $k));
-        $this->_Arc($xc - $r * $MyArc, $yc + $r, $xc - $r, $yc + $r * $MyArc, $xc - $r, $yc);
-
-        $xc = $x + $r;
-        $yc = $y + $r;
-        $this->_out(sprintf('%.2F %.2F l', $x * $k, ($hp - $yc) * $k));
-        $this->_Arc($xc - $r, $yc - $r * $MyArc, $xc - $r * $MyArc, $yc - $r, $xc, $yc - $r);
-
-        $this->_out($op);
-    }
-
-    protected function _Arc($x1, $y1, $x2, $y2, $x3, $y3) {
-        $h = $this->h;
-        $this->_out(sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c ',
-            $x1 * $this->k, ($h - $y1) * $this->k,
-            $x2 * $this->k, ($h - $y2) * $this->k,
-            $x3 * $this->k, ($h - $y3) * $this->k));
+        return ($path && is_readable($path)) ? $path : '';
     }
 
     // === Méthodes pour le bouton et le script ===
@@ -363,33 +271,9 @@ class ISPAG_Tank_Welding_Certificat extends ISPAG_PDF_Generator
                         data-deal-id="' . $deal_id . '">
                             <span class="dashicons dashicons-awards"></span>
                             ' . __('Welding certificat', 'creation-reservoir') . '
-                    </button>' . self::getScript();
+                    </button>';
         }
         return $html;
     }
 
-    private static function getScript() {
-        return '<script>
-                document.addEventListener(\'click\', function (event) {
-                    if (event.target.matches(\'#welding-certificat-pdf\') || event.target.closest(\'#welding-certificat-pdf\')) {
-                        const button = event.target.closest(\'#welding-certificat-pdf\');
-                        const articleId = button.dataset.articleId;
-                        const dealId = button.dataset.dealId;
-
-                        if (articleId) {
-                            const url = new URL(\'' . admin_url('admin-ajax.php') . '\');
-                            url.searchParams.set(\'action\', \'ispag_generate_welding_certificat_pdf\');
-                            if (dealId) {
-                                url.searchParams.set(\'deal_id\', dealId);
-                            }
-                            url.searchParams.set(\'article_id\', articleId);
-
-                            window.open(url.toString(), \'_blank\');
-                        } else {
-                            console.error(\'Article ID non trouvé sur le bouton.\');
-                        }
-                    }
-                });
-                </script>';
-    }
 }

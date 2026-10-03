@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class Ispag_Fitting_Autosaver
  *
@@ -158,7 +159,7 @@ class Ispag_Fitting_Autosaver {
         $fittings = $datas['tank']['fittings'] ?? $datas['fittings'] ?? [];
         if (empty($fittings) || !is_array($fittings)) {
             $this->logger->log_user_action('fitting_autosaver', 'no_fittings_to_save', [], $user_id);
-            return $this->result(true, 0, 0, [], 'Aucun raccord à enregistrer');
+            return $this->result(true, 0, 0, [], 'No fitting to save');
         }
         $this->logger->log_user_action('fitting_autosaver', 'fittings_count', ['count' => count($fittings)], $user_id);
 

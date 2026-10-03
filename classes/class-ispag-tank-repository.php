@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Tank_Repository {
 
@@ -108,7 +109,7 @@ class ISPAG_Tank_Repository {
      * Lit le fichier JSON et trouve la hauteur du fond
      */
     private static function get_bottom_height_from_json($material_id, $diameter) {
-        $json_path = WP_PLUGIN_DIR . '/ispag-tank-builder/assets/json/tank_data.json';
+        $json_path = ISPAG_PLUGIN_PATH . 'assets/json/tank_data.json';
         if (!file_exists($json_path)) return 280; // Par défaut
 
         $config = json_decode(file_get_contents($json_path), true);

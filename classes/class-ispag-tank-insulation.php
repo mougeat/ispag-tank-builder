@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Tank_Insulation {
     private $wpdb;
@@ -160,7 +161,7 @@ class ISPAG_Tank_Insulation {
         $tank_height = $ins['tankHeightLimit'] ?? '';
         
         // Récupérer les textes via les IDs
-        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0);
+        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0) ?: ($ins['insulationThickness'] ?? 0); // Id de conception, ou épaisseur directe en mm
         $type_text = $this->get_conception_value($ins['insulationType'] ?? 0);
         $cover_text = $this->get_conception_value($ins['insulationCover'] ?? 0);
 
@@ -199,7 +200,7 @@ class ISPAG_Tank_Insulation {
         $tank_height = $ins['tankHeightLimit'] ?? '';
         
         // Récupérer les textes via les IDs
-        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0);
+        $thickness_text = $this->get_conception_value($ins['insulationThickness'] ?? 0) ?: ($ins['insulationThickness'] ?? 0); // Id de conception, ou épaisseur directe en mm
         $type_text = $this->get_conception_value($ins['insulationType'] ?? 0);
         $cover_text = $this->get_conception_value($ins['insulationCover'] ?? 0);
 
@@ -300,6 +301,7 @@ class ISPAG_Tank_Insulation {
             WHERE hubspot_deal_id = %d
             AND Type = 2
             AND Groupe = %s
+            AND IdArticleStandard IN (SELECT Id FROM {$wpdb->prefix}achats_articles WHERE TypeArticle = 2)
             LIMIT 1
         ";
 
@@ -316,6 +318,7 @@ class ISPAG_Tank_Insulation {
             SELECT Id FROM {$this->table_project_article}
             WHERE linked_tank = %d
             AND Type = 2
+            AND IdArticleStandard IN (SELECT Id FROM {$wpdb->prefix}achats_articles WHERE TypeArticle = 2)
             LIMIT 1
         ";
         $linked_tank = $wpdb->get_var($wpdb->prepare($sql, $article_id));

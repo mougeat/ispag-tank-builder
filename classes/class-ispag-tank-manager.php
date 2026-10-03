@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Tank_Manager {
     public static function init() {
@@ -35,6 +36,7 @@ class ISPAG_Tank_Manager {
         add_action('wp_ajax_ispag_ajax_generate_sketch', [self::class, 'ispag_ajax_generate_sketch']);
         add_filter('ispag_get_technical_sheet_btn', [self::class, 'get_technical_sheet_btn'], 10, 3);
         add_filter('ispag_get_sketch_btn', [self::class, 'get_sketch_btn'], 10, 3);
+        add_filter('ispag_get_sketch_chip', [self::class, 'get_sketch_chip'], 10, 3);
         add_action('ispag_delete_tank_with_article_id', [self::class, 'delete_tank_with_article_id'],10,2);
         // add_filter('ispag_get_sketch_btn', [self::class, 'get_sketch_btn'], 10, 2);
         add_filter('ispag_get_related_tank', [self::class, 'get_related_tank'], 10, 3);
@@ -53,6 +55,7 @@ class ISPAG_Tank_Manager {
         // Scripts principaux
         wp_enqueue_script('ispag-tank-builder', plugin_dir_url(__FILE__) . '../assets/js/tank-builder.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-tank-dynamic-fields', plugin_dir_url(__FILE__) . '../assets/js/tank-dynamic-fields.js', ['jquery'], false, true);
+        wp_enqueue_script('ispag-tank-wizard', plugin_dir_url(__FILE__) . '../assets/js/tank-wizard.js', ['jquery', 'ispag-tank-builder', 'ispag-tank-dynamic-fields'], @filemtime(__DIR__ . '/../assets/js/tank-wizard.js') ?: false, true);
         wp_enqueue_script('ispag-exchanger-builder', plugin_dir_url(__FILE__) . '../assets/js/exchanger-builder.js', ['jquery', 'ispag-tank-builder'], false, true);
         // wp_enqueue_script('ispag-tank-pricing', plugin_dir_url(__FILE__) . '../assets/js/tank-pricing.js', ['jquery'], false, true);
         // wp_enqueue_script('ispag-tank-fitting', plugin_dir_url(__FILE__) . '../assets/js/fittings-pricing.js', ['jquery'], false, true);
@@ -251,7 +254,7 @@ class ISPAG_Tank_Manager {
                         data-deal-id="' . $deal_id . '">
                             <span class="dashicons dashicons-list-view"></span>
                             ' . __('Technical sheet', 'creation-reservoir') . '
-                    </button>' . self::getScript();
+                    </button>';
             // return '        <script>
             //         document.getElementById(\'technical-sheet-pdf\').addEventListener(\'click\', function () {
             //             // alert(\'yes\');
@@ -266,32 +269,6 @@ class ISPAG_Tank_Manager {
         }
     }
 
-    private static function getScript(){
-        return '<script>
-                // Votre script JavaScript existant devrait maintenant fonctionner avec les data-attributs
-                // Assurez-vous que ce script est chargé après que le bouton soit présent dans le DOM
-                document.addEventListener(\'click\', function (event) {
-                    if (event.target.matches(\'#technical-sheet-pdf\') || event.target.closest(\'#technical-sheet-pdf\')) {
-                        const button = event.target.closest(\'#technical-sheet-pdf\');
-                        const articleId = button.dataset.articleId;
-                        const dealId = button.dataset.dealId;
-
-                        if (articleId) {
-                            const url = new URL(\'' . admin_url('admin-ajax.php') . '\');
-                            url.searchParams.set(\'action\', \'ispag_generate_technical_sheet_pdf\');
-                            if (dealId) {
-                                url.searchParams.set(\'deal_id\', dealId);
-                            }
-                            url.searchParams.set(\'article_id\', articleId);
-
-                            window.open(url.toString(), \'_blank\');
-                        } else {
-                            console.error(\'Article ID non trouvé sur le bouton.\');
-                        }
-                    }
-                });
-                </script>';
-    }
 
 
     public static function ispag_ajax_generate_technical_sheet() {
@@ -336,8 +313,8 @@ class ISPAG_Tank_Manager {
         // ];
 
         $notes = [
-            'Fiche générée automatiquement.',
-            'Veuillez vérifier les données avant envoi au client.',
+            'Sheet generated automatically.',
+            'Please check the data before sending to the customer.',
         ];
 
         require_once plugin_dir_path(__FILE__) . '/class-ispag-tank-pdf-generator.php';
@@ -350,27 +327,54 @@ class ISPAG_Tank_Manager {
         exit;
     }
 
-    public static function get_sketch_btn($html, $article, $deal_id = null){
-        
-        if($article->Type == 1){
+    /**
+     * Droit de voir le croquis : tout le monde tant que l'article n'a pas de plan ;
+     * dès qu'un plan existe, seuls l'administrateur et le chef de projet du projet.
+     */
+    public static function can_view_sketch($article) {
+        if (empty($article->last_drawing_url)) return true;
+        if (current_user_can('manage_options')) return true;
 
-            $script = '<script>
-                    document.getElementById(\'sketch-pdf\').addEventListener(\'click\', function () {
-                        // alert(\'yes\');
-                        const url = new URL(\'' . admin_url('admin-ajax.php') . '\');
-                        url.searchParams.set(\'action\', \'ispag_ajax_generate_sketch\');
-                        url.searchParams.set(\'deal_id\', getUrlParam(\'deal_id\'));
-                        url.searchParams.set(\'article_id\', ' . intval($article->Id) . ');
-
-                        window.open(url.toString(), \'_blank\');
-                    });
-                    </script>';
-            return '<button id="sketch-pdf" class="ispag-btn ispag-btn-secondary-outlined" style="margin-top: 1rem;" data-tank-sketch="' . intval($article->Id) . '" data-deal-id="' . intval($deal_id) . '" data-ajax-action="tank_data_extractor">
-                        <span class="dashicons dashicons-hammer"></span>
-                        ' .  __('Sketch', 'creation-reservoir') . '
-                    </button>
-                    ';
+        if (class_exists('ISPAG_Project_Phase_Resolver')) {
+            $purchase = ISPAG_Project_Phase_Resolver::get_purchase((int) ($article->hubspot_deal_id ?? 0));
+            $pm = $purchase ? (int) ($purchase->project_manager ?? 0) : 0;
+            if ($pm && $pm === get_current_user_id()) return true;
         }
+        return false;
+    }
+
+    /** Badge « Croquis » de la ligne d'article (même zone que le badge du plan). */
+    public static function get_sketch_chip($html, $article, $deal_id = null){
+        if (empty($article) || $article->Type != 1 || !self::can_view_sketch($article)) {
+            return $html;
+        }
+
+        $url = add_query_arg([
+            'action'     => 'ispag_ajax_generate_sketch',
+            'deal_id'    => intval($deal_id ?: ($article->hubspot_deal_id ?? 0)),
+            'article_id' => intval($article->Id),
+        ], admin_url('admin-ajax.php'));
+
+        return '<a href="#" class="ispag-chip ispag-chip--info ispag-chip--link" data-tank-sketch="' . intval($article->Id) . '" title="' . esc_attr__('Sketch', 'creation-reservoir') . '" onclick="window.open(' . esc_attr(wp_json_encode($url)) . ', \'_blank\', \'width=1000,height=800\'); return false;">✏️ '
+            . esc_html__('Sketch', 'creation-reservoir') . '</a>';
+    }
+
+    public static function get_sketch_btn($html, $article, $deal_id = null){
+
+        if ($article->Type != 1) {
+            return $html;
+        }
+
+        $url = add_query_arg([
+            'action'     => 'ispag_ajax_generate_sketch',
+            'deal_id'    => intval($deal_id ?: ($article->hubspot_deal_id ?? 0)),
+            'article_id' => intval($article->Id),
+        ], admin_url('admin-ajax.php'));
+
+        return '<button type="button" class="ispag-btn ispag-btn-secondary-outlined" style="margin-top: 1rem;" data-tank-sketch="' . intval($article->Id) . '" onclick="window.open(' . esc_attr(wp_json_encode($url)) . ', \'_blank\');">
+                    <span class="dashicons dashicons-hammer"></span>
+                    ' . esc_html__('Sketch', 'creation-reservoir') . '
+                </button>';
     }
 
     public static function ispag_ajax_generate_sketch() {
@@ -391,24 +395,22 @@ class ISPAG_Tank_Manager {
 
         $article = apply_filters('ispag_get_article_by_id', null, $article_id);
         $project = apply_filters('ispag_get_project_by_deal_id', null, $deal_id);
-        $svg_path = apply_filters('ispag_get_tank_svg', null, $article_id, true);
         $tank_datas = apply_filters('ispag_get_tank_datas', null, $article_id);
-
-        // echo'<pre>';
-        // var_dump($article);
-        // echo'</pre>';
 
 
         if (!$article) {
             wp_die('No data found for article');
+        }
+        if (!self::can_view_sketch($article)) {
+            wp_die(esc_html__('Access denied.', 'creation-reservoir'), '', ['response' => 403]);
         }
         if (!$project) {
             wp_die('No data found for project');
         }
 
         $notes = [
-            'Fiche générée automatiquement.',
-            'Veuillez vérifier les données avant envoi au client.',
+            'Sheet generated automatically.',
+            'Please check the data before sending to the customer.',
         ];
 
         require_once plugin_dir_path(__FILE__) . '/class-ispag-tank-drawing-generator.php';
@@ -416,7 +418,7 @@ class ISPAG_Tank_Manager {
         $pdf = new ISPAG_Tank_Drawing_Generator();
         $title = __('Sketch', 'creation-reservoir') . ' - ' . $article->Article;
         $file_name = preg_replace('/[^A-Za-z0-9\-]/', '', str_replace(' ', '-', $title));
-        $pdf->generate_drawing($article, $tank_datas, $title);
+        $pdf->generate_drawing($article, $tank_datas, $title, $project);
         $pdf->Output('I', $file_name.'.pdf');
         exit;
     }

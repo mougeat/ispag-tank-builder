@@ -85,7 +85,9 @@
 .ispag-modal-fitting-left {
     width: 25%;
     min-height: 100vh;
+    min-height: var(--ispag-vh, 100dvh);
     max-height: 100vh;
+    max-height: var(--ispag-vh, 100dvh);
 }
 .ispag-modal-fitting-right {
     width: 75%;
@@ -167,4 +169,49 @@
 
 #tank-transport-alert.exceptional_complex .dashicons-warning {
   color: #dc3545;
+}
+
+/* Échangeurs : 1 à 3 formulaires qui se partagent toute la largeur de la fenêtre */
+.exchangerFormsContainer .exchanger-form {
+    flex: 1 1 0;
+    min-width: 260px;
+    position: relative;
+}
+.exchanger-form .exchanger-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.exchanger-form .exchanger-form-header h3 { margin: 0; }
+.exchanger-form .removeExchangerForm { flex-shrink: 0; }
+
+/* Fenêtre des échangeurs : les formulaires défilent, le pied (Add / Save) reste toujours visible */
+.ispag-product-modal .exchangerFormsContainer {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    align-content: flex-start;
+    padding: 16px;
+    box-sizing: border-box;
+}
+.ispag-product-modal .exchangerFormsContainer + .ispag-modal-footer {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: #fff;
+    border-top: 1px solid #cbd5e1;
+}
+/* Éditeur de piquages plein écran : hauteur réellement visible (barres du navigateur sur iPad) */
+#tank-fittings-modal.ispag-modal-fullscreen {
+    bottom: auto;
+    height: 100vh;
+    height: var(--ispag-vh, 100dvh);
+}
+#tank-fittings-modal .ispag-modal-fitting-right {
+    max-height: var(--ispag-vh, 100dvh);
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }

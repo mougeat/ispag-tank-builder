@@ -63,39 +63,8 @@ $(document).on('change', 'select[name="tank[insulation]"]', function() {
 
 async function updateInsulationDependencies(insulationId, typeId) {
     await setIspagTankRestrictionsValue();
-    
-    // Vérification de la disponibilité des données globales
-    if (typeof restrictions === 'undefined') {
-        console.error("ispagTankRestrictions n'est pas défini.");
-        return;
-    }
-
-    const $coverSelect = $('select[name="tank[insulationCover]"]');
-    const $thicknessSelect = $('select[name="tank[InsulationThickness]"]');
-
-    ispagInsulation = restrictions['insulation'][insulationId];
-    
-    const allowedCovers = ispagInsulation['insulationCover'].map(String);
-    $('select[name="tank[insulationCover]"] option').each(function () {
-        const val = $(this).val();
-        if (val === '' || allowedCovers.includes(val)) {
-            $(this).show();
-        } else {
-            $(this).hide();
-        }
-    });
-
-    const allowedThickness = ispagInsulation['InsulationThickness'].map(String);
-    $('select[name="tank[InsulationThickness]"] option').each(function () {
-        const val = $(this).val();
-        if (val === '' || allowedThickness.includes(val)) {
-            $(this).show();
-        } else {
-            $(this).hide();
-        }
-    });
-
-} 
+    ispagApplyTankRules(typeId);
+}
 
  
 async function updateTankDefaultsFromSelect(selectEl) {
@@ -111,22 +80,22 @@ async function updateTankDefaultsFromSelect(selectEl) {
     }
 }
 function updateTankDefaults(typId) {
-    if (!restrictions.typ || !restrictions.typ[typId] || !restrictions.typ[typId].default) return;
+    if (!restrictions.typ || !restrictions.typ[typId]) return;
 
-    const defaults = restrictions.typ[typId].default;
-    const allowed = restrictions.typ[typId].restrictions;
+    const defaults = restrictions.typ[typId].default || {};
+    const allowed = restrictions.typ[typId].restrictions || {};
 
     // --- Matériau ---
     const $materialSelect = $('select[name="tank[materiau]"]');
     const currentMaterial = String($materialSelect.val());
-    if (defaults.Material !== undefined && (!currentMaterial || !allowed.Material.includes(parseInt(currentMaterial)))) {
+    if (defaults.Material !== undefined && (!currentMaterial || (allowed.Material && !allowed.Material.includes(parseInt(currentMaterial))))) {
         $materialSelect.val(defaults.Material).trigger('change'); // 👈 Déclenche updateSupplierByMaterial
     }
 
     // --- Support ---
     const $supportSelect = $('select[name="tank[support]"]');
     const currentSupport = String($supportSelect.val());
-    if (defaults.Support !== undefined && (!currentSupport || !allowed.Support.includes(parseInt(currentSupport)))) {
+    if (defaults.Support !== undefined && (!currentSupport || (allowed.Support && !allowed.Support.includes(parseInt(currentSupport))))) {
         $supportSelect.val(defaults.Support).trigger('change');
     }
 
@@ -157,87 +126,105 @@ function updateTankDefaults(typId) {
 
 
 function restrictTankOptions(typId) {
-    const rules = restrictions.typ?.[typId]?.restrictions;
-    if (!rules) return;
-
-    // Support
-    if (rules.Support) {
-        const allowedSupports = rules.Support.map(String);
-        $('select[name="tank[support]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '' || allowedSupports.includes(val)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    }
-
-    // Matériau
-    if (rules.Material) {
-        const allowedMaterials = rules.Material.map(String);
-        $('select[name="tank[materiau]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '' || allowedMaterials.includes(val)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    }
-
-    // Isolation
-    if (rules.insulation) {
-        const allowedInsulation = rules.insulation.map(String);
-        $('select[name="tank[insulation]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '0') {
-                $(this).show();
-                return; // Passe à l'option suivante
-            }
-            if (val === '' || allowedInsulation.includes(val)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    } 
-
-    // Cover
-    if (rules.cover) {
-        const allowedCovers = rules.cover.map(String);
-        $('select[name="tank[cover]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '0') {
-                $(this).show();
-                return; // Passe à l'option suivante
-            }
-            if (val === '' || allowedCovers.includes(val)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    } 
-
-        // Isolation épaisseur
-    if (rules.InsulationThickness) {
-        const allowedInsulationThickness = rules.InsulationThickness.map(String);
-        $('select[name="tank[InsulationThickness]"] option').each(function () {
-            const val = $(this).val();
-            if (val === '0') {
-                $(this).show();
-                return; // Passe à l'option suivante
-            }
-            if (val === '' || allowedInsulationThickness.includes(val)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    }
-    
+    ispagApplyTankRules(typId);
 }
+
+// ---------------------------------------------------------------------------
+// Règles de conception (base / JSON) appliquées au fur et à mesure de l'avancement :
+//   type        -> matériaux, supports, types d'isolation et épaisseurs autorisés
+//   isolation   -> épaisseurs et revêtements autorisés (croisés avec ceux du type)
+// Les valeurs non autorisées sont retirées des listes (pas seulement masquées).
+// ---------------------------------------------------------------------------
+function ispagCurrentTypeId() {
+    const $t = jQuery('#tank-typ, select[name="tank[type]"], input[name="tank[type]"]').first();
+    let id = $t.find(':selected').data('id') || $t.val();
+    if (!id) id = jQuery('#ispag-product-modal-content h2').data('id');
+    return id ? String(id) : '';
+}
+
+function ispagFilterSelect($sel, allowed, keep) {
+    if (!$sel.length) return;
+    if (!$sel.data('ispagAllOptions')) $sel.data('ispagAllOptions', $sel.children('option').clone().prop('disabled', false).css('display', ''));
+
+    const current = String($sel.val() ?? '');
+    const allowedStr = Array.isArray(allowed) ? allowed.map(String) : null;
+    $sel.empty();
+    $sel.data('ispagAllOptions').each(function () {
+        const val = String(this.value);
+        if (allowedStr === null || keep.includes(val) || allowedStr.includes(val)) {
+            $sel.append(jQuery(this).clone());
+        }
+    });
+
+    const has = $sel.children('option').toArray().some(o => String(o.value) === current);
+    if (has) {
+        $sel.val(current);
+    } else {
+        $sel.prop('selectedIndex', 0); // valeur retirée : retour au premier choix (« -- Choose -- » / « None »)
+        $sel.trigger('change');
+    }
+}
+
+function ispagIntersect(lists) {
+    const filled = lists.filter(l => Array.isArray(l));
+    if (!filled.length) return null; // aucune règle : tout est proposé
+    return filled.reduce((a, b) => a.map(String).filter(v => b.map(String).includes(v)));
+}
+
+function ispagApplyTankRules(typId) {
+    const $ = jQuery;
+    if (typeof restrictions === 'undefined' || !restrictions) return;
+    typId = String(typId || ispagCurrentTypeId());
+    const typ = restrictions.typ && restrictions.typ[typId];
+    const rt = (typ && typ.restrictions) || {};
+
+    ispagFilterSelect($('select[name="tank[materiau]"]'), rt.Material || null, ['']);
+    ispagFilterSelect($('select[name="tank[support]"]'), rt.Support || null, ['']);
+    ispagFilterSelect($('select[name="tank[insulation]"]'), rt.insulation || null, ['', '0']);
+
+    const insId = String($('select[name="tank[insulation]"]').val() || '');
+    const ins = insId && insId !== '0' && restrictions.insulation ? restrictions.insulation[insId] : null;
+
+    // Épaisseurs et revêtements proposés pour le type d'isolation choisi :
+    //  1. les combinaisons définies dans l'administration (page « Tank rules », par type d'isolation) font foi ;
+    //  2. sans règle pour cette isolation : les valeurs autorisées pour le type de réservoir, croisées avec celles
+    //     des articles du catalogue lorsqu'il y en a (une isolation livrée par le fournisseur n'a pas d'article) ;
+    //  3. sans rien : toutes les valeurs.
+    const hasInsulation = insId && insId !== '0';
+    const filled = (list) => Array.isArray(list) && list.length ? list : null;
+    const cat = hasInsulation && insulationCatalog ? (insulationCatalog[insId] || null) : null;
+
+    let thicknessRule = null;
+    let coverRule = null;
+    if (hasInsulation) {
+        thicknessRule = filled(ins && ins.InsulationThickness)
+            || ispagIntersect([filled(rt.InsulationThickness), filled(cat && cat.thickness)]);
+        coverRule = filled(ins && ins.insulationCover)
+            || ispagIntersect([filled(cat && cat.cover)]);
+    } else {
+        thicknessRule = filled(rt.InsulationThickness);
+    }
+
+    ispagFilterSelect($('select[name="tank[InsulationThickness]"]'), thicknessRule, ['', '0']);
+    ispagFilterSelect($('select[name="tank[insulationCover]"]'), coverRule, ['', '0', '53']);
+}
+
+// L'assistant de création : les règles sont réappliquées à chaque étape
+jQuery(document).on('ispag:wizard_step', async function () {
+    await setIspagTankRestrictionsValue();
+    ispagApplyTankRules();
+});
+
+/** Fournisseur par défaut du type et du matériau choisis (un fournisseur commun aux deux, sinon celui du matériau, sinon celui du type). */
+function ispagDefaultSupplierName() {
+    if (typeof restrictions === 'undefined' || !restrictions) return '';
+    const materialId = jQuery('select[name="tank[materiau]"]').val();
+    const typeId = typeof ispagCurrentTypeId === 'function' ? ispagCurrentTypeId() : '';
+    const mat = restrictions.material?.[materialId]?.default?.supplier_name || [];
+    const typ = restrictions.typ?.[typeId]?.default?.supplier_name || [];
+    return mat.find(s => typ.includes(s)) || mat[0] || typ[0] || '';
+}
+
 function updateSupplierByMaterial(selectEl) {
     const $ = jQuery;
     const materialId = $(selectEl).val();
@@ -246,18 +233,14 @@ function updateSupplierByMaterial(selectEl) {
     const $supplierDatalist = $('#supplier-list');
     const $supplierInput = $('input[name="supplier"]');
 
-    // 1. Récupérer tous les fournisseurs autorisés (matériau + type)
-    let allSuppliers = new Set();
+    // 1. Fournisseurs du matériau et du type (le premier de chaque liste est le fournisseur par défaut)
+    const matSuppliers = restrictions.material?.[materialId]?.default?.supplier_name || [];
+    const typSuppliers = restrictions.typ?.[typeId]?.default?.supplier_name || [];
+    const allSuppliers = new Set([...matSuppliers, ...typSuppliers]);
 
-    // Fournisseurs du matériau
-    if (restrictions.material?.[materialId]?.default?.supplier_name) {
-        restrictions.material[materialId].default.supplier_name.forEach(s => allSuppliers.add(s));
-    }
-
-    // Fournisseurs du type
-    if (restrictions.typ?.[typeId]?.default?.supplier_name) {
-        restrictions.typ[typeId].default.supplier_name.forEach(s => allSuppliers.add(s));
-    }
+    // Même règle que côté serveur : un fournisseur commun au matériau et au type, sinon celui du matériau, sinon celui du type
+    const common = matSuppliers.find(s => typSuppliers.includes(s));
+    const preferred = common || matSuppliers[0] || typSuppliers[0];
 
     // 2. Mettre à jour la datalist
     $supplierDatalist.empty();
@@ -268,8 +251,8 @@ function updateSupplierByMaterial(selectEl) {
     const currentSupplier = $supplierInput.val();
     if (supplierArray.length > 0) {
         if (!allSuppliers.has(currentSupplier)) {
-            $supplierInput.val(supplierArray[0]);
-            console.log(`[SUPPLIER] "${currentSupplier}" non autorisé. Remplacé par : ${supplierArray[0]}`);
+            $supplierInput.val(preferred);
+            console.log(`[SUPPLIER] "${currentSupplier}" non autorisé. Remplacé par : ${preferred}`);
         }
         // Sinon, on garde currentSupplier
     }
@@ -299,7 +282,7 @@ async function updateDiameterDatalistByMaterial(materialId) {
     if (!arrayBottomHeight || !arrayBottomHeight[materialId]) {
         console.error(`[ERROR] arrayBottomHeight[${materialId}] introuvable.`);
         $select.empty();
-        $select.append(new Option('-- Sélectionnez un matériau --', ''));
+        $select.append(new Option('-- Select a material --', ''));
         return;
     }
 
@@ -598,7 +581,11 @@ function findClosestDiameter(targetVolume, bottomHeight, clearance, conceptionId
 // Sauvegarde des données techniques du réservoir
 function saveTankData(articleId, is_purchase = false) {
 
-    saveHeatExchangerData(articleId, is_purchase);
+    // Échangeur à plaques : ses données sont enregistrées même sans formulaire de réservoir (article de type échangeur)
+    const exchangerSaved = saveHeatExchangerData(articleId, is_purchase);
+
+    // Formulaire sans données de réservoir (sous-article, capot, échangeur…) : rien d'autre à enregistrer
+    if (!$('[name="tank[type]"]').length) return $.when(exchangerSaved).then(function () { return { success: true, data: { skipped: true } }; });
 
     const tank = {
         type:                   $('[name="tank[type]"]').val(),
@@ -628,7 +615,7 @@ function saveTankData(articleId, is_purchase = false) {
 
     console.log("Données envoyées au serveur :", tank); // Pour tes tests
 
-    return $.post(ISPAG_TANK.ajax_url, {
+    const payload = {
         action: 'ispag_save_tank_data',
         _ajax_nonce: ISPAG_TANK.nonce,
         deal_id: deal_id,
@@ -636,28 +623,63 @@ function saveTankData(articleId, is_purchase = false) {
         article_id: articleId,
         is_purchase: is_purchase,
         tank: tank
-    }).done(response => {
-        if (!response.success) {
-            console.error('Erreur cuve : ', response.data);
-        } else {
-            console.log('Succès sauvegarde technique', response.data);
+    };
+    // Largeur de porte (cm) : enregistrée avec la soudure pour figurer dans sa description (seulement si le champ est affiché)
+    const $doorWidth = $('[name="door_width"]');
+    if ($doorWidth.length) payload.door_width = $doorWidth.val();
+
+    return $.post(ISPAG_TANK.ajax_url, payload).then(response => {
+        // Une réponse sans succès (ou non JSON) doit être traitée comme un échec
+        if (!response || !response.success) {
+            console.error('Error cuve : ', response && response.data);
+            const d = response && response.data;
+            const msg = (d && (d.message || d.sql_error)) || 'Invalid server response';
+            ispagResetSaveButtons();
+            return $.Deferred().reject({ message: msg, response: response });
         }
-    }).fail(xhr => {
-        console.error('Erreur critique AJAX', xhr.responseText);
+        console.log('Succès sauvegarde technique', response.data);
+        return response;
+    }, xhr => {
+        console.error('Error critique AJAX', xhr.responseText);
+        ispagResetSaveButtons();
+        return $.Deferred().reject({ message: 'Invalid server response', xhr: xhr });
     });
+}
+
+// Mémorise l'état des boutons d'enregistrement au clic (avant que le code appelant ne les désactive)
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.ispag-edit-article-form button, .ispag-edit-article-form input[type="submit"]');
+    if (!btn || btn.disabled) return;
+    btn.dataset.ispagOrigHtml = btn.tagName === 'INPUT' ? btn.value : btn.innerHTML;
+}, true);
+
+// Réactive les boutons du formulaire d'article pour pouvoir refaire un essai sans recharger la page
+function ispagResetSaveButtons() {
+    document.querySelectorAll('.ispag-edit-article-form button, .ispag-edit-article-form input[type="submit"]').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('loading', 'is-loading', 'disabled');
+        if (btn.dataset.ispagOrigHtml !== undefined) {
+            if (btn.tagName === 'INPUT') btn.value = btn.dataset.ispagOrigHtml;
+            else btn.innerHTML = btn.dataset.ispagOrigHtml;
+        }
+    });
+    document.dispatchEvent(new CustomEvent('ispag_tank_save_failed'));
 }
 
 
 jQuery(document).ready(function($) {
     // Délégation sur un parent permanent
-    $(document).on('click', '#open-tank-fittings-modal', function() {
-        const articleId = $(this).data('article-id');
-        const purchaseArticleId = $(this).data('purchase-article-id');
-        const tank_diam = $(this).data('tank-diameter');
-        const tank_pression = $(this).data('tank-pression');
-        const tank_using_temp = $(this).data('tank-using-temp');
-        const tank_insulation_thickness = $(this).data('tank-insulation-thickness');
-        const supplier_name = $(this).data('tank-supplier');
+    // Charge l'éditeur de piquages pour l'article porté par $el (data-*). embed=true : pas d'ouverture de la modale
+    // (utilisé par l'assistant de création, qui déplace l'éditeur dans son étape « Fittings »).
+    window.ispagOpenFittings = function($el, embed) {
+        const articleId = $el.data('article-id');
+        const purchaseArticleId = $el.data('purchase-article-id');
+        const tank_diam = $el.data('tank-diameter');
+        const tank_pression = $el.data('tank-pression');
+        const tank_using_temp = $el.data('tank-using-temp');
+        const tank_insulation_thickness = $el.data('tank-insulation-thickness');
+        const supplier_name = $el.data('tank-supplier');
+
         
 
         if (purchaseArticleId) {
@@ -684,10 +706,10 @@ jQuery(document).ready(function($) {
 
         console.log(`%c MODE DÉTECTÉ : ${mode.toUpperCase()} (ID: ${finalIdToEdit})`, "background: #34495e; color: #fff; padding: 2px 5px;");
 
-        $('#fittings-form').html('<p>Chargement...</p>');
-        $('#tank-fittings-modal').fadeIn();
+        $('#fittings-form').html('<p>Loading...</p>');
+        if (!embed) { $('#tank-fittings-modal').fadeIn(); }
 
-        $.post(ajaxurl, {
+        return $.post(ajaxurl, {
             action: 'ispag_load_fittings_form',
             article_id: articleId
         }, function(response) {
@@ -707,9 +729,51 @@ jQuery(document).ready(function($) {
                 }, 50);
 
             } else {
-                $('#fittings-form').html('<p>Erreur de chargement</p>');
+                $('#fittings-form').html('<p>Loading error</p>');
             }
         });
+    };
+
+    $(document).on('click', '#open-tank-fittings-modal', function() {
+        window.ispagOpenFittings($(this), false);
+    });
+
+    // --- Bouton « Fittings » de la fenêtre d'édition d'un réservoir ---
+    // Instantané du formulaire à l'ouverture : permet de savoir si des modifications sont en attente
+    $(document).on('ispag_tank_modal_loaded', function () {
+        setTimeout(function () {
+            const $f = $('#ispag-edit-article-form');
+            if ($f.length) $f.data('ispagInitial', $f.serialize());
+        }, 600);
+    });
+
+    function openFittingsFromEdit($form, articleId) {
+        const $t = $('<span>').attr({
+            'data-article-id': articleId,
+            'data-tank-diameter': $form.find('[name="tank[diameter]"]').val() || '',
+            'data-tank-pression': $form.find('[name="tank[max_pressure]"]').val() || '',
+            'data-tank-using-temp': $form.find('[name="tank[temperature]"]').val() || '',
+            'data-tank-insulation-thickness': $form.find('[name="tank[InsulationThickness]"]').val() || '',
+            'data-tank-supplier': $form.find('#tank-supplier-display').val() || ''
+        });
+        window.ispagOpenFittings($t, false);
+    }
+
+    $(document).on('click', '.ispag-open-fittings-from-edit', function () {
+        const $form = $('#ispag-edit-article-form');
+        const articleId = $(this).data('article-id');
+        const initial = $form.data('ispagInitial');
+        const dirty = initial !== undefined && $form.serialize() !== initial;
+
+        if (!dirty) { openFittingsFromEdit($form, articleId); return; }
+
+        // Modifications en attente : enregistrer d'abord (OK) ou continuer sans enregistrer (Annuler)
+        if (window.confirm('You have unsaved changes. Save them before opening the fittings?\n\nOK = save and continue, Cancel = continue without saving')) {
+            $(document).one('ispag:article-saved', function () { openFittingsFromEdit($form, articleId); });
+            $form.trigger('submit');
+        } else {
+            openFittingsFromEdit($form, articleId);
+        }
     });
 
     $(document).on('click', '.ispag-modal-close', function() {
@@ -836,7 +900,7 @@ if (form) {
 
 function saveFittings(autoSave = false, btnElement = null) {
     const form = document.getElementById('fittings-form');
-    if (!form) return;
+    if (!form) return Promise.resolve();
 
     const formData = new FormData(form);
     const articleId = document.querySelector('input[name="article_id"]').value;
@@ -850,10 +914,10 @@ function saveFittings(autoSave = false, btnElement = null) {
         btnElement.disabled = true; // Désactive pour éviter le double clic
         originalHtml = btnElement.innerHTML;
         // On remplace le contenu par un spinner (FontAwesome)
-        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     }
 
-    fetch(ajaxurl, {
+    return fetch(ajaxurl, {
         method: 'POST',
         body: formData
     })
@@ -863,7 +927,8 @@ function saveFittings(autoSave = false, btnElement = null) {
             // Mise à jour du SVG
             if (response.data?.drawing && $("#ispag-modal-svg").length) {
                 $("#ispag-modal-svg").html(response.data.drawing);
-                reloadArticleList();
+                // Assistant de création : la fenêtre reste ouverte pendant la saisie des piquages
+                reloadArticleList(document.body.classList.contains('ispag-wizard-on'));
             }
 
             // Mise à jour des IDs insérés
@@ -888,8 +953,8 @@ function saveFittings(autoSave = false, btnElement = null) {
         }
     })
     .catch(err => {
-        console.error('Erreur Save:', err);
-        alert("Erreur de connexion au serveur.");
+        console.error('Error Save:', err);
+        alert("Server connection error.");
     })
     .finally(() => {
         // --- RÉINITIALISATION DU BOUTON ---
@@ -923,7 +988,7 @@ document.addEventListener('click', function (e) {
                 if (response.success) {
                     row.remove(); // suppression du DOM
                 } else {
-                    alert('❌ Erreur lors de la suppression');
+                    alert('❌ Error while deleting');
                     console.error(response);
                 }
             });
@@ -943,53 +1008,33 @@ document.addEventListener('click', function (e) {
 //     window.open(url.toString(), '_blank');
 // });
 
+// Boutons PDF des blocs articles (fiche technique, certificat de soudure) :
+// un seul gestionnaire délégué sur document, valable aussi pour les blocs rechargés dynamiquement.
 document.addEventListener('click', function (event) {
-    // Vérifie si l'élément cliqué est un bouton avec l'ID spécifique ou une classe pertinente
-    if (event.target.matches('#technical-sheet-pdf') || event.target.closest('#technical-sheet-pdf')) {
-        const button = event.target.closest('#technical-sheet-pdf'); // Trouve le bouton parent s'il y a un enfant cliqué
+    const pdfButtons = {
+        '#technical-sheet-pdf': 'ispag_generate_technical_sheet_pdf',
+        '#welding-certificat-pdf': 'ispag_generate_welding_certificat_pdf'
+    };
+
+    for (const selector in pdfButtons) {
+        const button = event.target.closest(selector);
+        if (!button) continue;
+
         const articleId = button.dataset.articleId;
         const dealId = button.dataset.dealId;
-
-        if (articleId) {
-            const url = new URL(admin_url('admin-ajax.php') );
-            url.searchParams.set('action', 'ispag_generate_technical_sheet_pdf');
-            if (dealId) { // Ajoute deal_id seulement s'il est présent
-                url.searchParams.set('deal_id', dealId);
-            }
-            url.searchParams.set('article_id', articleId);
-
-            window.open(url.toString(), '_blank');
-        } else {
+        if (!articleId) {
             console.error('Article ID non trouvé sur le bouton.');
+            return;
         }
+
+        const url = new URL(ISPAG_TANK.ajax_url, window.location.origin);
+        url.searchParams.set('action', pdfButtons[selector]);
+        if (dealId) {
+            url.searchParams.set('deal_id', dealId);
+        }
+        url.searchParams.set('article_id', articleId);
+
+        window.open(url.toString(), '_blank');
+        return;
     }
 });
-
-document.addEventListener('click', function (event) {
-    // Vérifie si l'élément cliqué est un bouton avec l'ID spécifique ou une classe pertinente
-    if (event.target.matches('#welding-certificat-pdf') || event.target.closest('#welding-certificat-pdf')) {
-        const button = event.target.closest('#welding-certificat-pdf'); // Trouve le bouton parent s'il y a un enfant cliqué
-        const articleId = button.dataset.articleId;
-        const dealId = button.dataset.dealId;
-
-        if (articleId) {
-            
-            const url = new URL(admin_url('admin-ajax.php') );
-            url.searchParams.set('action', 'ispag_generate_welding_certificat_pdf');
-            if (dealId) { // Ajoute deal_id seulement s'il est présent
-                url.searchParams.set('deal_id', dealId);
-            }
-            url.searchParams.set('article_id', articleId);
-
-            window.open(url.toString(), '_blank');
-        } else {
-            console.error('Article ID non trouvé sur le bouton.');
-        }
-    }
-});
-
-// // Fonction getUrlParam si elle est toujours nécessaire pour d'autres contextes, sinon elle peut être retirée si ce script est le seul usage de deal_id
-// function getUrlParam(paramName) {
-//     const urlParams = new URLSearchParams(window.location.search);
-//     return urlParams.get(paramName);
-// }

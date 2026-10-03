@@ -16,14 +16,14 @@ async function updateFittingsPrice() {
     pricingTimeout = setTimeout(async () => {
         const articleId = jQuery('#current-editing-article-id').val();
         const supplierEl = jQuery('#tank-supplier-display');
-        const supplierName = supplierEl.attr('data-value') || supplierEl.data('value') || "Fournisseur inconnu";
+        const supplierName = supplierEl.attr('data-value') || supplierEl.data('value') || "Unknown supplier";
         const tankPression = parseFloat(jQuery('#current-tank-pression').val()) || 0;
         const pressureKey = (tankPression <= 6) ? "prix_pn6" : "prix_pn16";
         const tankDiameter = jQuery('#current-tank-diam').val();
         const tankType = jQuery('select[name="tank[type]"]').val() || 'energy';
         const accPriceDisplay = jQuery('#tank-acc-price-' + articleId);
 
-        if (!supplierName || supplierName === "Fournisseur inconnu") {
+        if (!supplierName || supplierName === "Unknown supplier") {
             console.error("Fournisseur manquant, arrêt.");
             return;
         }
@@ -136,8 +136,8 @@ async function updateFittingsPrice() {
 
             window.lastFittingTrace = `\n--- LOG FITTINGS & ACCESSOIRES ---\n` +
                                     `DÉTAIL ACHAT :\n` +
-                                    (lochTrace || "- Aucune tôle perforée\n") +
-                                    (fittingsTrace || "- Aucun raccord payant\n") +
+                                    (lochTrace || "- No perforated sheet\n") +
+                                    (fittingsTrace || "- No chargeable fitting\n") +
                                     `TOTAL ACHAT BRUT : ${totalFinalBrutAchat.toFixed(2)}€\n` +
                                     `--------------------------\n` +
                                     sales.trace +
@@ -150,7 +150,7 @@ async function updateFittingsPrice() {
             }
 
         } catch (error) {
-            console.error("Erreur technique :", error);
+            console.error("Error technique :", error);
         }
     }, 150);
 }

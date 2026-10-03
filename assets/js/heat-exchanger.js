@@ -1,4 +1,10 @@
 jQuery(function($) {
+    // `ispag_ajax` est aussi défini par le plugin CRM (clés différentes) : on ne s'y fie pas pour l'URL
+    function ajaxUrl() {
+        return (window.ISPAG_TANK && ISPAG_TANK.ajax_url) || window.ajaxurl
+            || (window.ispag_ajax && (ispag_ajax.url || ispag_ajax.ajax_url)) || '/wp-admin/admin-ajax.php';
+    }
+
     // Objets pour suivre l'état des échangeurs et des erreurs
     let hasErrors = {};
 
@@ -10,6 +16,8 @@ jQuery(function($) {
 
         // Réinitialiser les erreurs pour ce tank
         hasErrors[tankId] = false;
+
+        refreshExchangers($modal);
 
         // Recalculer la surface pour chaque échangeur existant
         $modal.find('.exchanger-form').each(function() {
@@ -42,18 +50,23 @@ jQuery(function($) {
         const $modal = $(this).closest('.ispag-product-modal');
         const $container = $modal.find('.exchangerFormsContainer');
         const tankId = $modal.data('tank-id');
-        const nextCoilNb = $container.find('.exchanger-form').length + 1;
+        const max = parseInt($(this).data('max'), 10) || 3;
+        if ($container.find('.exchanger-form').length >= max) return;
+        // Numéro libre : après le plus grand existant (un échangeur du milieu a pu être supprimé)
+        let nextCoilNb = 1;
+        $container.find('.exchanger-form').each(function() { nextCoilNb = Math.max(nextCoilNb, parseInt($(this).data('coilnb'), 10) + 1); });
+        const $addBtn = $(this);
 
-        $(this).prop('disabled', true);
+        $addBtn.prop('disabled', true);
 
         $.ajax({
-            url: ispag_ajax.url,
+            url: ajaxUrl(),
             method: 'POST',
             data: {
                 action: 'ispag_add_heat_exchanger_form',
                 coil_nb: nextCoilNb,
                 tank_id: tankId,
-                nonce: ispag_ajax.nonce
+                nonce: (window.ispag_ajax && ispag_ajax.nonce) || ''
             },
             success: function(response) {
                 if (response.success && response.data) {
@@ -66,20 +79,45 @@ jQuery(function($) {
                     // Réinitialiser les erreurs
                     hasErrors[`${tankId}_${nextCoilNb}`] = false;
                     updateSaveButtonState(tankId);
+                    refreshExchangers($modal);
                 } else {
-                    console.error("Erreur : ", response.message || "Réponse vide");
-                    alert("Erreur : Impossible de charger le formulaire.");
+                    console.error("Error: ", response.message || "Réponse vide");
+                    alert("Error: Unable to load the form.");
                 }
             },
             error: function(xhr) {
-                console.error("Erreur AJAX :", xhr.responseText);
-                alert("Erreur lors du chargement du formulaire.");
+                console.error("Error AJAX :", xhr.responseText);
+                alert("Error while loading the form.");
             },
             complete: function() {
-                $(this).prop('disabled', false);
+                refreshExchangers($modal); // réactive le bouton tant que la limite n'est pas atteinte
             }
         });
     });
+
+    // --- SUPPRIMER UN ÉCHANGEUR ---
+    $(document).on('click', '.removeExchangerForm', function() {
+        const $form = $(this).closest('.exchanger-form');
+        const $modal = $form.closest('.ispag-product-modal');
+        const tankId = $modal.data('tank-id');
+        if (!window.confirm('Delete this heat exchanger?')) return;
+
+        delete hasErrors[`${tankId}_${$form.data('coilnb')}`];
+        $form.remove();
+        updateSaveButtonState(tankId);
+        refreshExchangers($modal);
+    });
+
+    // Bouton d'ajout (3 maximum) et numérotation affichée
+    function refreshExchangers($modal) {
+        const $forms = $modal.find('.exchanger-form');
+        const max = parseInt($modal.find('.addExchangerForm').data('max'), 10) || 3;
+        $modal.find('.addExchangerForm').prop('disabled', $forms.length >= max);
+        $forms.each(function(i) {
+            const $h3 = $(this).find('.exchanger-form-header h3');
+            $h3.text($h3.text().replace(/#\d+/, '#' + (i + 1)));
+        });
+    }
 
     // --- SAUVEGARDER LES ÉCHANGEURS ---
     $(document).on('click', '.saveExchangers', function() {
@@ -91,22 +129,19 @@ jQuery(function($) {
 
         // Vérifier s'il y a des erreurs dans ce tank
         if (hasErrors[tankId]) {
-            alert("Corrigez les erreurs de température avant d'enregistrer.");
+            alert("Fix the temperature errors before saving.");
             return;
         }
 
         const $forms = $modalContent.find('.exchanger-form');
 
-        if ($forms.length === 0) {
-            alert("Erreur : Aucun formulaire d'échangeur trouvé.");
-            return;
-        }
-
-        $forms.each(function() {
+        // Aucun formulaire : tous les échangeurs ont été supprimés, l'enregistrement les retire du réservoir
+        $forms.each(function(index) {
             const $form = $(this);
             const coilNbForm = $form.data('coilnb');
 
-            exchangers['coil' + coilNbForm] = {
+            // Numérotation continue (coil1, coil2…) même si un échangeur du milieu a été supprimé
+            exchangers['coil' + (index + 1)] = {
                 loadInputTemperature: $form.find(`[name="loadInputTemperature_${coilNbForm}"]`).val(),
                 loadOutputTemperature: $form.find(`[name="loadOutputTemperature_${coilNbForm}"]`).val(),
                 coldWaterInputTemperature: $form.find(`[name="coldWaterInputTemperature_${coilNbForm}"]`).val(),
@@ -118,12 +153,12 @@ jQuery(function($) {
         });
 
         if (!tankId) {
-            alert("Erreur critique : L'ID du réservoir est manquant.");
+            alert("Critical error: The tank ID is missing.");
             return;
         }
 
         $.ajax({
-            url: ISPAG_TANK.ajax_url,
+            url: ajaxUrl(),
             method: 'POST',
             data: {
                 action: 'ispag_save_heat_exchangers',
@@ -131,7 +166,7 @@ jQuery(function($) {
                 exchangers: JSON.stringify(exchangers)
             },
             beforeSend: function() {
-                $btn.text('Enregistrement...').prop('disabled', true);
+                $btn.text('Saving...').prop('disabled', true);
             },
             success: function(response) {
                 if (response.success) {
@@ -139,14 +174,14 @@ jQuery(function($) {
                         // Optionnel : rafraîchir une partie de la page
                     });
                 } else {
-                    alert("Erreur PHP : " + (response.data || "Erreur inconnue"));
+                    alert("PHP error: " + (response.data || "Unknown error"));
                 }
             },
             error: function() {
-                alert("Erreur réseau lors de l'enregistrement.");
+                alert("Network error while saving.");
             },
             complete: function() {
-                $btn.html('<span class="dashicons dashicons-media-archive"></span> Enregistrer').prop('disabled', false);
+                $btn.html('<span class="dashicons dashicons-media-archive"></span> Save').prop('disabled', false);
             }
         });
     });
@@ -194,21 +229,21 @@ jQuery(function($) {
             // 1. hotWaterOutput doit être <= loadOutput - 2°C
             if (hotWaterOutput > (loadOutput - 2)) {
                 $container.find(`[name="hotWaterOutputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Doit être ≤ T° charge sortie - 2°C");
+                          .text("Must be ≤ charge outlet temp. - 2°C");
                 hasError = true;
             }
 
             // 2. coldWaterInput doit être < loadOutput
             if (coldWaterInput >= loadOutput) {
                 $container.find(`[name="coldWaterInputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Doit être < T° charge sortie");
+                          .text("Must be < charge outlet temp.");
                 hasError = true;
             }
 
             // 3. loadInput doit être > hotWaterOutput
             if (loadInput <= hotWaterOutput) {
                 $container.find(`[name="loadInputTemperature_${coilNb}"]`).next('.error-message')
-                          .text("Doit être > T° eau chaude sortie");
+                          .text("Must be > hot water outlet temp.");
                 hasError = true;
             }
 
@@ -217,7 +252,7 @@ jQuery(function($) {
             const deltaB = loadInput - hotWaterOutput;
 
             if (deltaA <= 0 || deltaB <= 0) {
-                surfaceField.val("Erreur : Écart de température invalide")
+                surfaceField.val("Error: Invalid temperature difference")
                            .prop('readonly', false)
                            .css('background', '#ffcccc');
                 hasError = true;

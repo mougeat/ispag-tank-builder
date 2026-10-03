@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * ISPAG Tank Dimensions Sub-template
  * @version 2.1.8 - Modernized Grid
@@ -6,6 +7,11 @@
 $user_can = current_user_can('manage_order'); 
 $can_view_prices = current_user_can('display_sales_prices');
 $allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE['ispag_allow_prices'] === 'true';
+// Achats : les prix sont toujours visibles (tout utilisateur qui accède à la page achat y est autorisé)
+if (isset($source) && $source === 'purchase') {
+    $can_view_prices = true;
+    $allow_display_sensible_info = true;
+}
 
 // error_log('Formulaire Tank Dimensions : ' . print_r($data, true));
 ?>
@@ -125,76 +131,6 @@ $allow_display_sensible_info = isset($_COOKIE['ispag_allow_prices']) && $_COOKIE
                 
                 <?php echo apply_filters('ispag_render_welding_selector', '', $article_id); ?>
             </div>
-        </div>
-    </div>
-
-    <div class="ispag-modal-grid" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
-        <div class="ispag-field" style="flex: 1; min-width: 250px;">
-             <div class="field-group" style="margin-bottom: 15px;">
-                <div id="ispag-article-template-wrapper" style="margin-bottom: 15px;">
-                    <label for="ispag-article-template-select"><strong><?php esc_html_e('Article comment template', 'creation-reservoir'); ?></strong></label>
-                    <div style="display: flex; gap: 10px;">
-                        <select id="ispag-article-template-select" style="flex: 1;">
-                            <option value=""><?php esc_html_e('-- Select a template --', 'ispag-crm'); ?></option>
-                            <?php
-                            $repo = new ISPAG_Template_Repository();
-                            $current_user_id = get_current_user_id();
-                            $folders = $repo->get_folders($current_user_id);
-                            $templates = $repo->get_templates_for_user($current_user_id, '', 'article_comment');
-
-                            // foreach ($folders as $folder) :
-                            //     echo '<optgroup label="' . esc_attr($folder->name) . '">';
-                            //     foreach ($templates as $tpl) {
-                            //         if ($tpl->folder_id == $folder->id) {
-                            //             echo '<option value="' . esc_attr($tpl->id) . '">' . esc_html($tpl->name) . '</option>';
-                            //         }
-                            //     }
-                            //     echo '</optgroup>';
-                            // endforeach;
-                            foreach ($folders as $folder) {
-                                // 1. Filtrer ou vérifier s'il y a des templates pour ce dossier
-                                $folder_templates = array_filter($templates, function($tpl) use ($folder) {
-                                    return $tpl->folder_id == $folder->id;
-                                });
-
-                                // 2. Si le dossier ne contient aucun template, on passe au suivant
-                                if (empty($folder_templates)) {
-                                    continue;
-                                }
-
-                                // 3. Sinon, on affiche le dossier (ex: optgroup) et ses templates
-                                echo '<optgroup label="' . esc_attr($folder->name) . '">';
-                                foreach ($folder_templates as $tpl) {
-                                    echo '<option value="' . esc_attr($tpl->id) . '">' . esc_html($tpl->name) . '</option>';
-                                }
-                                echo '</optgroup>';
-                            }
-
-                            echo '<optgroup label="' . esc_attr__('Other', 'ispag-crm') . '">';
-                            foreach ($templates as $tpl) {
-                                if (empty($tpl->folder_id)) {
-                                    echo '<option value="' . esc_attr($tpl->id) . '">' . esc_html($tpl->name) . '</option>';
-                                }
-                            }
-                            echo '</optgroup>';
-                            ?>
-                        </select>
-                        <button type="button" id="ispag-apply-article-template" class="button button-secondary">
-                            <?php esc_html_e('Apply', 'ispag-crm'); ?>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="ispag-field" style="flex: 1; min-width: 250px;">
-                
-            <label><strong><?php echo __('Open comment', 'creation-reservoir'); ?></strong></label>
-            <p class="description" style="font-size: 0.85em; color: #666; margin-top: 2px; margin-bottom: 5px;">
-                <?php echo __('will be inserted into the item description', 'creation-reservoir'); ?>
-            </p>
-            <textarea id="tank-open-comment" name="tank[openComment]" style="width: 100%;"><?= esc_attr($data['conception']->openComment ?? '') ?></textarea>
-            
         </div>
     </div>
 </div>

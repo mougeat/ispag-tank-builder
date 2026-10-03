@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 class ISPAG_Tank_Pricing {
     protected static $instance = null;
     private $tank_pricing_data;
@@ -17,9 +18,7 @@ class ISPAG_Tank_Pricing {
 
         // Enregistrer les actions AJAX
         add_action('wp_ajax_calculate_tank_price', [self::$instance, 'handle_ajax_request']);
-        add_action('wp_ajax_nopriv_calculate_tank_price', [self::$instance, 'handle_ajax_request']);
         add_action('wp_ajax_generate_tank_report', [self::$instance, 'generate_report_ajax']);
-        add_action('wp_ajax_nopriv_generate_tank_report', [self::$instance, 'generate_report_ajax']);
 
         // Charger les scripts uniquement dans l'admin WordPress
         add_action('wp_enqueue_scripts', [self::$instance, 'enqueue_scripts']);
@@ -42,15 +41,36 @@ class ISPAG_Tank_Pricing {
     }
 
     /**
+     * Nom de base du fichier de prix d'un fournisseur (sans .json).
+     * "Diem-Werke GmbH" → Diem-Werke_GmbH ; à défaut, "Diemwerke" retrouve le même fichier
+     * (comparaison sans forme juridique, tirets, espaces ni casse).
+     */
+    private function price_basename($supplier) {
+        $formatted = str_replace(' ', '_', $supplier);
+        $dir = ISPAG_PLUGIN_PATH . 'price/';
+        if (file_exists($dir . $formatted . '.json')) return $formatted;
+
+        $key = ISPAG_Tank_Rules::normalize_name($supplier);
+        if ($key !== '') {
+            foreach ((array) glob($dir . '*.json') as $file) {
+                $base = basename($file, '.json');
+                if (substr($base, -12) === '_accessories') continue;
+                if (ISPAG_Tank_Rules::normalize_name(str_replace('_', ' ', $base)) === $key) return $base;
+            }
+        }
+        return $formatted;
+    }
+
+    /**
      * Charge les données de tarification depuis les fichiers JSON en fonction du fournisseur
      */
     public function load_pricing_data($supplier = 'Diem-Werke GmbH') {
         $this->supplier = $supplier;
-        $base_path = WP_PLUGIN_DIR . '/ispag-tank-builder/price/';
+        $base_path = ISPAG_PLUGIN_PATH . 'price/';
         $user_id = get_current_user_id();
 
         // Remplacer les espaces par des underscores pour correspondre aux noms de fichiers JSON
-        $formatted_supplier = str_replace(' ', '_', $supplier);
+        $formatted_supplier = $this->price_basename($supplier);
 
         // Charger les données de la cuve
         $tank_json_path = $base_path . $formatted_supplier . '.json';
@@ -184,8 +204,8 @@ class ISPAG_Tank_Pricing {
         ISPAG_Logger::get_instance()->log(self::LOG_NAME, "Données reçues pour le calcul des piquages (fittings) : " . json_encode($fittings), $user_id);
 
         if (!isset($this->fittings_pricing_data)) {
-            $this->add_error("Données de tarification des accessoires non chargées.");
-            ISPAG_Logger::get_instance()->log_error(self::LOG_NAME, "Données de tarification des accessoires non chargées.", [], $user_id);
+            $this->add_error("Accessory pricing data not loaded.");
+            ISPAG_Logger::get_instance()->log_error(self::LOG_NAME, "Accessory pricing data not loaded.", [], $user_id);
             return [
                 'total_price' => 0,
                 'details' => [] 
@@ -193,7 +213,7 @@ class ISPAG_Tank_Pricing {
         }
 
         if (empty($fittings) || !is_array($fittings)) {
-            $this->add_error("Le tableau des piquages (fittings) est vide ou invalide.");
+            // Aucun piquage (par exemple réservoir en cours de création) : ce n'est pas une erreur
             ISPAG_Logger::get_instance()->log(self::LOG_NAME, "Le tableau des piquages (fittings) est vide ou invalide.", $user_id);
             return [
                 'total_price' => 0,
@@ -234,6 +254,18 @@ class ISPAG_Tank_Pricing {
 
             ISPAG_Logger::get_instance()->log(self::LOG_NAME, "Traitement du piquage index [$index] -> ID Pouce : '$fitting_pouce' Type : '$fitting_type', Pression : '$pressure'", $user_id);
 
+            // Soudure (Type 23) : ce n'est pas un raccord à tarifer ; la plus-value « soudure sur place » est ajoutée
+            // une fois dans les majorations (voir calculate_surcharges), sans avertissement.
+            if ((string) $fitting_type === '23') {
+                $calculation_details["raccords" . ($index + 1)] = [
+                    'type' => __('Welding', 'creation-reservoir'),
+                    'prix' => ' ' . __('surcharge', 'creation-reservoir'),
+                    'accessoires' => __('none', 'creation-reservoir'),
+                    'accessoires_prix' => 0,
+                ];
+                continue;
+            }
+
             
             if($fitting_type == 0 && $fitting_pouce != 0){
                 // Vérifier si le raccord est inclus dans le prix de base
@@ -271,7 +303,7 @@ class ISPAG_Tank_Pricing {
                 } else {
                     ISPAG_Logger::get_instance()->log(
                         self::LOG_NAME,
-                        "Piquage [$fitting_pouce] NON facturé (inclus dans le prix de base).",
+                        "Fitting [$fitting_pouce] NOT charged (included in the base price).",
                         $user_id
                     );
                 }
@@ -284,7 +316,7 @@ class ISPAG_Tank_Pricing {
                     if (isset($this->fittings_pricing_data['tarifs_accessoires_complexes'][$accessory_id])) {
                         $accessory_price = $this->fittings_pricing_data['tarifs_accessoires_complexes'][$accessory_id][$fitting_pouce] ?? 0;
                         $total_price += $accessory_price;
-                        ISPAG_Logger::get_instance()->log(self::LOG_NAME, "Accessoire complexe [$accessory_id] pour [$fitting_pouce] ajouté : +$accessory_price €", $user_id);
+                        ISPAG_Logger::get_instance()->log(self::LOG_NAME, "Complex accessory [$accessory_id] for [$fitting_pouce] added: +$accessory_price €", $user_id);
                     } else {
                         $this->add_error("Accessoire complexe introuvable dans le JSON pour le nom : '$accessory_id'");
                         ISPAG_Logger::get_instance()->log_error(
@@ -324,14 +356,14 @@ class ISPAG_Tank_Pricing {
                         $total_price += $accessory_price;
                         ISPAG_Logger::get_instance()->log(
                             self::LOG_NAME,
-                            "Accessoire lochblech_fix pour diamètre $diameter : +$accessory_price €",
+                            "Accessory lochblech_fix for diameter $diameter: +$accessory_price €",
                             $user_id
                         );
                     } else {
-                        $this->add_error("Prix introuvable pour lochblech_fix avec diamètre : $diameter");
+                        $this->add_error("Price not found for lochblech_fix with diameter: $diameter");
                         ISPAG_Logger::get_instance()->log_error(
                             self::LOG_NAME,
-                            "Prix introuvable pour lochblech_fix avec diamètre : $diameter",
+                            "Price not found for lochblech_fix with diameter: $diameter",
                             [],
                             $user_id
                         );
@@ -343,7 +375,7 @@ class ISPAG_Tank_Pricing {
                     $total_price += $accessory_price;
                     ISPAG_Logger::get_instance()->log(
                         self::LOG_NAME,
-                        "Accessoire complexe [$accessory_id] pour [$fitting_pouce] ajouté : +$accessory_price €",
+                        "Complex accessory [$accessory_id] for [$fitting_pouce] added: +$accessory_price €",
                         $user_id
                     );
                 } else {
@@ -384,11 +416,12 @@ class ISPAG_Tank_Pricing {
         $total_surcharge = 0;
 
         // Soudure sur place (20% du prix de base)
+        // Soudure sur place : nombre de soudures saisi, ou piquages de type soudure (Type 23) ; appliquée une seule fois
+        $welding_count = isset($tank_params['welding']) && is_numeric($tank_params['welding']) ? (int) $tank_params['welding'] : 0;
+        $welding_connections = (int) ($tank_params['welding_connections'] ?? 0);
         if (
             isset($this->tank_pricing_data['logic']['surcharge_soudure_sur_place']) &&
-            isset($tank_params['welding']) &&
-            $tank_params['welding'] > 0 &&
-            $tank_params['welding'] != 'NaN'
+            ($welding_count > 0 || $welding_connections > 0)
         ) {
             $welding_surcharge_percent = $this->tank_pricing_data['logic']['surcharge_soudure_sur_place'];
             $tank_price_details = $this->calculate_tank_price(
@@ -461,7 +494,7 @@ class ISPAG_Tank_Pricing {
 
             // Récupérer la hauteur du fond depuis tank_data.json
             $bottom_height = 0;
-            $tank_data_json_path = WP_PLUGIN_DIR . '/ispag-tank-builder/assets/json/tank_data.json';
+            $tank_data_json_path = ISPAG_PLUGIN_PATH . 'assets/json/tank_data.json';
 
             if (file_exists($tank_data_json_path)) {
                 $tank_data = json_decode(file_get_contents($tank_data_json_path), true);
@@ -537,7 +570,7 @@ class ISPAG_Tank_Pricing {
         $report_content = "====================================================\n";
         $report_content .= sprintf(__("CALCULATION REPORT - ARTICLE ID: %s", 'creation-reservoir'), $article_id) . "\n";
         $report_content .= sprintf(__("GENERATED BY : %s (ID: %s)", 'creation-reservoir'), $user_name, $user_id) . "\n";
-        $report_content .= sprintf(__("DATE : %s", 'creation-reservoir'), $date) . "\n";
+        $report_content .= sprintf(__("DATE: %s", 'creation-reservoir'), $date) . "\n";
         $mode_text = (isset($tank_params['is_project_or_purchase']) && $tank_params['is_project_or_purchase'] === 'purchase')
             ? __("MODE : Purchase", 'creation-reservoir')
             : __("MODE : Project", 'creation-reservoir');
@@ -614,6 +647,13 @@ class ISPAG_Tank_Pricing {
         if (!file_exists($report_dir)) {
             wp_mkdir_p($report_dir);
         }
+        // Dossier fermé à l'accès direct : les notes sont servies par PHP avec contrôle des droits
+        if (!file_exists($report_dir . '.htaccess')) {
+            @file_put_contents($report_dir . '.htaccess', "Require all denied\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n");
+        }
+        if (!file_exists($report_dir . 'index.php')) {
+            @file_put_contents($report_dir . 'index.php', "<?php // Silence is golden.\n");
+        }
 
         // Enregistrer le fichier
         $filename = $report_dir . 'article_' . $article_id . '_' . $tank_params['is_project_or_purchase'] . '.txt';
@@ -647,7 +687,10 @@ class ISPAG_Tank_Pricing {
         $fittings_price = $fittings_details['total_price'];
 
         // Calculer les majorations
-        $tank_details = ISPAG_Tank_Repository::get_tank_details($tank_params['article_id']);
+        $tank_details = !empty($tank_params['article_id']) ? ISPAG_Tank_Repository::get_tank_details($tank_params['article_id']) : null;
+        $tank_params['welding_connections'] = count(array_filter((array) $fittings, function ($f) {
+            return (string) ($f['Type'] ?? '') === '23';
+        }));
         $surcharges = $this->calculate_surcharges($tank_params, $tank_details);
         $total_surcharge = $surcharges['total_surcharge'];
 
@@ -705,27 +748,25 @@ class ISPAG_Tank_Pricing {
         $article_id = $tank_params['article_id'] ?? 0;
         $supplier = $tank_params['supplier'] ?? 'Diem-Werke GmbH';
 
-        if (empty($article_id)) {
-            ISPAG_Logger::get_instance()->log_error(self::LOG_NAME, "Article ID manquant dans la requête AJAX.", ['tank_params' => $tank_params], $user_id);
-            wp_send_json_error(['message' => __('Article ID missing', 'creation-reservoir')]);
-        }
+        // Réservoir en cours de création (pas encore d'article) : le prix indicatif se calcule sur les valeurs saisies
+        $is_new_tank = empty($article_id);
 
         // Vérifier si les fichiers JSON du fournisseur existent
-        $formatted_supplier = str_replace(' ', '_', $supplier);
-        $base_path = WP_PLUGIN_DIR . '/ispag-tank-builder/price/';
+        $formatted_supplier = $this->price_basename($supplier);
+        $base_path = ISPAG_PLUGIN_PATH . 'price/';
         $tank_json_path = $base_path . $formatted_supplier . '.json';
         $fittings_json_path = $base_path . $formatted_supplier . '_accessories.json';
 
         $json_files_exist = file_exists($tank_json_path) && file_exists($fittings_json_path);
 
         // Si achat, on cherche l'article du projet
-        if ($tank_params['is_project_or_purchase'] == 'purchase' && class_exists('ISPAG_Achat_Article_Repository')) {
+        if (!$is_new_tank && ($tank_params['is_project_or_purchase'] ?? '') == 'purchase' && class_exists('ISPAG_Achat_Article_Repository')) {
             $achat_article_repo = new ISPAG_Achat_Article_Repository();
             $article = $achat_article_repo->get_article_by_id(null, $article_id);
             $article_id = $article->IdCommandeClient;
         }
 
-        $tank_datas = ISPAG_Tank_Repository::get_tank_details($article_id);
+        $tank_datas = $is_new_tank ? ['piquages_techniques' => []] : ISPAG_Tank_Repository::get_tank_details($article_id);
         if (!$tank_datas) {
             ISPAG_Logger::get_instance()->log_error(self::LOG_NAME, "Impossible de récupérer les détails de la cuve depuis le repository pour l'article ID : $article_id", [], $user_id);
             wp_send_json_error(['message' => __('Tank details not found', 'creation-reservoir')]);
@@ -736,8 +777,19 @@ class ISPAG_Tank_Pricing {
             $this->load_pricing_data($tank_params['supplier']);
         }
 
-        // Calculer le prix total et les majorations
-        $result = $this->calculate_total_price($tank_params, $tank_datas['piquages_techniques'] ?? []);
+        // Calculer le prix total et les majorations (une erreur PHP ne doit pas casser la réponse AJAX)
+        ob_start();
+        try {
+            $result = $this->calculate_total_price($tank_params, $tank_datas['piquages_techniques'] ?? []);
+        } catch (\Throwable $e) {
+            ob_end_clean();
+            error_log('[ISPAG pricing] ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
+            wp_send_json_error(['message' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+        }
+        $stray = ob_get_clean();
+        if ($stray !== '' && $stray !== false) {
+            error_log('[ISPAG pricing] sortie parasite ignorée : ' . substr(strip_tags($stray), 0, 500));
+        }
 
         // Ajouter une information sur l'existence des fichiers JSON
         $result['json_files_exist'] = $json_files_exist;

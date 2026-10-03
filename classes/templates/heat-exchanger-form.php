@@ -1,10 +1,16 @@
 <?php
+defined('ABSPATH') || exit;
 $coil_nb = $args['coil_nb'];
 $data = $args['data'] ?? [];
 ?>
 
 <div class="ispag-modal-left exchanger-form vertical-form" data-coilnb="<?= esc_attr($coil_nb) ?>" data-tank-id="<?= esc_attr($tank_id) ?>">
-    <h3><?php printf(__('Heat exchanger #%d', 'creation-reservoir'), $coil_nb); ?></h3>
+    <div class="exchanger-form-header">
+        <h3><?php printf(__('Heat exchanger #%d', 'creation-reservoir'), $coil_nb); ?></h3>
+        <button type="button" class="removeExchangerForm ispag-btn ispag-btn-danger-outlined" title="<?php esc_attr_e('Delete this exchanger', 'creation-reservoir'); ?>">
+            <span class="dashicons dashicons-trash"></span>
+        </button>
+    </div>
 
     <!-- Coil type -->
     <div style="width: 25%; text-align: left; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">

@@ -62,7 +62,11 @@ jQuery(document).ready(function($) {
             ground_clearance: parseInt($(tankFields).filter('input[name="tank[clearance]"]').val()),
             pressure: parseFloat($(tankFields).filter('input[name="tank[max_pressure]"]').val()),
             welding: parseInt($(tankFields).filter('input[name="tank[nbWelding]"]').val()),
-            supplier: $('#tank-supplier-display').data('value') || 'Diem-Werke GmbH',
+            // Fournisseur saisi ; à défaut celui défini par défaut pour le type et le matériau ; en dernier recours le fournisseur historique
+            supplier: ($('input[name="supplier"]').val() || '').trim()
+                || $('#tank-supplier-display').data('value')
+                || (typeof ispagDefaultSupplierName === 'function' ? ispagDefaultSupplierName() : '')
+                || 'Diem-Werke GmbH',
             article_id: $(articleIdField).val(),
             is_project_or_purchase: $('input[name="isProjectOrPurchase"]').val()
         };
@@ -93,8 +97,9 @@ jQuery(document).ready(function($) {
         const fittingsParams = getFittingsParams();
 
         // Vérifier que les données nécessaires sont présentes
-        if (!tankParams.diameter || !tankParams.height || !tankParams.article_id) {
-            console.warn('[Tank Pricing] Données manquantes (diamètre, hauteur ou ID article). Calcul annulé.');
+        // L'article peut ne pas exister encore (création en cours) : seuls les diamètre et hauteur sont indispensables
+        if (!tankParams.diameter || !tankParams.height) {
+            console.warn('[Tank Pricing] Données manquantes (diamètre ou hauteur). Calcul annulé.');
             $('#tank-price-display').val('---');
             $('#tank-price-errors').empty();
             return;
@@ -174,8 +179,8 @@ jQuery(document).ready(function($) {
                 $('#tank-price-value').val(data.net_price);
             },
             error: function(xhr, status, error) {
-                console.error('[Tank Pricing] Erreur AJAX critique :', error, { xhr, status });
-                $('#tank-price-display').val('Erreur');
+                console.error('[Tank Pricing] Error AJAX critique :', error, { xhr, status });
+                $('#tank-price-display').val('Error');
                 $('#tank-price-errors').html('<div class="ispag-errors" style="color: red; margin-top: 10px;"><strong>⚠️ ' + ispag_texts.critical_error + ' :</strong> ' + error + '</div>');
             }
         });
@@ -191,7 +196,7 @@ jQuery(document).ready(function($) {
         // Vérifier si le champ sales_price contient une valeur
         if (currentSalesPrice && currentSalesPrice.trim() !== '' && currentSalesPrice !== '0.00' && currentSalesPrice !== '0' && currentSalesPrice !== '---') {
             const confirmed = await ispagConfirm(
-                ispag_texts?.confirm_overwrite_price || "Un prix existe déjà. Voulez-vous le recalculer et l'écraser ?",
+                ispag_texts?.confirm_overwrite_price || "A price already exists. Do you want to recalculate and overwrite it?",
                 { danger: true }
             );
             if (!confirmed) {
@@ -211,7 +216,7 @@ jQuery(document).ready(function($) {
         // Afficher le spinner et désactiver le bouton
         const $button = $('#generate-report-button');
         const originalButtonHtml = $button.html();
-        $button.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> ' + (ispag_texts.loading || 'Chargement...'));
+        $button.prop('disabled', true).html('<span class="spinner is-active" style="float:none; margin:0 5px 0 0;"></span> ' + (ispag_texts.loading || 'Loading...'));
         $('#report-status').html('<span style="color: orange;">' + ispag_texts.report_generation_progress + '...</span>');
 
         $.ajax({
@@ -229,7 +234,7 @@ jQuery(document).ready(function($) {
                 if (!response || !response.success || !response.data) {
                     const errorMsg = response && response.data && response.data.message ? response.data.message : ispag_texts.invalid_server_response;
                     $('#report-status').html('<div class="ispag-errors" style="color: red; margin-top: 10px;">⚠️ ' + ispag_texts.error + ' : ' + errorMsg + '</div>');
-                    console.error('[Tank Pricing] Erreur lors de la génération du rapport :', errorMsg);
+                    console.error('[Tank Pricing] Error lors de la génération du rapport :', errorMsg);
                     return;
                 }
 
@@ -251,7 +256,7 @@ jQuery(document).ready(function($) {
             error: function(xhr, status, error) {
                 $button.prop('disabled', false).html(originalButtonHtml);
                 $('#report-status').html('<div class="ispag-errors" style="color: red; margin-top: 10px;">⚠️ ' + ispag_texts.critical_error + ' : ' + error + '</div>');
-                console.error('[Tank Pricing] Erreur AJAX :', error);
+                console.error('[Tank Pricing] Error AJAX :', error);
             }
         });
     }
@@ -265,6 +270,13 @@ jQuery(document).ready(function($) {
     $(document).on('change', 'input[name="isProjectOrPurchase"]', function() {
         toggleReportButtonVisibility();
         calculatePrice();
+    });
+
+    // Assistant de création : le prix indicatif se calcule dès l'étape Dimensions (fournisseur par défaut connu)
+    let wizardPriceTimer = null;
+    $(document).on('ispag:wizard_step ispag:restrictions_loaded', function () {
+        clearTimeout(wizardPriceTimer);
+        wizardPriceTimer = setTimeout(calculatePrice, 400);
     });
 
     // Initialisation

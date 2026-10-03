@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * Class ISPAG_Tank_Designer
  * Gère la conception et les dimensions des réservoirs ISPAG.
@@ -40,7 +41,8 @@ class ISPAG_Tank_Designer
         }
 
         add_action('ispag_render_tank_form', [self::$instance, 'render_tank_form']);
-        add_action('ispag_render_tank_dimensions_form', [self::$instance, 'render_dimensions_form']);
+        add_action('ispag_render_tank_dimensions_form', [self::$instance, 'render_dimensions_form'], 10, 2); // 2e argument : source ('project' | 'purchase')
+        add_action('ispag_render_tank_comments_form', [self::$instance, 'render_comments_form']);
         add_action('wp_ajax_ispag_save_tank_data', [self::$instance, 'ajax_save_tank_data']);
         add_action('ispag_duplicate_tank_data', [self::$instance, 'duplicate_tank_data'], 10, 2);
         add_filter('ispag_get_tank_id_by_article_id', [self::$instance, 'get_tank_id_by_article_id'], 10, 1);
@@ -49,12 +51,9 @@ class ISPAG_Tank_Designer
         add_action('ispag_get_tank_created_by_id', [self::$instance, 'get_tank_created_by_id'], 10, 2);
 
         add_action('wp_ajax_ispag_save_tank_unit_price', [self::$instance, 'save_tank_unit_price']);
-        add_action('wp_ajax_nopriv_ispag_save_tank_unit_price', [self::class, 'save_tank_unit_price']);
 
         add_action('wp_ajax_ispag_select_tank_type', [self::$instance, 'select_tank_type']);
-        add_action('wp_ajax_nopriv_ispag_select_tank_type', [self::$instance, 'select_tank_type']);
         add_action('wp_ajax_ispag_tank_conception', [self::$instance, 'render_tank_conception']);
-        add_action('wp_ajax_nopriv_ispag_tank_conception', [self::$instance, 'render_tank_conception']);
 
         // $logger->log_user_action(self::LOG_NAME, 'hooks_and_filters_registered', [], $user_id);
     }
@@ -187,6 +186,13 @@ class ISPAG_Tank_Designer
 
         include plugin_dir_path(__FILE__) . 'templates/form-tank-dimensions-field.php';
         $this->logger->log_user_action(self::LOG_NAME, 'dimensions_form_rendered', ['article_id' => $article_id], $user_id);
+    }
+
+    /** Commentaire ouvert + modèle de commentaire : affichés par le formulaire article, sous Logistics / Classification. */
+    public function render_comments_form($article_id)
+    {
+        $data = $this->get_tank_data(null, $article_id);
+        include plugin_dir_path(__FILE__) . 'templates/form-tank-comments-field.php';
     }
 
     private function safe_get($obj, $prop)
@@ -362,7 +368,23 @@ class ISPAG_Tank_Designer
         $user_id = get_current_user_id();
         $this->logger->log_user_action(self::LOG_NAME, 'ajax_save_tank_data_start', [], $user_id);
 
-        $result = $this->save_tank_data(null, $_POST);
+        // Toute sortie parasite (warnings/notices PHP) casserait le JSON de la réponse
+        ob_start();
+        try
+        {
+            $result = $this->save_tank_data(null, $_POST);
+        }
+        catch (\Throwable $e)
+        {
+            ob_end_clean();
+            error_log('[ISPAG tank save] ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            wp_send_json_error(['message' => $e->getMessage(), 'file' => basename($e->getFile()), 'line' => $e->getLine()]);
+        }
+        $stray = ob_get_clean();
+        if ($stray !== '' && $stray !== false)
+        {
+            error_log('[ISPAG tank save] sortie parasite ignorée : ' . substr(strip_tags($stray), 0, 500));
+        }
         $this->logger->log_user_action(self::LOG_NAME, 'ajax_save_tank_data_result', ['result' => $result], $user_id);
 
         wp_send_json_success(['debug' => $result]);
@@ -383,6 +405,7 @@ class ISPAG_Tank_Designer
         $data_received = $datas['tank'] ?? [];
         $is_purchase = !empty($datas['is_purchase']) && $datas['is_purchase'] === 'true';
 
+        error_log('[ISPAG tank save] start article=' . $article_id . ' deal=' . $deal_id . ' fields=' . wp_json_encode($data_received));
         $this->logger->log_user_action(self::LOG_NAME, 'save_params_parsed', ['article_id' => $article_id, 'deal_id' => $deal_id, 'is_purchase' => $is_purchase], $user_id);
 
         if ($is_purchase)
@@ -411,6 +434,14 @@ class ISPAG_Tank_Designer
         ));
 
         $this->logger->log_db_change(self::LOG_NAME, $this->dimension_table, 'CHECK_EXISTS', ['article_id' => $article_id, 'exists' => $exists], $user_id);
+
+        // Sous-article (capot…) : pas de données réservoir, et surtout ne pas toucher à l'isolation de l'article principal
+        if ($exists == 0 && empty($data_received['type']) && empty($data_received['volume']))
+        {
+            $debug['success'] = true;
+            $debug['message'] = 'No tank data for this article.';
+            return $debug;
+        }
 
         $newData = [];
 
@@ -459,12 +490,14 @@ class ISPAG_Tank_Designer
             if (!isset($newData['Diameter']))
             {
                 $newData['Diameter'] = $this->get_default_diameter($newData['Material'] ?? 2, $newData['Volume'] ?? 100);
-                $this->logger->log_user_action(self::LOG_NAME, 'default_diameter_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'diameter' => $newData['Diameter']], $user_id);
+                if ($newData['Diameter'] === null) unset($newData['Diameter']);
+                $this->logger->log_user_action(self::LOG_NAME, 'default_diameter_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'diameter' => $newData['Diameter'] ?? null], $user_id);
             }
             if (!isset($newData['Height']))
             {
                 $newData['Height'] = $this->get_default_height($newData['Material'] ?? 2, $newData['Volume'] ?? 100);
-                $this->logger->log_user_action(self::LOG_NAME, 'default_height_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'height' => $newData['Height']], $user_id);
+                if ($newData['Height'] === null) unset($newData['Height']);
+                $this->logger->log_user_action(self::LOG_NAME, 'default_height_applied', ['material' => $newData['Material'] ?? 2, 'volume' => $newData['Volume'] ?? 100, 'height' => $newData['Height'] ?? null], $user_id);
             }
             if (!isset($newData['TankType']))
             {
@@ -481,7 +514,7 @@ class ISPAG_Tank_Designer
         if (empty($newData))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: No technical data to update', $user_id);
-            $debug['message'] = "Aucune donnée technique à mettre à jour.";
+            $debug['message'] = "No technical data to update.";
             $debug['success'] = true;
             return $debug;
         }
@@ -506,28 +539,58 @@ class ISPAG_Tank_Designer
 
         if ($wpdb->last_error)
         {
+            error_log('[ISPAG tank save] SQL error: ' . $wpdb->last_error . ' | query: ' . $wpdb->last_query);
             $debug['sql_error'] = $wpdb->last_error;
             $debug['last_query'] = $wpdb->last_query;
             $this->logger->log(self::LOG_NAME, 'ERROR: SQL error - ' . $wpdb->last_error, $user_id, ['last_query' => $wpdb->last_query]);
-            wp_send_json_error(['message' => 'Erreur SQL', 'debug' => $debug]);
+            wp_send_json_error(['message' => 'SQL error', 'debug' => $debug]);
         }
 
-        $nb_welding = $data_received['nbWelding'] ?? 0;
-        $welding_by_client = $newData['weldingByClient'] ?? 0;
-        if($welding_by_client != 1){
-            apply_filters('ispag_auto_welding_saver', '', $deal_id, $article_id, $nb_welding);
-            $this->logger->log_user_action(self::LOG_NAME, 'welding_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'nb_welding' => $nb_welding], $user_id);
-        }
-        else{
-            do_action('ispag_delete_welding_article', $deal_id, $article_id);
+        $this->apply_default_supplier($article_id, $newData['TankType'] ?? 0, $newData['Material'] ?? 0);
+
+        // Largeur de porte : enregistrée avant la soudure pour que sa description l'indique (au lieu de « information manquante »)
+        if (isset($datas['door_width']) && $deal_id && class_exists('ISPAG_Tank_Welding_Site_Sheet')) {
+            $welding_sheet = new ISPAG_Tank_Welding_Site_Sheet();
+            $welding_sheet->save_welding_sheet_data($deal_id, ['door_width' => sanitize_text_field($datas['door_width'])]);
         }
 
-        apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '', $newData['insulationCover'] ?? '');
+        // Nombre de soudures : toujours enregistré (piquages de type soudure) ; l'article de soudure n'est créé
+        // que si la soudure n'est pas faite par le client. Champ absent = on ne touche à rien.
+        $nb_welding = array_key_exists('nbWelding', $data_received) ? $data_received['nbWelding'] : null;
+        $welding_by_client = ($newData['weldingByClient'] ?? 0) == 1;
+        apply_filters('ispag_auto_welding_saver', '', $deal_id, $article_id, $nb_welding, $welding_by_client);
+        $this->logger->log_user_action(self::LOG_NAME, 'welding_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'nb_welding' => $nb_welding, 'by_client' => $welding_by_client], $user_id);
+
+        $debug['insulation'] = apply_filters('ispag_auto_insulation_saver', '', $deal_id, $article_id, $newData['insulation'] ?? '', $newData['InsulationThickness'] ?? '', $newData['insulationCover'] ?? '');
+        $debug['insulation_status'] = apply_filters('ispag_insulation_last_status', '');
         $this->logger->log_user_action(self::LOG_NAME, 'insulation_saver_filter_applied', ['deal_id' => $deal_id, 'article_id' => $article_id, 'insulation' => $newData['insulation'] ?? '', 'thickness' => $newData['InsulationThickness'] ?? '', 'cover' => $newData['insulationCover'] ?? ''], $user_id);
+
+        // Prévient le chef de projet si ce n'est pas lui qui modifie
+        do_action('ispag_article_modified', $article_id, 'tank', $deal_id);
 
         $debug['success'] = true;
         $this->logger->log_user_action(self::LOG_NAME, 'save_tank_data_complete', [], $user_id);
         return $debug;
+    }
+
+    /**
+     * Quand le fournisseur n'est pas saisi (réservoir créé par un ingénieur ou un client),
+     * on prend celui défini par défaut pour le type et le matériau. Un fournisseur déjà choisi n'est jamais écrasé.
+     */
+    private function apply_default_supplier($article_id, $type_id, $material_id)
+    {
+        if (!class_exists('ISPAG_Tank_Rules')) return;
+        global $wpdb;
+        $table = $wpdb->prefix . 'achats_details_commande';
+
+        $current = (int) $wpdb->get_var($wpdb->prepare("SELECT IdFournisseur FROM {$table} WHERE Id = %d", $article_id));
+        if ($current > 0) return;
+
+        $supplier_id = ISPAG_Tank_Rules::default_supplier_id((int) $type_id, (int) $material_id);
+        if (!$supplier_id) return;
+
+        $wpdb->update($table, ['IdFournisseur' => $supplier_id], ['Id' => $article_id]);
+        $this->logger->log_db_change(self::LOG_NAME, $table, 'DEFAULT_SUPPLIER', ['article_id' => $article_id, 'supplier_id' => $supplier_id], get_current_user_id());
     }
 
     private function get_default_diameter($material = null, $volume = null, $type = null)
@@ -554,7 +617,7 @@ class ISPAG_Tank_Designer
             $this->logger->log_user_action(self::LOG_NAME, 'material_defaulted', ['type' => $type, 'material' => $material], $user_id);
         }
 
-        $filePath = __DIR__ . '/../assets/js/default_value.json';
+        $filePath = __DIR__ . '/../assets/json/default_value.json';
         if (!file_exists($filePath) || !is_readable($filePath))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Default value file not found or not readable - ' . $filePath, $user_id);
@@ -605,7 +668,7 @@ class ISPAG_Tank_Designer
             $this->logger->log_user_action(self::LOG_NAME, 'material_defaulted', ['type' => $type, 'material' => $material], $user_id);
         }
 
-        $filePath = __DIR__ . '/../assets/js/default_value.json';
+        $filePath = __DIR__ . '/../assets/json/default_value.json';
         if (!file_exists($filePath) || !is_readable($filePath))
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Default value file not found or not readable - ' . $filePath, $user_id);
@@ -798,7 +861,7 @@ class ISPAG_Tank_Designer
         if (!$article_id || $price <= 0)
         {
             $logger->log(self::LOG_NAME, 'ERROR: Invalid article_id or price', $user_id);
-            wp_send_json_error(['message' => 'Données invalides : ID ou Prix manquant']);
+            wp_send_json_error(['message' => 'Invalid data: missing ID or price']);
             wp_die();
         }
 
@@ -834,10 +897,15 @@ class ISPAG_Tank_Designer
                     $logger->log_user_action(self::LOG_NAME, 'debug_dir_created', ['dir' => $debug_dir], $user_id);
                 }
 
+                // Dossier fermé à l'accès direct (détails de calcul de prix)
+                if (!file_exists($debug_dir . '/.htaccess')) {
+                    @file_put_contents($debug_dir . '/.htaccess', "Require all denied\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n");
+                }
+
                 $current_user = wp_get_current_user();
                 $file_content = "====================================================\n";
                 $file_content .= "RAPPORT DE CALCUL - ARTICLE ID: " . $article_id . "\n";
-                $file_content .= "GÉNÉRÉ PAR : " . $current_user->display_name . " (ID: " . $current_user->ID . ")\n";
+                $file_content .= "GENERATED BY: " . $current_user->display_name . " (ID: " . $current_user->ID . ")\n";
                 $file_content .= "DATE : " . date('d/m/Y H:i:s') . "\n";
                 $file_content .= "====================================================\n\n";
                 $file_content .= $log_details;
@@ -865,7 +933,7 @@ class ISPAG_Tank_Designer
         {
             $error = $wpdb->last_error;
             $logger->log(self::LOG_NAME, 'ERROR: DB update failed - ' . $error, $user_id);
-            wp_send_json_error(['message' => 'Erreur DB : ' . $error]);
+            wp_send_json_error(['message' => 'DB error: ' . $error]);
         }
 
         wp_die();

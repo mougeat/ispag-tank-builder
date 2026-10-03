@@ -47,8 +47,8 @@ function applyNewTankRestrictions(typeId) {
     }
 
     const typeRestrictions = restrictions.typ[typeId];
-    const defaults = typeRestrictions.default;
-    const allowed = typeRestrictions.restrictions;
+    const defaults = typeRestrictions.default || {};
+    const allowed = typeRestrictions.restrictions || {};
 
     // --- 1. Matériaux ---
     if (allowed.Material) {
@@ -143,7 +143,7 @@ function applyNewTankRestrictions(typeId) {
         }
     }
 
-    // console.log(`✅ [TANK] Restrictions appliquées pour le NOUVEAU réservoir (Type ID: ${typeId})`);
+    if (typeof ispagApplyTankRules === 'function') ispagApplyTankRules(typeId);
 }
 
 // =============================================
@@ -328,7 +328,7 @@ Exemple :
     // ---------------------------------------------------------------
     // Écouteurs (délégués, car la modale est chargée en AJAX)
     // ---------------------------------------------------------------
-    $(document).on('change input',
+    $(document).on('change',
         'input[name="tank[height]"], ' +
         'input[name="door_width"], select[name="door_width"], ' +
         'input[name="tank[nbWelding]"]',
@@ -338,7 +338,7 @@ Exemple :
         }
     );
 
-    $(document).on('change input',
+    $(document).on('change',
         'input[name="tank[tipping]"], input[name="room_height"]',
         function () {
             // console.log('⚡ [EVENT] Changement détecté sur un champ de basculement/hauteur de pièce (input/change)');

@@ -28,3 +28,8 @@ debug.log
 
 # Exclure les fichiers ZIP de plugin exporté
 *.zip
+
+# Signatures / fichiers d'identité : jamais dans Git
+signature*.png
+signature*.jpg
+ispag-private/

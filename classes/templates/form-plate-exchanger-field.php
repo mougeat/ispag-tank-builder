@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * ISPAG Plate Heat Exchanger Sub-template
  * @version 1.2.0
@@ -21,7 +22,7 @@
                     <?php 
                     $current_type = $data['exchanger']->type ?? 'brazed';
 
-                    foreach ($this->exchanger_types as $value => $label) : 
+                    foreach ($exchanger_types as $value => $label) : 
                     ?>
                         <option value="<?php echo esc_attr($value); ?>" <?php selected($current_type, $value); ?>>
                             <?php echo esc_html($label); ?>

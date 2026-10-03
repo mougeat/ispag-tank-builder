@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Tank_SVG_Generator {
     protected $wpdb;
@@ -748,8 +749,8 @@ protected function render_cotations_svg($diam, $height) {
         if ($return_var === 0) {
             return plugin_dir_url(__FILE__) . "../assets/svg/cuves/cuves_$article_id.png";
         } else {
-// \1('❌ Conversion SVG vers PNG échouée (Imagick et rsvg-convert).');
-            throw new Exception("Conversion SVG vers PNG échouée (Imagick et rsvg-convert).");
+// \1('❌ SVG to PNG conversion failed (Imagick and rsvg-convert).');
+            throw new Exception("SVG to PNG conversion failed (Imagick and rsvg-convert).");
         }
     }
 

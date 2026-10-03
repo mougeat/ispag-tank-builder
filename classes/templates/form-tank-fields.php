@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * ISPAG Tank Design Sub-template
  * @version 2.1.8

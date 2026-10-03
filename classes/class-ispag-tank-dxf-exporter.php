@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 class ISPAG_Tank_DXF_Exporter {
 
     protected $wpdb;
@@ -31,7 +32,6 @@ class ISPAG_Tank_DXF_Exporter {
         }
         // add_filter('ispag_get_dxf_btn', [self::$instance, 'get_dxf_btn'], 10, 2);
         add_action('wp_ajax_ispag_export_dxf', [self::$instance, 'ispag_export_dxf']);
-        add_action('wp_ajax_nopriv_ispag_export_dxf', [self::$instance, 'ispag_export_dxf']);
     }
 
     // public function get_dxf_btn($html, $article_id) {

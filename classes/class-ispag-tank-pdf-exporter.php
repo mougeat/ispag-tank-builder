@@ -1,7 +1,7 @@
 <?php
 defined('ABSPATH') || exit;
 
-require_once(WP_PLUGIN_DIR . '/ispag-project-manager/libs/fpdf/fpdf.php');
+require_once(ispag_project_manager_dir() . 'libs/fpdf/fpdf.php');
 
 /**
  * Class ISPAG_Tank_PDF_Exporter
@@ -97,7 +97,6 @@ class ISPAG_Tank_PDF_Exporter extends FPDF
         }
 
         add_action('wp_ajax_ispag_export_pdf', [self::$instance, 'ispag_export_pdf']);
-        add_action('wp_ajax_nopriv_ispag_export_pdf', [self::$instance, 'ispag_export_pdf']);
         // $logger->log_user_action(self::LOG_NAME, 'hooks_registered', [], $user_id);
     }
 
@@ -126,7 +125,7 @@ class ISPAG_Tank_PDF_Exporter extends FPDF
         if (!$article_id)
         {
             $this->logger->log(self::LOG_NAME, 'ERROR: Missing article_id', $user_id);
-            wp_send_json_error(['message' => __('ID de l\'article manquant.', 'creation-reservoir')]);
+            wp_send_json_error(['message' => __('Missing article ID.', 'creation-reservoir')]);
             exit;
         }
 

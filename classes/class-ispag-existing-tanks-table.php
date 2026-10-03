@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 
 class ISPAG_Existing_Tanks_Table {
 
@@ -32,7 +33,7 @@ class ISPAG_Existing_Tanks_Table {
                         <i class="dashicons dashicons-lock"></i> 
                         <strong>' . esc_html__( 'Restricted access', 'ispag-crm' ) . ' :</strong> ' . 
                          esc_html__( 'You do not have the necessary rights to view this order.', 'ispag-crm' ) . '<br/>
-                        <a href ="'. home_url( '/wp-login.php' ) . '">' . esc_html__( 'To login page', 'ispag-crm' ) . '</a>
+                        <a href ="'. wp_login_url( get_permalink() ) . '">' . esc_html__( 'To login page', 'ispag-crm' ) . '</a>
                     </div>';
         }
 
@@ -85,95 +86,89 @@ class ISPAG_Existing_Tanks_Table {
                 padding: 8px;
                 color: #777;
             }
-            
-            /* Amélioration visuelle du tableau */
-            .ispag-tanks-table-wrapper { overflow-x: auto; }
-            .ispag-tanks-table-wrapper table { width: 100%; border-collapse: collapse; }
-            .ispag-tanks-table-wrapper th { background: #f8f9fa; text-align: left; padding: 12px; border-bottom: 2px solid #e2e4e7; }
-            .ispag-tanks-table-wrapper td { padding: 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
-            .project-title { color: #2271b1; font-weight: bold; text-decoration: none; font-size: 1.05em; }
-            .project-id { font-size: 0.85em; color: #888; margin-top: 3px; }
-            .badge-info { font-size: 0.85em; background: #e7f3ff; color: #0056b3; padding: 2px 6px; border-radius: 3px; display: inline-block; margin-top: 4px; }
         </style>
 
         <div class="ispag-tanks-container">
             <div class="ispag-toolbar">
-                <form method="get" action="">
+                <form method="get" action="" style="display:contents;">
                     <?php if(!is_admin()): ?>
                         <input type="hidden" name="page_id" value="<?php echo get_the_ID(); ?>">
                     <?php else: ?>
                         <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']); ?>">
                     <?php endif; ?>
 
-                    <div class="filter-group" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                        <input type="search" name="search" value="<?php echo esc_attr($search); ?>" placeholder="Rechercher un projet..." style="min-width: 200px; padding: 6px 10px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;" />
-                        
-                        <select name="tank_type" style="padding: 6px; border-radius: var(--ispag-btn-border-radius);">
-                            <option value="0">Tous les types</option>
+                    <input type="search" name="search" class="ispag-search-field" value="<?php echo esc_attr($search); ?>" placeholder="<?php esc_attr_e('Search for a project...', 'creation-reservoir'); ?>" />
+
+                    <span class="ispag-kanban-filter-wrapper">
+                        <select name="tank_type">
+                            <option value="0"><?php esc_html_e('All types', 'creation-reservoir'); ?></option>
                             <?php $this->render_conception_options('typ', $filters['tank_type']); ?>
                         </select>
+                    </span>
 
-                        <select name="material" style="padding: 6px; border-radius: var(--ispag-btn-border-radius);">
-                            <option value="0">Tous les matériaux</option>
+                    <span class="ispag-kanban-filter-wrapper">
+                        <select name="material">
+                            <option value="0"><?php esc_html_e('All materials', 'creation-reservoir'); ?></option>
                             <?php $this->render_conception_options('material', $filters['material']); ?>
                         </select>
+                    </span>
 
-                        <input type="number" name="volume" value="<?php echo esc_attr($filters['volume']); ?>" placeholder="Volume L" style="width: 90px; padding: 6px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;"/>
-                        <input type="number" name="pressure" value="<?php echo esc_attr($filters['pressure']); ?>" placeholder="Pression" style="width: 80px; padding: 6px; border-radius: var(--ispag-btn-border-radius); border: 1px solid #8c8f94;"/>
+                    <input type="number" name="volume" value="<?php echo esc_attr($filters['volume']); ?>" placeholder="<?php esc_attr_e('Volume L', 'creation-reservoir'); ?>" style="width: 100px;" />
+                    <input type="number" name="pressure" value="<?php echo esc_attr($filters['pressure']); ?>" placeholder="<?php esc_attr_e('Pressure', 'creation-reservoir'); ?>" style="width: 100px;" />
 
-                        <button type="submit" class="button button-primary" style="padding: 0 20px; height: 36px;"><?php _e('Filtrer'); ?></button>
-                        <a href="<?php echo get_permalink(); ?>" class="button" style="height: 36px; line-height: 34px;">Reset</a>
-                        
-                        <span style="margin-left: auto; color: #666; font-size: 0.9em;">
-                            <strong><?php echo $total_items; ?></strong> réservoirs trouvés
-                        </span>
-                    </div>
+                    <button type="submit" class="ispag-btn ispag-btn-grey"><?php esc_html_e('Filter / Search', 'creation-reservoir'); ?></button>
+                    <a href="<?php echo esc_url(get_permalink()); ?>" class="ispag-btn ispag-btn-secondary-outlined"><?php esc_html_e('Reset filters', 'creation-reservoir'); ?></a>
+
+                    <span style="margin-left: auto;">
+                        <strong><?php echo (int) $total_items; ?></strong> <?php esc_html_e('tanks found', 'creation-reservoir'); ?>
+                    </span>
                 </form>
             </div>
 
-            <div class="ispag-tanks-table-wrapper">
-                <table class="wp-list-table widefat fixed striped">
+            <div class="ispag-table-wrapper ispag-card">
+                <table class="ispag-project-table">
                     <thead>
                         <tr>
-                            <th style="width: 100px;">Date</th>
-                            <th>Projet / Article</th>
-                            <th>Conception</th>
-                            <th>Dimensions</th>
-                            <th>Pression</th>
-                            <th style="text-align: right;">Prix Brut</th>
+                            <th><?php esc_html_e('Project / Article', 'creation-reservoir'); ?></th>
+                            <th><?php esc_html_e('Date', 'creation-reservoir'); ?></th>
+                            <th><?php esc_html_e('Design', 'creation-reservoir'); ?></th>
+                            <th><?php esc_html_e('Dimensions', 'creation-reservoir'); ?></th>
+                            <th><?php esc_html_e('Operating pressure', 'creation-reservoir'); ?></th>
+                            <th style="text-align: right;"><?php esc_html_e('Gross unit price', 'creation-reservoir'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if ($results) : foreach ($results as $row) : 
                             $link = !empty($row->hubspot_deal_id) 
-                                ? "https://app.ispag-asp.ch/project-detail/" . esc_attr($row->hubspot_deal_id) 
+                                ? trailingslashit(get_site_url()) . 'project-detail/' . esc_attr($row->hubspot_deal_id) 
                                 : "#";
                             $price = floatval($row->sales_price);
                             if ($price <= 0 && has_filter('ispag_calculate_total_sales_price')) {
                                 $price = apply_filters('ispag_calculate_total_sales_price', $row->article_id);
                             }
                             ?>
-                            <tr>
-                                <td><?php echo date('d.m.Y', strtotime($row->creation_date)); ?></td>
-                                <td>
-                                    <a href="<?php echo $link; ?>" class="project-title"><?php echo esc_html($row->ObjetCommande ?: $row->Article); ?></a>
-                                    <div class="project-id">Article: <?php echo $row->Article; ?> | ID: <?php echo $row->article_id; ?></div>
+                            <tr class="project-row-item">
+                                <td data-label="<?php esc_attr_e('Project / Article', 'creation-reservoir'); ?>" class="td-title">
+                                    <strong><a href="<?php echo esc_url($link); ?>" class="project-link"><?php echo esc_html($row->ObjetCommande ?: $row->Article); ?></a></strong><br>
+                                    <small class="project-number">#<?php echo (int) $row->article_id; ?></small>
+                                    <?php if (!empty($row->Article)) : ?> | <small class="creator-name"><?php echo esc_html($row->Article); ?></small><?php endif; ?>
                                 </td>
-                                <td>
-                                    <strong><?php echo esc_html($row->tank_type_label); ?></strong><br>
-                                    <span class="badge-info"><?php echo esc_html($row->material_label); ?></span>
+                                <td data-label="<?php esc_attr_e('Date', 'creation-reservoir'); ?>"><?php echo esc_html(date('d.m.Y', strtotime($row->creation_date))); ?></td>
+                                <td data-label="<?php esc_attr_e('Design', 'creation-reservoir'); ?>" class="td-contact">
+                                    <span class="company-name"><?php echo esc_html($row->tank_type_label); ?></span><br>
+                                    <small class="creator-name"><?php echo esc_html($row->material_label); ?></small>
                                 </td>
-                                <td>
-                                    <strong><?php echo $row->Volume; ?> L</strong><br>
-                                    <small>Ø <?php echo $row->Diameter; ?> x H <?php echo $row->Height; ?> mm</small>
+                                <td data-label="<?php esc_attr_e('Dimensions', 'creation-reservoir'); ?>" class="td-contact">
+                                    <span class="company-name"><?php echo esc_html($row->Volume); ?> L</span><br>
+                                    <small class="creator-name">Ø <?php echo esc_html($row->Diameter); ?> x H <?php echo esc_html($row->Height); ?> mm</small>
                                 </td>
-                                <td><span style="background: #fff8e5; padding: 3px 7px; border-radius: var(--ispag-btn-border-radius); font-weight: bold;"><?php echo $row->MaxPressure; ?> bar</span></td>
-                                <td style="text-align: right;">
-                                    <strong style="color: #2c3338; font-size: 1.1em;"><?php echo $price > 0 ? number_format($price, 2, '.', "'") . ' CHF' : '—'; ?></strong>
+                                <td data-label="<?php esc_attr_e('Operating pressure', 'creation-reservoir'); ?>" class="td-step"><span class="ispag-next-step-badge step-badge" style="color:#8c8f94; border:1px solid #8c8f94;"><?php echo esc_html($row->MaxPressure); ?> bar</span></td>
+                                <td data-label="<?php esc_attr_e('Gross unit price', 'creation-reservoir'); ?>" style="text-align: right;">
+                                    <strong><?php echo $price > 0 ? esc_html(number_format($price, 2, '.', "'")) . ' CHF' : '—'; ?></strong>
                                 </td>
                             </tr>
                         <?php endforeach; else : ?>
-                            <tr><td colspan="6" style="text-align:center; padding: 40px;">Aucun résultat trouvé pour vos filtres.</td></tr>
+                            <tr><td colspan="6" style="text-align:center; padding: 40px;">No result found for your filters.</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -185,7 +180,7 @@ class ISPAG_Existing_Tanks_Table {
                     echo paginate_links([
                         'base'      => add_query_arg('paged', '%#%', remove_query_arg('paged')),
                         'format'    => '',
-                        'prev_text' => __('&laquo; Précédent'),
+                        'prev_text' => __('&laquo; Previous'),
                         'next_text' => __('Suivant &raquo;'),
                         'total'     => $total_pages,
                         'current'   => $paged,

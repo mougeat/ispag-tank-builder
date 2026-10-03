@@ -1,4 +1,5 @@
 <?php
+defined('ABSPATH') || exit;
 /**
  * ISPAG Welding Row Template
  * @version 2.1.9 - Fixed Alignment
