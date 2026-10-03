@@ -56,6 +56,31 @@ class ISPAG_Tank_Manager {
         wp_enqueue_script('ispag-tank-builder', plugin_dir_url(__FILE__) . '../assets/js/tank-builder.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-tank-dynamic-fields', plugin_dir_url(__FILE__) . '../assets/js/tank-dynamic-fields.js', ['jquery'], false, true);
         wp_enqueue_script('ispag-tank-wizard', plugin_dir_url(__FILE__) . '../assets/js/tank-wizard.js', ['jquery', 'ispag-tank-builder', 'ispag-tank-dynamic-fields'], @filemtime(__DIR__ . '/../assets/js/tank-wizard.js') ?: false, true);
+        wp_localize_script('ispag-tank-wizard', 'ispagWizardI18n', [
+            'design' => __('Design', 'creation-reservoir'),
+            'dimensions' => __('Dimensions', 'creation-reservoir'),
+            'welding' => __('Welding', 'creation-reservoir'),
+            'fittings' => __('Fittings', 'creation-reservoir'),
+            'insulation' => __('Insulation', 'creation-reservoir'),
+            'details' => __('Details & save', 'creation-reservoir'),
+            'no_welding' => __('No welding for this tank', 'creation-reservoir'),
+            'no_insulation' => __('No insulation for this tank', 'creation-reservoir'),
+            'fittings_unavailable' => __('The fittings editor is not available on this page. Add the fittings from the article list.', 'creation-reservoir'),
+            'saving' => __('Saving…', 'creation-reservoir'),
+            'next' => __('Next', 'creation-reservoir'),
+            'back' => __('Back', 'creation-reservoir'),
+            'save' => __('Save', 'creation-reservoir'),
+            'choose_material' => __('Choose a material.', 'creation-reservoir'),
+            'choose_diameter' => __('Choose a diameter.', 'creation-reservoir'),
+            'enter_volume' => __('Enter the volume.', 'creation-reservoir'),
+            'confirm_no_fitting' => __('No fitting has been added to this tank. Continue without fittings?', 'creation-reservoir'),
+            'add_fitting' => __('Add at least one fitting, or confirm to continue without.', 'creation-reservoir'),
+            'no_insulation_added' => __('No insulation could be added.', 'creation-reservoir'),
+            'save_failed' => __('Save failed', 'creation-reservoir'),
+            'tank_not_saved' => __('The tank could not be saved. Check the values and try again.', 'creation-reservoir'),
+            'server_error' => __('Server error while saving. Try again.', 'creation-reservoir'),
+            'tank_saved_add_fittings' => __('The tank is saved. Add its fittings below; they are saved when you continue.', 'creation-reservoir'),
+        ]);
         wp_enqueue_script('ispag-exchanger-builder', plugin_dir_url(__FILE__) . '../assets/js/exchanger-builder.js', ['jquery', 'ispag-tank-builder'], false, true);
         // wp_enqueue_script('ispag-tank-pricing', plugin_dir_url(__FILE__) . '../assets/js/tank-pricing.js', ['jquery'], false, true);
         // wp_enqueue_script('ispag-tank-fitting', plugin_dir_url(__FILE__) . '../assets/js/fittings-pricing.js', ['jquery'], false, true);

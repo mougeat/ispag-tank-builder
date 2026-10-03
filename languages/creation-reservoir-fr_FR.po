@@ -713,37 +713,105 @@ msgstr "– Aucune –"
 msgid "Type of covering"
 msgstr "Type d'habillage"
 
-#: classes/class-ispag-tank-manager.php:119
-msgid "Generate namesplate"
-msgstr "Générer la plaque signalétique"
-
-#: classes/class-ispag-tank-manager.php:256
-msgid "Technical sheet"
-msgstr "Fiche technique"
-
-#: classes/class-ispag-tank-manager.php:358
-msgid "Sketch"
-msgstr "Croquis"
-
-#: classes/class-ispag-tank-manager.php:405
-msgid "Access denied."
-msgstr "Accès refusé."
-
-#: classes/class-ispag-tank-manager.php:83
+#: classes/class-ispag-tank-manager.php:108
 msgid "error while saving fitting"
 msgstr "erreur lors de l'enregistrement du piquage"
 
-#: classes/class-ispag-tank-manager.php:90
+#: classes/class-ispag-tank-manager.php:115
 msgid "Standard shipping available in Switzerland."
 msgstr "Expédition standard possible en Suisse."
 
-#: classes/class-ispag-tank-manager.php:91
+#: classes/class-ispag-tank-manager.php:116
 msgid "Oversized transport requiring standard authorization."
 msgstr "Transport hors gabarit nécessitant une autorisation standard."
 
-#: classes/class-ispag-tank-manager.php:92
+#: classes/class-ispag-tank-manager.php:117
 msgid "Oversized load requiring special authorization (escort may be required)."
 msgstr "Chargement hors gabarit nécessitant une autorisation spéciale (accompagnement possiblement requis)."
+
+#: classes/class-ispag-tank-manager.php:144
+msgid "Generate namesplate"
+msgstr "Générer la plaque signalétique"
+
+#: classes/class-ispag-tank-manager.php:281
+msgid "Technical sheet"
+msgstr "Fiche technique"
+
+#: classes/class-ispag-tank-manager.php:383
+msgid "Sketch"
+msgstr "Croquis"
+
+#: classes/class-ispag-tank-manager.php:430
+msgid "Access denied."
+msgstr "Accès refusé."
+
+#: classes/class-ispag-tank-manager.php:65
+msgid "Details & save"
+msgstr "Détails et enregistrement"
+
+#: classes/class-ispag-tank-manager.php:66
+msgid "No welding for this tank"
+msgstr "Pas de soudure pour ce réservoir"
+
+#: classes/class-ispag-tank-manager.php:67
+msgid "No insulation for this tank"
+msgstr "Pas d'isolation pour ce réservoir"
+
+#: classes/class-ispag-tank-manager.php:68
+msgid "The fittings editor is not available on this page. Add the fittings from the article list."
+msgstr "L'éditeur de piquages n'est pas disponible sur cette page. Ajoutez les piquages depuis la liste des articles."
+
+#: classes/class-ispag-tank-manager.php:69
+msgid "Saving…"
+msgstr "Enregistrement…"
+
+#: classes/class-ispag-tank-manager.php:70
+msgid "Next"
+msgstr "Suivant"
+
+#: classes/class-ispag-tank-manager.php:71
+msgid "Back"
+msgstr "Retour"
+
+#: classes/class-ispag-tank-manager.php:73
+msgid "Choose a material."
+msgstr "Choisissez un matériau."
+
+#: classes/class-ispag-tank-manager.php:74
+msgid "Choose a diameter."
+msgstr "Choisissez un diamètre."
+
+#: classes/class-ispag-tank-manager.php:75
+msgid "Enter the volume."
+msgstr "Saisissez le volume."
+
+#: classes/class-ispag-tank-manager.php:76
+msgid "No fitting has been added to this tank. Continue without fittings?"
+msgstr "Aucun piquage n'a été ajouté à ce réservoir. Continuer sans piquages ?"
+
+#: classes/class-ispag-tank-manager.php:77
+msgid "Add at least one fitting, or confirm to continue without."
+msgstr "Ajoutez au moins un piquage, ou confirmez pour continuer sans."
+
+#: classes/class-ispag-tank-manager.php:78
+msgid "No insulation could be added."
+msgstr "Aucune isolation n'a pu être ajoutée."
+
+#: classes/class-ispag-tank-manager.php:79
+msgid "Save failed"
+msgstr "Échec de l'enregistrement"
+
+#: classes/class-ispag-tank-manager.php:80
+msgid "The tank could not be saved. Check the values and try again."
+msgstr "Le réservoir n'a pas pu être enregistré. Vérifiez les valeurs et réessayez."
+
+#: classes/class-ispag-tank-manager.php:81
+msgid "Server error while saving. Try again."
+msgstr "Erreur du serveur pendant l'enregistrement. Réessayez."
+
+#: classes/class-ispag-tank-manager.php:82
+msgid "The tank is saved. Add its fittings below; they are saved when you continue."
+msgstr "Le réservoir est enregistré. Ajoutez ses piquages ci-dessous ; ils sont enregistrés lorsque vous continuez."
 
 #: classes/class-ispag-tank-pdf-exporter.php:128
 msgid "Missing article ID."

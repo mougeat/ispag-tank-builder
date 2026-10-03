@@ -713,37 +713,105 @@ msgstr "– Keine –"
 msgid "Type of covering"
 msgstr "Mantelart"
 
-#: classes/class-ispag-tank-manager.php:119
-msgid "Generate namesplate"
-msgstr "Typenschild erstellen"
-
-#: classes/class-ispag-tank-manager.php:256
-msgid "Technical sheet"
-msgstr "Datenblatt"
-
-#: classes/class-ispag-tank-manager.php:358
-msgid "Sketch"
-msgstr "Skizze"
-
-#: classes/class-ispag-tank-manager.php:405
-msgid "Access denied."
-msgstr "Zugriff verweigert."
-
-#: classes/class-ispag-tank-manager.php:83
+#: classes/class-ispag-tank-manager.php:108
 msgid "error while saving fitting"
 msgstr "Fehler beim Speichern des Stutzens"
 
-#: classes/class-ispag-tank-manager.php:90
+#: classes/class-ispag-tank-manager.php:115
 msgid "Standard shipping available in Switzerland."
 msgstr "Standardversand in der Schweiz möglich."
 
-#: classes/class-ispag-tank-manager.php:91
+#: classes/class-ispag-tank-manager.php:116
 msgid "Oversized transport requiring standard authorization."
 msgstr "Übermasstransport mit Standardbewilligung."
 
-#: classes/class-ispag-tank-manager.php:92
+#: classes/class-ispag-tank-manager.php:117
 msgid "Oversized load requiring special authorization (escort may be required)."
 msgstr "Übermassladung mit Sonderbewilligung (Begleitfahrzeug möglicherweise erforderlich)."
+
+#: classes/class-ispag-tank-manager.php:144
+msgid "Generate namesplate"
+msgstr "Typenschild erstellen"
+
+#: classes/class-ispag-tank-manager.php:281
+msgid "Technical sheet"
+msgstr "Datenblatt"
+
+#: classes/class-ispag-tank-manager.php:383
+msgid "Sketch"
+msgstr "Skizze"
+
+#: classes/class-ispag-tank-manager.php:430
+msgid "Access denied."
+msgstr "Zugriff verweigert."
+
+#: classes/class-ispag-tank-manager.php:65
+msgid "Details & save"
+msgstr "Details und Speichern"
+
+#: classes/class-ispag-tank-manager.php:66
+msgid "No welding for this tank"
+msgstr "Keine Schweissung für diesen Behälter"
+
+#: classes/class-ispag-tank-manager.php:67
+msgid "No insulation for this tank"
+msgstr "Keine Isolation für diesen Behälter"
+
+#: classes/class-ispag-tank-manager.php:68
+msgid "The fittings editor is not available on this page. Add the fittings from the article list."
+msgstr "Der Stutzen-Editor ist auf dieser Seite nicht verfügbar. Fügen Sie die Stutzen über die Artikelliste hinzu."
+
+#: classes/class-ispag-tank-manager.php:69
+msgid "Saving…"
+msgstr "Wird gespeichert…"
+
+#: classes/class-ispag-tank-manager.php:70
+msgid "Next"
+msgstr "Weiter"
+
+#: classes/class-ispag-tank-manager.php:71
+msgid "Back"
+msgstr "Zurück"
+
+#: classes/class-ispag-tank-manager.php:73
+msgid "Choose a material."
+msgstr "Wählen Sie ein Material."
+
+#: classes/class-ispag-tank-manager.php:74
+msgid "Choose a diameter."
+msgstr "Wählen Sie einen Durchmesser."
+
+#: classes/class-ispag-tank-manager.php:75
+msgid "Enter the volume."
+msgstr "Geben Sie das Volumen ein."
+
+#: classes/class-ispag-tank-manager.php:76
+msgid "No fitting has been added to this tank. Continue without fittings?"
+msgstr "Diesem Behälter wurde kein Stutzen hinzugefügt. Ohne Stutzen fortfahren?"
+
+#: classes/class-ispag-tank-manager.php:77
+msgid "Add at least one fitting, or confirm to continue without."
+msgstr "Fügen Sie mindestens einen Stutzen hinzu oder bestätigen Sie, um ohne fortzufahren."
+
+#: classes/class-ispag-tank-manager.php:78
+msgid "No insulation could be added."
+msgstr "Es konnte keine Isolation hinzugefügt werden."
+
+#: classes/class-ispag-tank-manager.php:79
+msgid "Save failed"
+msgstr "Speichern fehlgeschlagen"
+
+#: classes/class-ispag-tank-manager.php:80
+msgid "The tank could not be saved. Check the values and try again."
+msgstr "Der Behälter konnte nicht gespeichert werden. Prüfen Sie die Werte und versuchen Sie es erneut."
+
+#: classes/class-ispag-tank-manager.php:81
+msgid "Server error while saving. Try again."
+msgstr "Serverfehler beim Speichern. Bitte versuchen Sie es erneut."
+
+#: classes/class-ispag-tank-manager.php:82
+msgid "The tank is saved. Add its fittings below; they are saved when you continue."
+msgstr "Der Behälter ist gespeichert. Fügen Sie unten seine Stutzen hinzu; sie werden beim Fortfahren gespeichert."
 
 #: classes/class-ispag-tank-pdf-exporter.php:128
 msgid "Missing article ID."
