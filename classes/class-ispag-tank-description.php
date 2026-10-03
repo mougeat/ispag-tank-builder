@@ -135,18 +135,15 @@ class ISPAG_Tank_Description {
         if (!is_numeric($article_id)) return false;
 
         global $wpdb;
-        $sql = $wpdb->prepare("
-            SELECT DrawingApproved 
-            FROM {$wpdb->prefix}achats_details_commande
-            WHERE Id = %d
-            LIMIT 1
-        ", $article_id);
 
-        $result = $wpdb->get_var($sql);
+        // Approuvé tant qu'un document drawingApproval est lié à la cuve
+        $count = (int) $wpdb->get_var($wpdb->prepare("
+            SELECT COUNT(*)
+            FROM {$wpdb->prefix}achats_historique
+            WHERE Historique = %s AND ClassCss = 'drawingApproval'
+        ", (string) $article_id));
 
-
-
-        return intval($result) === 1;
+        return $count > 0;
     }
 
     
