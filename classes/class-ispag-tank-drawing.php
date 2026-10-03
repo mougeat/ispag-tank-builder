@@ -306,6 +306,15 @@ class ISPAG_Tank_Drawing {
                 'ClassCss'        => 'drawingModification',
             ], ['%d', '%d', '%d', '%s', '%d', '%s', '%d', '%d', '%d', '%s']);
 
+            // Étape « Customer drawing » du suivi du projet : modifications demandées (comme pour le plan du fournisseur)
+            if (class_exists('ISPAG_Project_Phase_Tracker')) {
+                ISPAG_Project_Phase_Tracker::record_status_change($deal_id, 'EnvoiePlanClient', 11, [
+                    'source'      => ISPAG_Project_Phase_Tracker::SOURCE_AUTOMATIC,
+                    'modified_by' => $user_id,
+                    'comment'     => 'Drawing modification requested (article ' . $article_id . ')',
+                ]);
+            }
+
             if (class_exists('ISPAG_Notifications_Manager')) {
                 $who = get_userdata($user_id);
                 $deal_creator = class_exists('ISPAG_Project_Details_Repository') ? (new ISPAG_Project_Details_Repository())->get_deal_created_by($deal_id) : 0;
