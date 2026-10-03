@@ -581,10 +581,11 @@ function findClosestDiameter(targetVolume, bottomHeight, clearance, conceptionId
 // Sauvegarde des données techniques du réservoir
 function saveTankData(articleId, is_purchase = false) {
 
-    // Formulaire sans données de réservoir (sous-article, capot…) : rien à enregistrer
-    if (!$('[name="tank[type]"]').length) return $.Deferred().resolve({ success: true, data: { skipped: true } }).promise();
+    // Échangeur à plaques : ses données sont enregistrées même sans formulaire de réservoir (article de type échangeur)
+    const exchangerSaved = saveHeatExchangerData(articleId, is_purchase);
 
-    saveHeatExchangerData(articleId, is_purchase);
+    // Formulaire sans données de réservoir (sous-article, capot, échangeur…) : rien d'autre à enregistrer
+    if (!$('[name="tank[type]"]').length) return $.when(exchangerSaved).then(function () { return { success: true, data: { skipped: true } }; });
 
     const tank = {
         type:                   $('[name="tank[type]"]').val(),
@@ -735,6 +736,44 @@ jQuery(document).ready(function($) {
 
     $(document).on('click', '#open-tank-fittings-modal', function() {
         window.ispagOpenFittings($(this), false);
+    });
+
+    // --- Bouton « Fittings » de la fenêtre d'édition d'un réservoir ---
+    // Instantané du formulaire à l'ouverture : permet de savoir si des modifications sont en attente
+    $(document).on('ispag_tank_modal_loaded', function () {
+        setTimeout(function () {
+            const $f = $('#ispag-edit-article-form');
+            if ($f.length) $f.data('ispagInitial', $f.serialize());
+        }, 600);
+    });
+
+    function openFittingsFromEdit($form, articleId) {
+        const $t = $('<span>').attr({
+            'data-article-id': articleId,
+            'data-tank-diameter': $form.find('[name="tank[diameter]"]').val() || '',
+            'data-tank-pression': $form.find('[name="tank[max_pressure]"]').val() || '',
+            'data-tank-using-temp': $form.find('[name="tank[temperature]"]').val() || '',
+            'data-tank-insulation-thickness': $form.find('[name="tank[InsulationThickness]"]').val() || '',
+            'data-tank-supplier': $form.find('#tank-supplier-display').val() || ''
+        });
+        window.ispagOpenFittings($t, false);
+    }
+
+    $(document).on('click', '.ispag-open-fittings-from-edit', function () {
+        const $form = $('#ispag-edit-article-form');
+        const articleId = $(this).data('article-id');
+        const initial = $form.data('ispagInitial');
+        const dirty = initial !== undefined && $form.serialize() !== initial;
+
+        if (!dirty) { openFittingsFromEdit($form, articleId); return; }
+
+        // Modifications en attente : enregistrer d'abord (OK) ou continuer sans enregistrer (Annuler)
+        if (window.confirm('You have unsaved changes. Save them before opening the fittings?\n\nOK = save and continue, Cancel = continue without saving')) {
+            $(document).one('ispag:article-saved', function () { openFittingsFromEdit($form, articleId); });
+            $form.trigger('submit');
+        } else {
+            openFittingsFromEdit($form, articleId);
+        }
     });
 
     $(document).on('click', '.ispag-modal-close', function() {

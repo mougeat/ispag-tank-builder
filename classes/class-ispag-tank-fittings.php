@@ -43,14 +43,14 @@ class ISPAG_Tank_Fittings {
                 id="open-tank-fittings-modal"
                 data-article-id="'. $article_id . '"
                 data-purchase-article-id="'. $purchase_article_id . '"
-                data-tank-diameter="' . $tank_datas['dimensions']->Diameter . '"
-                data-tank-pression="' . $tank_datas['dimensions']->MaxPressure . '"
-                data-tank-using-temp="' . $tank_datas['dimensions']->usingTemperature . '"
-                data-tank-insulation-thickness="' . $tank_datas['insulation']->InsulationThickness . '"
-                data-tank-supplier="' . $article->fournisseur_nom . '"
+                data-tank-diameter="' . (is_object($tank_datas['dimensions'] ?? null) ? $tank_datas['dimensions']->Diameter : '') . '"
+                data-tank-pression="' . (is_object($tank_datas['dimensions'] ?? null) ? $tank_datas['dimensions']->MaxPressure : '') . '"
+                data-tank-using-temp="' . (is_object($tank_datas['dimensions'] ?? null) ? $tank_datas['dimensions']->usingTemperature : '') . '"
+                data-tank-insulation-thickness="' . (is_object($tank_datas['insulation'] ?? null) ? $tank_datas['insulation']->InsulationThickness : '') . '"
+                data-tank-supplier="' . ($article->fournisseur_nom ?? '') . '"
                 title="' . __('Configure fittings', 'creation-reservoir') . '"
                 >
-                    <span class="dashicons dashicons-admin-tools"></span>
+                    <span class="dashicons dashicons-admin-tools"></span> ' . __('Fittings', 'creation-reservoir') . '
         </button>';
         // 
     }

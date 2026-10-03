@@ -195,6 +195,7 @@ class ISPAG_Plate_Heat_exchanger_Designer {
     public function render_dimensions_form($article_id, $source = 'project') {
         $data['exchanger'] = $this->get_exchanger_data($article_id);
         $fluids = $this->get_fluids();
+        $exchanger_types = $this->get_exchanger_types();
 
         ob_start();
         include plugin_dir_path(__FILE__) . 'templates/form-plate-exchanger-field.php'; 

@@ -123,6 +123,7 @@ class ISPAG_Tank_Exchanger
         $this->logger->log_db_change(self::LOG_NAME, 'tank_ids', 'FETCH', ['article_id' => $article_id, 'tank_id' => $tank_id], $user_id);
 
         $btn = '<button class="openExchangerModal ispag-btn ispag-btn-grey-outlined" data-tank-id="' . esc_attr($tank_id) . '">'
+            . '<i class="fas fa-temperature-high" aria-hidden="true"></i> '
             . __('Heat exchanger', 'creation-reservoir')
             . '</button>'
             . $this->heat_exchanger_modal($tank_id);
